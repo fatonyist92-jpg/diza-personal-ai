@@ -11,7 +11,7 @@ app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     service: 'diza-realtime-gateway',
-    version: '0.2.1'
+    version: '0.2.2'
   });
 });
 
@@ -51,7 +51,7 @@ app.get('/token', async (_req, res) => {
             interrupt_response: true
           },
           transcription: {
-            model: 'gpt-transcribe',
+            model: 'gpt-4o-mini-transcribe',
             language: 'id'
           }
         },
@@ -99,3 +99,5 @@ app.get('/token', async (_req, res) => {
 app.listen(port, '0.0.0.0', () => {
   console.log('Diza Realtime gateway listening on :' + port);
 });
+
+export default app;
