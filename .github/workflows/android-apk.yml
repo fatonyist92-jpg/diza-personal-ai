@@ -11,25 +11,44 @@ on:
       - "settings.gradle.kts"
       - ".github/workflows/android-apk.yml"
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
+
       - name: Build debug APK
         run: gradle :app:assembleDebug
+
+      - name: Copy release APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk Diza-v0.3.2.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: Diza-v0.3.2-test-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: Diza-v0.3.2.apk
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete v0.3.2 --cleanup-tag --yes || true
+          git tag -f v0.3.2
+          git push origin -f v0.3.2
+          gh release create v0.3.2 Diza-v0.3.2.apk             --title "Diza v0.3.2 Test Mode"             --notes "Test Mode lokal tanpa API. Pilih Avatar HD dari Gallery, waveform mic, transcript overlay, dan demo gerak avatar."
