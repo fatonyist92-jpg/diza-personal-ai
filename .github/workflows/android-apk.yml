@@ -29,13 +29,21 @@ jobs:
           path: ~/.android/debug.keystore
           key: diza-debug-keystore-v1
 
-      - name: Fetch bundled Diza avatar
+      - name: Fetch Diza visual assets
         run: |
           mkdir -p app/src/main/res/drawable-nodpi
+          mkdir -p app/src/main/res/raw
+
           curl --fail --location --retry 3 --retry-delay 2 \
-            'https://uca3cb35b94d53f4451851cfb958.dl.dropboxusercontent.com/cd/0/get/DIU3CkaL8Rh0cnBXwm6GMd4bxi6KdOvGbvWu6KjclWq7oj2AneXEknZptM9RgzAc4XjXlamMDxVlzc4GV8r7ihwsk07BPIzNw19t63fGwco4ae8NUtUZF5JISpj3wDrbnIT2RVNmZIZplJkYUl0AZ7ZGuNJYAdsehYbWV59wfKzZPA/file?c_luid=41a51812' \
+            'https://uc54fd20dfaaf91e6a75aa7d0713.dl.dropboxusercontent.com/cd/0/get/DIXUtifYcE3xuInz1IqYwMhQo3esVw8B7N6GEeaJu9ne1vO6EETBS-Sxn6fK9F9MUgnTZbpfVs7fl2bd4TC1U7Kg5kedrZthwB7ThFnYflxy5Zd0guLy82zV4-nH0VnAMf3pL0niWb4Tns9gwZ8Q_z8ES_lX3JdUqjNWMH4ODonWaA/file?c_luid=41a51812' \
             --output app/src/main/res/drawable-nodpi/diza_avatar_default.png
+
+          curl --fail --location --retry 3 --retry-delay 2 \
+            'https://uc6ef28c781b11bc4b55a05d0f9d.dl.dropboxusercontent.com/cd/0/get/DIUK3sRjChLuP5RY6CxSUGo729Pd0yQvOAd4lfmvEf0rz5TCk-Hx-DY3-Mbxt9ShMBkSV8_fmMFuu_WJwjGwdEFnjZ5THIKyjTvKmyYuhAHAecxY2OCRP05NRyviY3Kn4ArGVKeIg42kR-mVZ2ygKs-P49wELtzrhQQVf0bhx_WRxQ/file?c_luid=41a51812' \
+            --output app/src/main/res/raw/diza_opening.mp4
+
           echo 'c614a927bc68b64c40862ada63139ad3fe3c7cc7b7312ff4f40372d20c674376  app/src/main/res/drawable-nodpi/diza_avatar_default.png' | sha256sum -c -
+          echo '9064d50d7335671d298cbc5431af9fc419190150a90fd8dc86e2b6e748665904  app/src/main/res/raw/diza_opening.mp4' | sha256sum -c -
 
       - name: Java 17
         uses: actions/setup-java@v4
@@ -51,22 +59,28 @@ jobs:
       - name: Build APK
         run: gradle :app:assembleDebug
 
-      - name: Copy APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk Diza-v0.3.6.apk
+      - name: Copy release files
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk Diza-v0.3.7.apk
+          cp app/src/main/res/raw/diza_opening.mp4 diza-opening-v1.mp4
+          cp app/src/main/res/drawable-nodpi/diza_avatar_default.png avatar-source-v2.png
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Diza-v0.3.6
-          path: Diza-v0.3.6.apk
+          name: Diza-v0.3.7
+          path: Diza-v0.3.7.apk
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.3.6 --cleanup-tag --yes || true
-          git tag -f v0.3.6
-          git push origin -f v0.3.6
-          gh release create v0.3.6 Diza-v0.3.6.apk \
-            --title "Diza v0.3.6" \
-            --notes "Avatar diganti ke foto terbaru. Transcript dipindah tepat di atas waveform dan bergerak mengikuti level suara mic/TTS. Fake whole-photo motion tetap dimatikan."
+          gh release delete v0.3.7 --cleanup-tag --yes || true
+          git tag -f v0.3.7
+          git push origin -f v0.3.7
+          gh release create v0.3.7 \
+            Diza-v0.3.7.apk \
+            diza-opening-v1.mp4 \
+            avatar-source-v2.png \
+            --title "Diza v0.3.7" \
+            --notes "Cinematic splash DIZA + AI Personal Assistant, opening video, seamless transition ke avatar, lalu seluruh UI fade-in. Transcript tetap audio-reactive di atas waveform."

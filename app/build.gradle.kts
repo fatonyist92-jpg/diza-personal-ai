@@ -19,8 +19,8 @@ android {
         applicationId = "com.fatoni.diza"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "0.3.6"
+        versionCode = 12
+        versionName = "0.3.7"
 
         buildConfigField(
             "String",
@@ -53,6 +53,8 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
+    implementation("androidx.media3:media3-exoplayer:1.7.1")
+    implementation("androidx.media3:media3-ui:1.7.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
 
