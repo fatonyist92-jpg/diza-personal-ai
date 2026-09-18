@@ -302,7 +302,7 @@ fun DizaApp() {
                     ),
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(horizontal = 22.dp, bottom = 68.dp)
+                        .padding(start = 22.dp, end = 22.dp, bottom = 68.dp)
                         .graphicsLayer {
                             translationY = -voiceLevel * 8f
                             scaleX = 1f + voiceLevel * 0.018f

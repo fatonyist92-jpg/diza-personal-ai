@@ -33,7 +33,7 @@ jobs:
         run: |
           mkdir -p app/src/main/res/drawable-nodpi
           curl --fail --location --retry 3 --retry-delay 2 \
-            'https://ucc8379d82bc263fba16a7b2ead1.dl.dropboxusercontent.com/cd/0/get/DIUmPnHNwnOoac9ixtzawnbq1aArqmtZrSM1u0j0ILnhmPGDOTp6UMeRdWQseKUK5i1Sw_wYqKa_pWNmrVAQdr_BSdWPIPcCUo8RT1CpLMqiCYuZqNnNxhEMDvThEkFwgTeaPXVt4S9kvDEwmaF0Bpf0C_Ic1vMviX1Lt676ITMpQA/file?c_luid=41a51812' \
+            'https://uca3cb35b94d53f4451851cfb958.dl.dropboxusercontent.com/cd/0/get/DIU3CkaL8Rh0cnBXwm6GMd4bxi6KdOvGbvWu6KjclWq7oj2AneXEknZptM9RgzAc4XjXlamMDxVlzc4GV8r7ihwsk07BPIzNw19t63fGwco4ae8NUtUZF5JISpj3wDrbnIT2RVNmZIZplJkYUl0AZ7ZGuNJYAdsehYbWV59wfKzZPA/file?c_luid=41a51812' \
             --output app/src/main/res/drawable-nodpi/diza_avatar_default.png
           echo 'c614a927bc68b64c40862ada63139ad3fe3c7cc7b7312ff4f40372d20c674376  app/src/main/res/drawable-nodpi/diza_avatar_default.png' | sha256sum -c -
 
