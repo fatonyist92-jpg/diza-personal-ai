@@ -268,8 +268,17 @@ fun DizaApp(vm: DizaViewModel = viewModel()) {
                                 "DizaAndroid"
                             )
 
-                            loadUrl(
-                                "https://appassets.androidplatform.net/assets/avatar/index.html"
+                            val html = ctx.assets
+                                .open("avatar/index.html")
+                                .bufferedReader()
+                                .use { it.readText() }
+
+                            loadDataWithBaseURL(
+                                "https://appassets.androidplatform.net/assets/avatar/",
+                                html,
+                                "text/html",
+                                "UTF-8",
+                                null
                             )
                             avatarWebView = this
                         }
