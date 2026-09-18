@@ -2,37 +2,30 @@ package com.fatoni.diza
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.util.Base64
-import android.webkit.PermissionRequest
-import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,21 +35,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.webkit.WebViewAssetLoader
-import com.fatoni.diza.ui.DizaViewModel
 import org.json.JSONObject
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,87 +50,201 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private class DizaJsBridge(
-    private val vm: DizaViewModel,
-    private val onConnected: (Boolean) -> Unit
-) {
-    private val main = Handler(Looper.getMainLooper())
-
-    @android.webkit.JavascriptInterface
-    fun onState(state: String) = main.post { vm.avatarState = state }
-
-    @android.webkit.JavascriptInterface
-    fun onUserTranscript(text: String) = main.post { vm.addUserTranscript(text) }
-
-    @android.webkit.JavascriptInterface
-    fun onAssistantTranscript(text: String) =
-        main.post { vm.addAssistantTranscript(text) }
-
-    @android.webkit.JavascriptInterface
-    fun onRealtimeConnected(connected: Boolean) =
-        main.post { onConnected(connected) }
-
-    @android.webkit.JavascriptInterface
-    fun onError(message: String) = main.post { vm.setError(message) }
-}
-
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun DizaApp(vm: DizaViewModel = viewModel()) {
-    val context = LocalContext.current
-    var realtimeConnected by remember { mutableStateOf(false) }
-    var avatarWebView by remember { mutableStateOf<WebView?>(null) }
-    val backendUrl = remember { BuildConfig.DIZA_REALTIME_BACKEND_URL }
+fun DizaApp() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val handler = remember { Handler(Looper.getMainLooper()) }
+    val prefs = remember { context.getSharedPreferences("diza_avatar", 0) }
 
-    val avatarBitmap = remember {
+    var webView by remember { mutableStateOf<WebView?>(null) }
+    var testMode by remember { mutableStateOf(false) }
+    var dizaSpeaking by remember { mutableStateOf(false) }
+    var errorText by remember { mutableStateOf("") }
+    var speechRecognizer by remember { mutableStateOf<SpeechRecognizer?>(null) }
+    var tts by remember { mutableStateOf<TextToSpeech?>(null) }
+
+    fun js(code: String) {
+        webView?.evaluateJavascript(code, null)
+    }
+
+    fun pushAvatar(uri: Uri, target: WebView? = webView) {
+        val view = target ?: return
         runCatching {
-            val encoded = context.assets
-                .open("avatar/diza_reference.b64")
-                .bufferedReader()
-                .use { it.readText() }
-                .trim()
-
-            val bytes = Base64.decode(encoded, Base64.DEFAULT)
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-        }.getOrNull()
+            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: error("Foto tidak bisa dibaca")
+            val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
+            val dataUri = "data:" + mime + ";base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
+            view.evaluateJavascript(
+                "window.DizaAvatar?.setAvatarData(" + JSONObject.quote(dataUri) + ");",
+                null
+            )
+        }.onFailure {
+            errorText = "Avatar gagal dimuat: " + (it.message ?: "unknown")
+        }
     }
 
-    val avatarScale by animateFloatAsState(
-        targetValue = when (vm.avatarState) {
-            "speaking" -> 1.025f
-            "listening" -> 1.012f
-            "thinking", "connecting" -> 1.006f
-            else -> 1f
-        },
-        animationSpec = tween(260),
-        label = "avatarScale"
-    )
-
-    fun startRealtime() {
-        val webView = avatarWebView ?: return
-        val quoted = JSONObject.quote(backendUrl)
-        webView.evaluateJavascript(
-            "window.DizaRealtime?.configure({backendUrl:$quoted});window.DizaRealtime?.start();",
-            null
-        )
+    fun recognizerIntent() = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID")
+        putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
     }
 
-    fun stopRealtime() {
-        avatarWebView?.evaluateJavascript("window.DizaRealtime?.stop();", null)
+    fun startListening() {
+        if (!testMode || dizaSpeaking) return
+        errorText = ""
+        js("window.DizaAvatar?.setListening(true);")
+        runCatching { speechRecognizer?.startListening(recognizerIntent()) }
+            .onFailure { errorText = "Mic test gagal: " + (it.message ?: "unknown") }
+    }
+
+    fun stopListening() {
+        runCatching { speechRecognizer?.cancel() }
+        js("window.DizaAvatar?.setInputLevel(0);window.DizaAvatar?.setListening(false);")
     }
 
     val micPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { ok ->
-        if (ok) startRealtime()
-        else vm.setError("Izin mikrofon dibutuhin buat voice real-time.")
+        if (ok) {
+            testMode = true
+            handler.postDelayed({ startListening() }, 150)
+        } else {
+            errorText = "Izin mikrofon dibutuhin buat Test Mode."
+        }
+    }
+
+    val pickAvatar = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+            prefs.edit().putString("uri", uri.toString()).apply()
+            pushAvatar(uri)
+            errorText = ""
+        }
     }
 
     DisposableEffect(Unit) {
+        val recognizer = SpeechRecognizer.createSpeechRecognizer(context)
+        speechRecognizer = recognizer
+
+        recognizer.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) {
+                js("window.DizaAvatar?.setListening(true);")
+            }
+
+            override fun onBeginningOfSpeech() {
+                js("window.DizaAvatar?.setListening(true);")
+            }
+
+            override fun onRmsChanged(rmsdB: Float) {
+                val level = ((rmsdB + 2f) / 12f).coerceIn(0f, 1f)
+                val levelText = String.format(Locale.US, "%.3f", level)
+                js("window.DizaAvatar?.setInputLevel(" + levelText + ");")
+            }
+
+            override fun onBufferReceived(buffer: ByteArray?) = Unit
+
+            override fun onEndOfSpeech() {
+                js("window.DizaAvatar?.setInputLevel(0);")
+            }
+
+            override fun onError(error: Int) {
+                js("window.DizaAvatar?.setInputLevel(0);")
+                if (testMode && !dizaSpeaking) {
+                    handler.postDelayed({ startListening() }, 450)
+                }
+            }
+
+            override fun onResults(results: Bundle?) {
+                val text = results
+                    ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    ?.firstOrNull()
+                    ?.trim()
+                    .orEmpty()
+
+                if (text.isNotBlank()) {
+                    js(
+                        "window.DizaAvatar?.setTranscript(" +
+                            JSONObject.quote(text) + "," + JSONObject.quote("Fatoni") + ");"
+                    )
+                }
+                if (testMode && !dizaSpeaking) {
+                    handler.postDelayed({ startListening() }, 280)
+                }
+            }
+
+            override fun onPartialResults(partialResults: Bundle?) {
+                val text = partialResults
+                    ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    ?.firstOrNull()
+                    ?.trim()
+                    .orEmpty()
+
+                if (text.isNotBlank()) {
+                    js(
+                        "window.DizaAvatar?.setTranscript(" +
+                            JSONObject.quote(text) + "," + JSONObject.quote("Fatoni") + ");"
+                    )
+                }
+            }
+
+            override fun onEvent(eventType: Int, params: Bundle?) = Unit
+        })
+
+        var engine: TextToSpeech? = null
+        engine = TextToSpeech(context) { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                engine?.language = Locale("id", "ID")
+                engine?.setSpeechRate(0.84f)
+                engine?.setPitch(1.08f)
+            }
+        }
+
+        engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) {
+                handler.post {
+                    dizaSpeaking = true
+                    stopListening()
+                    js("window.DizaAvatar?.setSpeaking(true);")
+                }
+            }
+
+            override fun onDone(utteranceId: String?) {
+                handler.post {
+                    dizaSpeaking = false
+                    js("window.DizaAvatar?.setSpeaking(false);")
+                    if (testMode) handler.postDelayed({ startListening() }, 300)
+                }
+            }
+
+            @Deprecated("Deprecated in Java")
+            override fun onError(utteranceId: String?) {
+                onDone(utteranceId)
+            }
+
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                onDone(utteranceId)
+            }
+        })
+        tts = engine
+
         onDispose {
-            avatarWebView?.evaluateJavascript("window.DizaRealtime?.stop();", null)
-            avatarWebView?.destroy()
-            avatarWebView = null
+            runCatching { recognizer.cancel() }
+            recognizer.destroy()
+            speechRecognizer = null
+            engine.stop()
+            engine.shutdown()
+            tts = null
+            webView?.destroy()
+            webView = null
         }
     }
 
@@ -153,210 +252,110 @@ fun DizaApp(vm: DizaViewModel = viewModel()) {
         Column(
             Modifier
                 .fillMaxSize()
-                .background(Color(0xFF090A0D))
+                .background(Color(0xFF07080B))
         ) {
-            Box(
+            AndroidView(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
-                    .background(Color(0xFF11131A))
-            ) {
-                if (avatarBitmap != null) {
-                    Image(
-                        bitmap = avatarBitmap,
-                        contentDescription = "Diza",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(
-                                scaleX = avatarScale,
-                                scaleY = avatarScale
-                            )
-                    )
-                } else {
-                    Text(
-                        "Avatar Diza gagal dimuat",
-                        color = Color.White,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-
-                Text(
-                    text = when (vm.avatarState) {
-                        "speaking" -> "Diza · ngomong"
-                        "listening" -> "Diza · dengerin"
-                        "thinking" -> "Diza · mikir"
-                        "connecting" -> "Diza · nyambungin…"
-                        else -> "Diza · siap"
-                    },
-                    color = Color.White,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(16.dp)
-                        .background(Color(0x99000000))
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                )
-
-                AndroidView(
-                    modifier = Modifier
-                        .size(2.dp)
-                        .alpha(0.01f)
-                        .align(Alignment.BottomEnd),
-                    factory = { ctx ->
-                        val assetLoader = WebViewAssetLoader.Builder()
-                            .addPathHandler(
-                                "/assets/",
-                                WebViewAssetLoader.AssetsPathHandler(ctx)
-                            )
-                            .build()
-
-                        WebView(ctx).apply {
-                            settings.javaScriptEnabled = true
-                            settings.domStorageEnabled = true
-                            settings.mediaPlaybackRequiresUserGesture = false
-                            setBackgroundColor(android.graphics.Color.TRANSPARENT)
-
-                            webViewClient = object : WebViewClient() {
-                                override fun shouldInterceptRequest(
-                                    view: WebView?,
-                                    request: WebResourceRequest
-                                ): WebResourceResponse? {
-                                    return assetLoader.shouldInterceptRequest(request.url)
-                                }
-
-                                @Deprecated("Deprecated in Java")
-                                override fun shouldInterceptRequest(
-                                    view: WebView?,
-                                    url: String?
-                                ): WebResourceResponse? {
-                                    return url?.let {
-                                        assetLoader.shouldInterceptRequest(Uri.parse(it))
-                                    }
-                                }
-
-                                override fun onPageFinished(view: WebView?, url: String?) {
-                                    val quoted = JSONObject.quote(backendUrl)
-                                    view?.evaluateJavascript(
-                                        "window.DizaRealtime?.configure({backendUrl:$quoted});",
-                                        null
-                                    )
+                    .weight(1f),
+                factory = { ctx ->
+                    WebView(ctx).apply {
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
+                        settings.allowFileAccess = true
+                        setBackgroundColor(android.graphics.Color.BLACK)
+                        webViewClient = object : WebViewClient() {
+                            override fun onPageFinished(view: WebView?, url: String?) {
+                                prefs.getString("uri", null)?.let { saved ->
+                                    runCatching { pushAvatar(Uri.parse(saved), view) }
                                 }
                             }
-
-                            webChromeClient = object : WebChromeClient() {
-                                override fun onPermissionRequest(request: PermissionRequest) {
-                                    val audioRequested = request.resources.contains(
-                                        PermissionRequest.RESOURCE_AUDIO_CAPTURE
-                                    )
-                                    val granted = ContextCompat.checkSelfPermission(
-                                        ctx,
-                                        Manifest.permission.RECORD_AUDIO
-                                    ) == PackageManager.PERMISSION_GRANTED
-
-                                    if (audioRequested && granted) {
-                                        request.grant(
-                                            arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE)
-                                        )
-                                    } else {
-                                        request.deny()
-                                    }
-                                }
-                            }
-
-                            addJavascriptInterface(
-                                DizaJsBridge(vm) { realtimeConnected = it },
-                                "DizaAndroid"
-                            )
-
-                            val html = ctx.assets
-                                .open("avatar/index.html")
-                                .bufferedReader()
-                                .use { it.readText() }
-
-                            loadDataWithBaseURL(
-                                "https://appassets.androidplatform.net/assets/avatar/",
-                                html,
-                                "text/html",
-                                "UTF-8",
-                                null
-                            )
-                            avatarWebView = this
                         }
-                    },
-                    update = { avatarWebView = it }
-                )
-            }
-
-            Text(
-                text = when {
-                    vm.lastError.isNotBlank() -> "⚠ ${vm.lastError}"
-                    realtimeConnected && vm.avatarState == "listening" ->
-                        "GPT Voice Realtime · listening"
-                    realtimeConnected && vm.avatarState == "speaking" ->
-                        "GPT Voice Realtime · speaking"
-                    realtimeConnected -> "GPT Voice Realtime tersambung"
-                    backendUrl.isBlank() ->
-                        "Backend belum diisi"
-                    else -> "Siap untuk GPT Voice Realtime"
+                        loadUrl("file:///android_asset/avatar/index.html")
+                        webView = this
+                    }
                 },
-                color = if (vm.lastError.isBlank()) {
-                    Color.White
-                } else {
-                    Color(0xFFFFB4AB)
-                },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                update = { webView = it }
             )
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 140.dp)
-                    .padding(horizontal = 16.dp)
-            ) {
-                items(vm.messages.takeLast(6)) { m ->
-                    Text(
-                        "${m.who}: ${m.text}",
-                        color = Color(0xFFECECF1),
-                        modifier = Modifier.padding(vertical = 3.dp)
-                    )
-                }
+            if (errorText.isNotBlank()) {
+                Text(
+                    "⚠ " + errorText,
+                    color = Color(0xFFFFB4AB),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                )
             }
 
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(horizontal = 10.dp, vertical = 5.dp)
             ) {
                 Button(
-                    enabled = backendUrl.isNotBlank(),
-                    onClick = {
-                        vm.clearError()
+                    modifier = Modifier.weight(1f),
+                    onClick = { pickAvatar.launch(arrayOf("image/*")) }
+                ) {
+                    Text("Pilih Avatar HD")
+                }
 
-                        if (realtimeConnected) {
-                            stopRealtime()
+                Button(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp),
+                    onClick = {
+                        if (testMode) {
+                            testMode = false
+                            stopListening()
+                            js("window.DizaAvatar?.setMode('idle');")
                         } else {
                             val granted = ContextCompat.checkSelfPermission(
                                 context,
                                 Manifest.permission.RECORD_AUDIO
                             ) == PackageManager.PERMISSION_GRANTED
 
-                            if (granted) startRealtime()
-                            else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                            if (granted) {
+                                testMode = true
+                                js("window.DizaAvatar?.setMode('test');")
+                                handler.postDelayed({ startListening() }, 120)
+                            } else {
+                                micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                            }
                         }
                     }
                 ) {
-                    Text(
-                        if (realtimeConnected) "Putus voice"
-                        else "Ngobrol realtime"
-                    )
+                    Text(if (testMode) "Stop Test" else "Test Mode")
                 }
-
-                Text(
-                    "  v0.2.3",
-                    color = Color.Gray,
-                    modifier = Modifier.padding(top = 12.dp)
-                )
             }
+
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                onClick = {
+                    val demo = "Hai Fatoni. Ini Diza lagi tes gerak avatar dan waveform tanpa API."
+                    js(
+                        "window.DizaAvatar?.setTranscript(" +
+                            JSONObject.quote(demo) + "," + JSONObject.quote("Diza") + ");"
+                    )
+                    val result = tts?.speak(
+                        demo,
+                        TextToSpeech.QUEUE_FLUSH,
+                        null,
+                        "diza-demo"
+                    )
+                    if (result == TextToSpeech.ERROR) {
+                        errorText = "TTS Android di HP ini belum siap."
+                    }
+                }
+            ) {
+                Text("Diza ngomong")
+            }
+
+            Text(
+                "v0.3.2 · Test Mode lokal · avatar dipilih dari Gallery tanpa recompress",
+                color = Color(0xFF9EA2AD),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+            )
         }
     }
 }
