@@ -3,10 +3,7 @@ package com.fatoni.diza
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.ImageDecoder
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -43,7 +40,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,14 +50,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import java.io.File
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.sin
@@ -69,40 +63,22 @@ import kotlin.math.sin
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { DizaNativeApp() }
+        setContent { DizaApp() }
     }
 }
 
-private fun decodeAvatar(file: File): Bitmap? {
-    if (!file.exists() || file.length() <= 0L) return null
-    return runCatching {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val source = ImageDecoder.createSource(file)
-            ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-                decoder.isMutableRequired = false
-            }
-        } else {
-            BitmapFactory.decodeFile(file.absolutePath)
-        }
-    }.getOrNull()
-}
-
 @Composable
-fun DizaNativeApp() {
+fun DizaApp() {
     val context = LocalContext.current
     val handler = remember { Handler(Looper.getMainLooper()) }
-    val avatarFile = remember { File(context.filesDir, "diza_avatar_original") }
-
-    var avatarVersion by remember { mutableIntStateOf(0) }
-    val avatarBitmap = remember(avatarVersion) { decodeAvatar(avatarFile) }
+    val avatarBitmap = remember {
+        BitmapFactory.decodeResource(context.resources, R.drawable.diza_avatar_default)
+    }
 
     var testMode by remember { mutableStateOf(false) }
     var listening by remember { mutableStateOf(false) }
     var speaking by remember { mutableStateOf(false) }
-    var transcript by remember {
-        mutableStateOf(if (avatarBitmap == null) "Pilih foto Diza dari Gallery sekali" else "Diza siap")
-    }
+    var transcript by remember { mutableStateOf("Diza siap") }
     var speaker by remember { mutableStateOf("") }
     var errorText by remember { mutableStateOf("") }
     var micLevel by remember { mutableFloatStateOf(0f) }
@@ -144,24 +120,6 @@ fun DizaNativeApp() {
         }
     }
 
-    val pickAvatar = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            runCatching {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    avatarFile.outputStream().use { output -> input.copyTo(output) }
-                } ?: error("Foto tidak bisa dibaca")
-                avatarVersion += 1
-                transcript = "Avatar HD loaded"
-                speaker = "Diza"
-                errorText = ""
-            }.onFailure {
-                errorText = "Gagal buka foto: " + (it.message ?: "unknown")
-            }
-        }
-    }
-
     DisposableEffect(Unit) {
         val speech = SpeechRecognizer.createSpeechRecognizer(context)
         recognizer = speech
@@ -180,7 +138,9 @@ fun DizaNativeApp() {
             override fun onError(error: Int) {
                 micLevel = 0f
                 listening = false
-                if (testMode && !speaking) handler.postDelayed({ startListening() }, 450)
+                if (testMode && !speaking) {
+                    handler.postDelayed({ startListening() }, 450)
+                }
             }
 
             override fun onResults(results: Bundle?) {
@@ -197,7 +157,9 @@ fun DizaNativeApp() {
 
                 listening = false
                 micLevel = 0f
-                if (testMode && !speaking) handler.postDelayed({ startListening() }, 250)
+                if (testMode && !speaking) {
+                    handler.postDelayed({ startListening() }, 250)
+                }
             }
 
             override fun onPartialResults(partialResults: Bundle?) {
@@ -243,7 +205,9 @@ fun DizaNativeApp() {
             @Deprecated("Deprecated in Java")
             override fun onError(utteranceId: String?) { onDone(utteranceId) }
 
-            override fun onError(utteranceId: String?, errorCode: Int) { onDone(utteranceId) }
+            override fun onError(utteranceId: String?, errorCode: Int) {
+                onDone(utteranceId)
+            }
         })
 
         tts = engine
@@ -258,22 +222,22 @@ fun DizaNativeApp() {
         }
     }
 
-    val motion = rememberInfiniteTransition(label = "diza-motion")
-    val phase by motion.animateFloat(
+    val waveform = rememberInfiniteTransition(label = "waveform")
+    val phase by waveform.animateFloat(
         initialValue = 0f,
         targetValue = 6.2831855f,
         animationSpec = infiniteRepeatable(
-            animation = tween(3200, easing = LinearEasing),
+            animation = tween(950, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "phase"
+        label = "wave-phase"
     )
 
-    val talkPulse = if (speaking) abs(sin(phase * 5.2f)) * 0.9f + 0.1f else 0f
-    val translateX = sin(phase) * if (speaking) 2.2f else 1.2f
-    val translateY = sin(phase * 0.74f) * 1.6f - talkPulse * 0.8f
-    val rotation = sin(phase * 0.55f) * if (speaking) 0.32f else 0.14f
-    val scale = 1.006f + abs(sin(phase * 0.45f)) * 0.003f + talkPulse * 0.003f
+    val talkPulse = if (speaking) {
+        0.18f + abs(sin(phase * 2.2f)) * 0.82f
+    } else {
+        0f
+    }
 
     MaterialTheme {
         Column(
@@ -288,31 +252,12 @@ fun DizaNativeApp() {
                     .clipToBounds()
                     .background(Color(0xFF11131A))
             ) {
-                avatarBitmap?.let { bitmap ->
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = "Diza",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer(
-                                translationX = translateX,
-                                translationY = translateY,
-                                rotationZ = rotation,
-                                scaleX = scale,
-                                scaleY = scale + talkPulse * 0.0025f
-                            )
-                    )
-                }
-
-                if (avatarBitmap == null) {
-                    Text(
-                        "Tap “Pilih Avatar HD” di bawah",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
+                Image(
+                    bitmap = avatarBitmap.asImageBitmap(),
+                    contentDescription = "Diza",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
 
                 Text(
                     text = buildString {
@@ -352,12 +297,12 @@ fun DizaNativeApp() {
                     ),
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(start = 16.dp, bottom = 74.dp)
+                        .padding(start = 16.dp, bottom = 72.dp)
                 )
 
                 val waveformLevel = when {
                     listening -> micLevel
-                    speaking -> 0.18f + talkPulse * 0.72f
+                    speaking -> talkPulse
                     else -> 0f
                 }
 
@@ -377,12 +322,18 @@ fun DizaNativeApp() {
                         val center = (count - 1) / 2f
                         val distance = abs(i - center) / center
                         val shape = 0.34f + (1f - distance) * 0.66f
-                        val jitter = 0.55f + 0.45f * abs(sin(phase * 7.5f + i * 0.73f))
+                        val jitter = 0.55f + 0.45f * abs(
+                            sin(phase * 7.5f + i * 0.73f)
+                        )
                         val h = 3f + maxH * waveformLevel * shape * jitter
                         val x = gap * i + gap / 2f
 
                         drawLine(
-                            color = if (waveformLevel > 0.02f) Color.White else Color.White.copy(alpha = 0.28f),
+                            color = if (waveformLevel > 0.02f) {
+                                Color.White
+                            } else {
+                                Color.White.copy(alpha = 0.28f)
+                            },
                             start = Offset(x, centerY - h / 2f),
                             end = Offset(x, centerY + h / 2f),
                             strokeWidth = 3f
@@ -402,14 +353,9 @@ fun DizaNativeApp() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = { pickAvatar.launch(arrayOf("image/*")) }
-                ) { Text("Pilih Avatar HD") }
-
                 Button(
                     modifier = Modifier.weight(1f),
                     onClick = {
@@ -430,27 +376,35 @@ fun DizaNativeApp() {
                             }
                         }
                     }
-                ) { Text(if (testMode) "Stop Test" else "Test Mode") }
+                ) {
+                    Text(if (testMode) "Stop Test" else "Test Mode")
+                }
+
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        val demo = "Hai Fatoni. Diza siap. Engine gerak natural lagi disiapkan."
+                        transcript = demo
+                        speaker = "Diza"
+
+                        val result = tts?.speak(
+                            demo,
+                            TextToSpeech.QUEUE_FLUSH,
+                            null,
+                            "diza-demo"
+                        )
+
+                        if (result == TextToSpeech.ERROR) {
+                            errorText = "TTS Android di HP ini belum siap."
+                        }
+                    }
+                ) {
+                    Text("Diza ngomong")
+                }
             }
 
-            Button(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
-                onClick = {
-                    val demo = "Hai Fatoni. Ini Diza lagi tes gerak avatar dan waveform tanpa API."
-                    transcript = demo
-                    speaker = "Diza"
-
-                    val result = tts?.speak(demo, TextToSpeech.QUEUE_FLUSH, null, "diza-demo")
-                    if (result == TextToSpeech.ERROR) errorText = "TTS Android di HP ini belum siap."
-                }
-            ) { Text("Diza ngomong") }
-
             Text(
-                text = avatarBitmap?.let {
-                    "v0.3.4 · Native Android avatar · " + it.width + "×" + it.height + " · no WebView"
-                } ?: "v0.3.4 · Native Android avatar · pilih foto sekali",
+                "v0.3.5 · avatar otomatis · no fake motion",
                 color = Color(0xFF9EA2AD),
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
             )

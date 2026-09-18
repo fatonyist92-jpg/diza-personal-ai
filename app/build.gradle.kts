@@ -19,8 +19,9 @@ android {
         applicationId = "com.fatoni.diza"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "0.3.4"
+        versionCode = 10
+        versionName = "0.3.5"
+
         buildConfigField(
             "String",
             "DIZA_REALTIME_BACKEND_URL",
@@ -52,10 +53,8 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
-    implementation("androidx.webkit:webkit:1.13.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
-
 
 kotlin {
     jvmToolchain(17)
