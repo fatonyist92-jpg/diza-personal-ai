@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -157,7 +158,7 @@ fun DizaApp() {
     val context = LocalContext.current
     val handler = remember { Handler(Looper.getMainLooper()) }
 
-    // v0.3.8 uses the video's exact final frame as the static avatar.
+    // Uses the video's exact final frame as the static avatar.
     // This keeps framing, scale and crop identical across VIDEO -> MAIN.
     val avatarBitmap = remember {
         BitmapFactory.decodeResource(context.resources, R.drawable.diza_avatar_default)
@@ -557,9 +558,9 @@ fun DizaApp() {
                             .fillMaxWidth(0.76f)
                             .height(46.dp)
                             .padding(bottom = 2.dp)
+                            .offset(y = (-142).dp)
                             .graphicsLayer {
                                 alpha = uiAlpha.value
-                                translationY = -126f
                             }
                     ) {
                         val count = 36
@@ -776,7 +777,7 @@ fun DizaApp() {
 
                             Text(
                                 text =
-                                    "v0.3.8 · seamless frame · polished controls",
+                                    "v0.3.9 · raised waveform · polished controls",
                                 color = Color.White.copy(alpha = 0.38f),
                                 fontSize = 10.sp,
                                 textAlign = TextAlign.Center
