@@ -130,7 +130,7 @@ private fun OpeningVideo(
                 useController = false
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                 setShutterBackgroundColor(android.graphics.Color.BLACK)
-                keepContentOnPlayerReset = true
+                setKeepContentOnPlayerReset(true)
                 this.player = player
             }
         },
