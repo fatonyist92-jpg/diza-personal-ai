@@ -31,10 +31,10 @@ jobs:
           gradle-version: "8.9"
 
       - name: Build debug APK
-        run: gradle :app:assembleDebug -PDIZA_REALTIME_BACKEND_URL="${{ vars.DIZA_REALTIME_BACKEND_URL }}"
+        run: gradle :app:assembleDebug
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Diza-v0.2.1-debug
+          name: Diza-v0.2.2-debug
           path: app/build/outputs/apk/debug/app-debug.apk
