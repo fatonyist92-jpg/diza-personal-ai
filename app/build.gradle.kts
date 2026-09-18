@@ -28,6 +28,11 @@ android {
         )
     }
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -49,4 +54,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.0")
     implementation("androidx.webkit:webkit:1.13.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
+}
+
+
+kotlin {
+    jvmToolchain(17)
 }
