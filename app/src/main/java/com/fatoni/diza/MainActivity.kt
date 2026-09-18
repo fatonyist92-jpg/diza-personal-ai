@@ -13,7 +13,8 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import android.util.Base64
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
@@ -40,7 +41,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.webkit.WebViewAssetLoader
 import org.json.JSONObject
+import java.io.File
+import java.io.FileInputStream
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -56,6 +60,7 @@ fun DizaApp() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val handler = remember { Handler(Looper.getMainLooper()) }
     val prefs = remember { context.getSharedPreferences("diza_avatar", 0) }
+    val avatarFile = remember { File(context.filesDir, "diza_avatar_source") }
 
     var webView by remember { mutableStateOf<WebView?>(null) }
     var testMode by remember { mutableStateOf(false) }
@@ -68,20 +73,41 @@ fun DizaApp() {
         webView?.evaluateJavascript(code, null)
     }
 
-    fun pushAvatar(uri: Uri, target: WebView? = webView) {
-        val view = target ?: return
+    fun showLocalAvatar(target: WebView? = webView) {
+        if (!avatarFile.exists() || avatarFile.length() <= 0L) return
+        target?.evaluateJavascript(
+            "window.DizaAvatar?.setAvatarUrl('https://diza.local/avatar?v=" +
+                avatarFile.lastModified() + "');",
+            null
+        )
+    }
+
+    fun importAvatar(uri: Uri, target: WebView? = webView) {
         runCatching {
-            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                ?: error("Foto tidak bisa dibaca")
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                avatarFile.outputStream().use { output -> input.copyTo(output) }
+            } ?: error("Foto tidak bisa dibaca")
+
             val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
-            val dataUri = "data:" + mime + ";base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
-            view.evaluateJavascript(
-                "window.DizaAvatar?.setAvatarData(" + JSONObject.quote(dataUri) + ");",
-                null
-            )
+            prefs.edit()
+                .putString("uri", uri.toString())
+                .putString("mime", mime)
+                .apply()
+
+            showLocalAvatar(target)
         }.onFailure {
             errorText = "Avatar gagal dimuat: " + (it.message ?: "unknown")
         }
+    }
+
+    fun recoverSavedAvatar(target: WebView? = webView) {
+        if (avatarFile.exists() && avatarFile.length() > 0L) {
+            showLocalAvatar(target)
+            return
+        }
+
+        val saved = prefs.getString("uri", null) ?: return
+        runCatching { importAvatar(Uri.parse(saved), target) }
     }
 
     fun recognizerIntent() = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -109,6 +135,7 @@ fun DizaApp() {
     ) { ok ->
         if (ok) {
             testMode = true
+            js("window.DizaAvatar?.setMode('test');")
             handler.postDelayed({ startListening() }, 150)
         } else {
             errorText = "Izin mikrofon dibutuhin buat Test Mode."
@@ -125,8 +152,7 @@ fun DizaApp() {
                     Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             }
-            prefs.edit().putString("uri", uri.toString()).apply()
-            pushAvatar(uri)
+            importAvatar(uri)
             errorText = ""
         }
     }
@@ -176,6 +202,7 @@ fun DizaApp() {
                             JSONObject.quote(text) + "," + JSONObject.quote("Fatoni") + ");"
                     )
                 }
+
                 if (testMode && !dizaSpeaking) {
                     handler.postDelayed({ startListening() }, 280)
                 }
@@ -259,19 +286,51 @@ fun DizaApp() {
                     .fillMaxWidth()
                     .weight(1f),
                 factory = { ctx ->
+                    val assetLoader = WebViewAssetLoader.Builder()
+                        .addPathHandler(
+                            "/assets/",
+                            WebViewAssetLoader.AssetsPathHandler(ctx)
+                        )
+                        .build()
+
                     WebView(ctx).apply {
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
-                        settings.allowFileAccess = true
+                        settings.mediaPlaybackRequiresUserGesture = false
                         setBackgroundColor(android.graphics.Color.BLACK)
+
                         webViewClient = object : WebViewClient() {
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                prefs.getString("uri", null)?.let { saved ->
-                                    runCatching { pushAvatar(Uri.parse(saved), view) }
+                            override fun shouldInterceptRequest(
+                                view: WebView?,
+                                request: WebResourceRequest
+                            ): WebResourceResponse? {
+                                val uri = request.url
+
+                                if (
+                                    uri.scheme == "https" &&
+                                    uri.host == "diza.local" &&
+                                    uri.path == "/avatar" &&
+                                    avatarFile.exists()
+                                ) {
+                                    val mime = prefs.getString("mime", "image/jpeg") ?: "image/jpeg"
+                                    return WebResourceResponse(
+                                        mime,
+                                        null,
+                                        FileInputStream(avatarFile)
+                                    )
                                 }
+
+                                return assetLoader.shouldInterceptRequest(uri)
+                            }
+
+                            override fun onPageFinished(view: WebView?, url: String?) {
+                                recoverSavedAvatar(view)
                             }
                         }
-                        loadUrl("file:///android_asset/avatar/index.html")
+
+                        loadUrl(
+                            "https://appassets.androidplatform.net/assets/avatar/index.html"
+                        )
                         webView = this
                     }
                 },
@@ -352,7 +411,7 @@ fun DizaApp() {
             }
 
             Text(
-                "v0.3.2 · Test Mode lokal · avatar dipilih dari Gallery tanpa recompress",
+                "v0.3.3 · HD file streaming · no recompress",
                 color = Color(0xFF9EA2AD),
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
             )
