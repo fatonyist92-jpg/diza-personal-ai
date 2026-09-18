@@ -1,347 +1,120 @@
 <!doctype html>
 <html lang="id">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <style>
-:root{--voice:0}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:radial-gradient(circle at 50% 28%,#292d38 0,#11131a 48%,#090a0d 100%);font-family:system-ui,-apple-system,sans-serif}
-#stage{position:relative;width:100%;height:100%;display:grid;place-items:center;transition:.25s}
-#avatar{position:relative;width:min(92vw,560px);height:min(78vh,820px);border-radius:34px;overflow:hidden;transform-origin:50% 80%;animation:breathe 4.8s ease-in-out infinite;box-shadow:0 30px 90px rgba(0,0,0,.45);will-change:transform,filter}
-#avatar:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 38%,rgba(0,0,0,.27));z-index:3;pointer-events:none}
-#photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 35%;background:#171a22;transform:scale(calc(1.002 + var(--voice)*.007));transition:filter .15s ease}
-#glow{position:absolute;width:64%;height:17%;left:18%;bottom:3%;filter:blur(38px);background:rgba(150,180,255,.20);border-radius:50%;transition:.18s;transform:scale(calc(1 + var(--voice)*.14))}
-.connecting #glow,.thinking #glow{background:rgba(190,160,255,.32)}
-.listening #glow{background:rgba(126,235,204,.38)}
-.speaking #glow{background:rgba(255,176,210,.34)}
-.speaking #avatar{animation:breathe 3.2s ease-in-out infinite,speak .32s ease-in-out infinite alternate;filter:brightness(calc(1 + var(--voice)*.04))}
-#status{position:absolute;left:18px;top:18px;padding:8px 12px;border-radius:999px;color:#fff;background:rgba(0,0,0,.36);backdrop-filter:blur(14px);font-size:13px;z-index:5}
-#liveDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#9aa0aa;margin-right:7px;vertical-align:1px}
-.connected #liveDot,.listening #liveDot,.speaking #liveDot{background:#65e6bd;box-shadow:0 0 14px rgba(101,230,189,.8)}
-#hint{position:absolute;bottom:16px;left:16px;right:16px;color:rgba(255,255,255,.62);font-size:12px;text-align:center;z-index:5}
-@keyframes breathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-4px) scale(1.006)}}
-@keyframes speak{from{transform:translateY(-1px) rotate(-.08deg)}to{transform:translateY(calc(-2px - var(--voice)*2px)) rotate(.08deg)}}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08090c;font-family:system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}
+#stage{position:relative;width:100%;height:100%;overflow:hidden;background:radial-gradient(circle at 50% 24%,#242833 0,#111319 55%,#08090c 100%)}
+#scene{position:absolute;inset:-1%;overflow:hidden}
+.layer{position:absolute;inset:0;width:102%;height:102%;object-fit:cover;object-position:50% 38%;will-change:transform;transform-origin:50% 46%;backface-visibility:hidden}
+#base{z-index:1}
+#hair{z-index:2;clip-path:polygon(0 0,100% 0,100% 78%,75% 73%,67% 40%,33% 40%,25% 73%,0 78%);pointer-events:none}
+#mouth{z-index:3;clip-path:inset(42% 31% 43% 31% round 18px);pointer-events:none}
+#shade{position:absolute;inset:0;z-index:4;background:linear-gradient(180deg,rgba(0,0,0,.03),transparent 30%,transparent 76%,rgba(0,0,0,.28));pointer-events:none}
+#subtitle{position:absolute;z-index:8;top:max(18px,env(safe-area-inset-top));left:22px;right:22px;text-align:center;color:white;font-size:clamp(18px,4.8vw,27px);font-weight:700;line-height:1.28;text-shadow:0 2px 4px #000,0 0 10px #000,0 0 22px rgba(0,0,0,.85);min-height:58px;pointer-events:none}
+#who{font-size:.73em;opacity:.82;margin-right:6px}
+#status{position:absolute;z-index:8;left:15px;bottom:79px;color:rgba(255,255,255,.92);font-size:12px;font-weight:700;text-shadow:0 1px 4px #000,0 0 10px #000}
+#dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;background:#9da1aa}
+.test #dot,.listening #dot{background:#61e7c0;box-shadow:0 0 12px rgba(97,231,192,.8)}
+.speaking #dot{background:#ffafcf;box-shadow:0 0 12px rgba(255,175,207,.85)}
+#wave{position:absolute;z-index:9;left:50%;bottom:20px;transform:translateX(-50%);width:min(78vw,440px);height:48px;display:flex;align-items:center;justify-content:center;gap:3px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.85));pointer-events:none}
+.bar{width:3px;height:3px;min-height:3px;border-radius:99px;background:rgba(255,255,255,.95);opacity:.28;transform-origin:center}
+#hint{position:absolute;z-index:8;right:15px;bottom:79px;color:rgba(255,255,255,.78);font-size:11px;font-weight:650;text-shadow:0 1px 4px #000}
 </style>
 </head>
 <body>
 <div id="stage" class="idle">
-  <div id="glow"></div>
-  <div id="avatar">
-    <img id="photo" alt="Diza"/>
-    <div id="status"><span id="liveDot"></span><span id="statusText">siap</span></div>
-    <div id="hint">GPT Voice Realtime</div>
+  <div id="scene">
+    <img id="base" class="layer" alt="Diza">
+    <img id="hair" class="layer" alt="">
+    <img id="mouth" class="layer" alt="">
+    <div id="shade"></div>
   </div>
+  <div id="subtitle"><span id="who"></span><span id="text">Pilih Avatar HD dari Gallery</span></div>
+  <div id="status"><span id="dot"></span><span id="statusText">Diza siap</span></div>
+  <div id="hint">HD · no recompress</div>
+  <div id="wave"></div>
 </div>
-<audio id="remoteAudio" autoplay playsinline></audio>
 <script>
 (() => {
-  const stage = document.getElementById('stage');
-  const statusText = document.getElementById('statusText');
-  const remoteAudio = document.getElementById('remoteAudio');
-  const photo = document.getElementById('photo');
-  const labels = {idle:'siap',connecting:'nyambungin…',connected:'tersambung',listening:'dengerin',thinking:'mikir',speaking:'ngomong',error:'error'};
+  const stage=document.getElementById('stage');
+  const base=document.getElementById('base');
+  const hair=document.getElementById('hair');
+  const mouth=document.getElementById('mouth');
+  const who=document.getElementById('who');
+  const text=document.getElementById('text');
+  const statusText=document.getElementById('statusText');
+  const wave=document.getElementById('wave');
 
-  fetch('diza_reference.b64')
-    .then(r => r.text())
-    .then(t => { photo.src = 'data:image/jpeg;base64,' + t.trim(); })
-    .catch(() => {});
-
-  let cfg = { backendUrl: '' };
-  let pc = null;
-  let dc = null;
-  let localStream = null;
-  let audioCtx = null;
-  let analyser = null;
-  let analyserData = null;
-  let analyserRaf = 0;
-  let connected = false;
-  let userTranscriptSeen = new Set();
-  let assistantTranscriptBuffer = '';
-
-  function androidCall(name, ...args){
-    try {
-      if (window.DizaAndroid && typeof window.DizaAndroid[name] === 'function') {
-        window.DizaAndroid[name](...args);
-      }
-    } catch (_) {}
+  const bars=[];
+  for(let i=0;i<36;i++){
+    const b=document.createElement('div');
+    b.className='bar';
+    wave.appendChild(b);
+    bars.push(b);
   }
 
-  function setState(s){
-    stage.className = s || 'idle';
-    statusText.textContent = labels[s] || s;
-    androidCall('onState', s || 'idle');
+  let mode='idle';
+  let listening=false;
+  let speaking=false;
+  let input=0;
+
+  fetch('diza_reference.b64').then(r=>r.text()).then(t=>{
+    const src='data:image/jpeg;base64,'+t.replace(/\s+/g,'');
+    setAvatarData(src);
+  }).catch(()=>{});
+
+  function setAvatarData(src){
+    base.src=src;
+    hair.src=src;
+    mouth.src=src;
   }
 
-  function setConnected(value){
-    connected = !!value;
-    androidCall('onRealtimeConnected', connected);
+  function updateState(){
+    stage.className = speaking ? 'speaking' : (listening ? 'listening' : mode);
+    statusText.textContent = speaking ? 'Diza lagi ngomong' : (listening ? 'Diza dengerin Fatoni' : (mode==='test' ? 'Test Mode' : 'Diza siap'));
   }
 
-  function fail(message){
-    console.error('[DizaRealtime]', message);
-    setState('error');
-    androidCall('onError', String(message || 'Realtime error'));
-    setConnected(false);
+  function setMode(v){ mode=v||'idle'; updateState(); }
+  function setListening(v){ listening=!!v; if(listening) speaking=false; updateState(); }
+  function setSpeaking(v){ speaking=!!v; if(speaking) listening=false; updateState(); }
+  function setInputLevel(v){ input=Math.max(0,Math.min(1,Number(v)||0)); }
+  function setTranscript(v,w){
+    text.textContent=v||'';
+    who.textContent=v ? ((w||'') + (w ? ' ·' : '')) : '';
   }
 
-  function startRemoteLevelMeter(stream){
-    stopRemoteLevelMeter();
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const src = audioCtx.createMediaStreamSource(stream);
-      analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = .72;
-      src.connect(analyser);
-      analyserData = new Uint8Array(analyser.frequencyBinCount);
+  function animate(ms){
+    const t=ms/1000;
+    const talk=speaking ? Math.min(1,.22+.78*Math.abs(Math.sin(t*10.6)+.28*Math.sin(t*17.2))) : 0;
+    const breathe=.45+.55*Math.sin(t*.9);
+    const headX=Math.sin(t*.62)*1.2 + (speaking?Math.sin(t*1.7)*.55:0);
+    const headY=Math.cos(t*.55)*1.35 - talk*.55;
+    const rot=Math.sin(t*.48)*.12 + (speaking?Math.sin(t*1.1)*.08:0);
 
-      const loop = () => {
-        if (!analyser) return;
-        analyser.getByteFrequencyData(analyserData);
-        let sum = 0;
-        for (const v of analyserData) sum += v;
-        const avg = sum / Math.max(1, analyserData.length);
-        const level = Math.min(1, Math.max(0, (avg - 5) / 70));
-        document.documentElement.style.setProperty('--voice', level.toFixed(3));
-        if (level > .055 && connected) setState('speaking');
-        analyserRaf = requestAnimationFrame(loop);
-      };
+    base.style.transform='translate3d('+headX+'px,'+headY+'px,0) rotate('+rot+'deg) scale('+(1.008+breathe*.003+talk*.002)+')';
+    hair.style.transform='translate3d('+(headX+Math.sin(t*1.2)*.6)+'px,'+(headY+Math.cos(t*.82)*.32)+'px,0) rotate('+(rot*.75)+'deg)';
+    mouth.style.transform='translate3d('+headX+'px,'+(headY+talk*1.1)+'px,0) rotate('+rot+'deg) scaleY('+(1+talk*.055)+')';
 
-      loop();
-    } catch (_) {}
+    const e=listening ? input : (speaking ? (.18 + talk*.66) : 0);
+    const center=(bars.length-1)/2;
+    bars.forEach((b,i)=>{
+      const dist=Math.abs(i-center)/center;
+      const shape=.34+(1-dist)*.66;
+      const jitter=.52+.48*Math.abs(Math.sin(t*8.4+i*.71));
+      const h=3+Math.min(42,e*42*shape*jitter);
+      b.style.height=h.toFixed(1)+'px';
+      b.style.opacity=(e>.02?.92:.24).toString();
+    });
+
+    requestAnimationFrame(animate);
   }
+  requestAnimationFrame(animate);
 
-  function stopRemoteLevelMeter(){
-    if (analyserRaf) cancelAnimationFrame(analyserRaf);
-    analyserRaf = 0;
-    analyser = null;
-    analyserData = null;
-    document.documentElement.style.setProperty('--voice','0');
-
-    if (audioCtx) {
-      try { audioCtx.close(); } catch (_) {}
-    }
-    audioCtx = null;
-  }
-
-  function handleRealtimeEvent(evt){
-    const type = evt?.type || '';
-
-    if (type === 'session.created' || type === 'session.updated') {
-      setState('listening');
-      return;
-    }
-
-    if (type === 'input_audio_buffer.speech_started') {
-      setState('listening');
-      return;
-    }
-
-    if (type === 'input_audio_buffer.speech_stopped') {
-      setState('thinking');
-      return;
-    }
-
-    if (type === 'response.created') {
-      setState('thinking');
-      assistantTranscriptBuffer = '';
-      return;
-    }
-
-    if (type === 'response.output_audio.delta' || type === 'response.audio.delta') {
-      setState('speaking');
-      return;
-    }
-
-    if (
-      type === 'response.output_audio_transcript.delta' ||
-      type === 'response.audio_transcript.delta'
-    ) {
-      assistantTranscriptBuffer += evt.delta || '';
-      setState('speaking');
-      return;
-    }
-
-    if (
-      type === 'response.output_audio_transcript.done' ||
-      type === 'response.audio_transcript.done'
-    ) {
-      const text = (evt.transcript || assistantTranscriptBuffer || '').trim();
-      if (text) androidCall('onAssistantTranscript', text);
-      assistantTranscriptBuffer = '';
-      return;
-    }
-
-    if (type === 'conversation.item.input_audio_transcription.completed') {
-      const text = (evt.transcript || '').trim();
-      const key = (evt.item_id || '') + '|' + text;
-
-      if (text && !userTranscriptSeen.has(key)) {
-        userTranscriptSeen.add(key);
-        androidCall('onUserTranscript', text);
-      }
-      return;
-    }
-
-    if (type === 'response.done') {
-      if (assistantTranscriptBuffer.trim()) {
-        androidCall('onAssistantTranscript', assistantTranscriptBuffer.trim());
-        assistantTranscriptBuffer = '';
-      }
-      if (connected) setState('listening');
-      return;
-    }
-
-    if (type === 'error') {
-      fail(evt?.error?.message || 'OpenAI Realtime error');
-    }
-  }
-
-  async function getEphemeralKey(){
-    const base = String(cfg.backendUrl || '').replace(/\/+$/, '');
-    const response = await fetch(base + '/token');
-
-    const raw = await response.text();
-    let data = {};
-    try { data = JSON.parse(raw); } catch (_) {}
-
-    if (!response.ok) {
-      if (data?.error?.code === 'credit_balance_exhausted') {
-        throw new Error('Saldo OpenAI API habis. Tambahkan API credits dulu.');
-      }
-      throw new Error(data?.error?.message || raw || ('Backend ' + response.status));
-    }
-
-    if (!data?.value) throw new Error('Backend tidak mengembalikan client secret.');
-    return data.value;
-  }
-
-  async function start(){
-    if (connected || pc) return;
-
-    if (!cfg.backendUrl) {
-      fail('Backend Realtime belum diset.');
-      return;
-    }
-
-    setState('connecting');
-
-    try {
-      const ephemeralKey = await getEphemeralKey();
-
-      localStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        },
-        video: false
-      });
-
-      pc = new RTCPeerConnection();
-
-      for (const track of localStream.getTracks()) {
-        pc.addTrack(track, localStream);
-      }
-
-      pc.ontrack = event => {
-        const stream = event.streams?.[0] || new MediaStream([event.track]);
-        remoteAudio.srcObject = stream;
-        remoteAudio.play().catch(() => {});
-        startRemoteLevelMeter(stream);
-      };
-
-      pc.onconnectionstatechange = () => {
-        if (!pc) return;
-
-        if (pc.connectionState === 'connected') {
-          setConnected(true);
-          setState('listening');
-        } else if (['failed','closed','disconnected'].includes(pc.connectionState)) {
-          if (pc.connectionState === 'failed') fail('Koneksi WebRTC gagal.');
-        }
-      };
-
-      dc = pc.createDataChannel('oai-events');
-      dc.onopen = () => setState('listening');
-      dc.onmessage = e => {
-        try {
-          handleRealtimeEvent(JSON.parse(e.data));
-        } catch (_) {
-          console.debug('[DizaRealtime] raw event', e.data);
-        }
-      };
-      dc.onerror = () => fail('Data channel Realtime error.');
-
-      const offer = await pc.createOffer({offerToReceiveAudio: true});
-      await pc.setLocalDescription(offer);
-
-      const response = await fetch(
-        'https://api.openai.com/v1/realtime/calls',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: 'Bearer ' + ephemeralKey,
-            'Content-Type': 'application/sdp'
-          },
-          body: offer.sdp
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error((await response.text()) || ('OpenAI ' + response.status));
-      }
-
-      const answerSdp = await response.text();
-      await pc.setRemoteDescription({type:'answer', sdp:answerSdp});
-    } catch (err) {
-      await stop();
-      fail(err?.message || String(err));
-    }
-  }
-
-  async function stop(){
-    setConnected(false);
-
-    try { dc?.close(); } catch (_) {}
-    dc = null;
-
-    try { pc?.close(); } catch (_) {}
-    pc = null;
-
-    if (localStream) {
-      localStream.getTracks().forEach(t => t.stop());
-    }
-    localStream = null;
-
-    try {
-      remoteAudio.pause();
-      remoteAudio.srcObject = null;
-    } catch (_) {}
-
-    stopRemoteLevelMeter();
-    setState('idle');
-  }
-
-  let t = 0;
-
-  function idleLoop(){
-    t += .012;
-    document.getElementById('avatar').style.marginLeft =
-      (Math.sin(t) * 1.25) + 'px';
-    requestAnimationFrame(idleLoop);
-  }
-
-  requestAnimationFrame(idleLoop);
-
-  window.DizaAvatar = { setState };
-
-  window.DizaRealtime = {
-    configure(next){ cfg = {...cfg, ...(next || {})}; },
-    start,
-    stop,
-    get connected(){ return connected; }
-  };
+  window.DizaAvatar={setAvatarData,setMode,setListening,setSpeaking,setInputLevel,setTranscript};
+  updateState();
 })();
 </script>
 </body>
