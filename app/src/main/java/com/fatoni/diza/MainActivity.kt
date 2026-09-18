@@ -22,6 +22,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -29,12 +30,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -57,6 +63,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -96,7 +103,12 @@ private fun OpeningVideo(
             volume = 1f
             setMediaItem(
                 MediaItem.fromUri(
-                    Uri.parse("android.resource://" + context.packageName + "/" + R.raw.diza_opening)
+                    Uri.parse(
+                        "android.resource://" +
+                            context.packageName +
+                            "/" +
+                            R.raw.diza_opening
+                    )
                 )
             )
             prepare()
@@ -106,7 +118,9 @@ private fun OpeningVideo(
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) onFinished()
+                if (playbackState == Player.STATE_ENDED) {
+                    onFinished()
+                }
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -142,6 +156,9 @@ private fun OpeningVideo(
 fun DizaApp() {
     val context = LocalContext.current
     val handler = remember { Handler(Looper.getMainLooper()) }
+
+    // v0.3.8 uses the video's exact final frame as the static avatar.
+    // This keeps framing, scale and crop identical across VIDEO -> MAIN.
     val avatarBitmap = remember {
         BitmapFactory.decodeResource(context.resources, R.drawable.diza_avatar_default)
     }
@@ -149,6 +166,7 @@ fun DizaApp() {
     var stage by remember { mutableStateOf(AppStage.SPLASH) }
     val splashAlpha = remember { Animatable(0f) }
     val uiAlpha = remember { Animatable(0f) }
+    val controlsProgress = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
         splashAlpha.animateTo(
@@ -166,10 +184,18 @@ fun DizaApp() {
     LaunchedEffect(stage) {
         if (stage == AppStage.MAIN) {
             uiAlpha.snapTo(0f)
-            delay(90)
+            controlsProgress.snapTo(0f)
+
+            delay(80)
+
             uiAlpha.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(650, easing = FastOutSlowInEasing)
+                animationSpec = tween(520, easing = FastOutSlowInEasing)
+            )
+
+            controlsProgress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(560, easing = FastOutSlowInEasing)
             )
         }
     }
@@ -178,7 +204,7 @@ fun DizaApp() {
     var listening by remember { mutableStateOf(false) }
     var speaking by remember { mutableStateOf(false) }
     var transcript by remember { mutableStateOf("Diza siap") }
-    var speaker by remember { mutableStateOf("") }
+    var speaker by remember { mutableStateOf("Diza") }
     var errorText by remember { mutableStateOf("") }
     var micLevel by remember { mutableFloatStateOf(0f) }
     var ttsLevel by remember { mutableFloatStateOf(0f) }
@@ -186,7 +212,10 @@ fun DizaApp() {
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
 
     fun recognizerIntent() = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        putExtra(
+            RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+        )
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "id-ID")
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
         putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
@@ -196,11 +225,12 @@ fun DizaApp() {
         if (stage != AppStage.MAIN || !testMode || speaking) return
         listening = true
         errorText = ""
-        runCatching { recognizer?.startListening(recognizerIntent()) }
-            .onFailure {
-                listening = false
-                errorText = "Mic test gagal: " + (it.message ?: "unknown")
-            }
+        runCatching {
+            recognizer?.startListening(recognizerIntent())
+        }.onFailure {
+            listening = false
+            errorText = "Mic test gagal: " + (it.message ?: "unknown")
+        }
     }
 
     fun stopListening() {
@@ -211,6 +241,7 @@ fun DizaApp() {
 
     fun audioLevel(audio: ByteArray?): Float {
         if (audio == null || audio.size < 2) return 0f
+
         var total = 0L
         var count = 0
         var i = 0
@@ -219,12 +250,14 @@ fun DizaApp() {
             val lo = audio[i].toInt() and 0xFF
             val hi = audio[i + 1].toInt()
             val sample = ((hi shl 8) or lo).toShort().toInt()
+
             total += abs(sample).toLong()
             count++
             i += 2
         }
 
         if (count == 0) return 0f
+
         val average = total.toFloat() / count
         return (average / 7000f).coerceIn(0f, 1f)
     }
@@ -266,6 +299,7 @@ fun DizaApp() {
             override fun onError(error: Int) {
                 micLevel = 0f
                 listening = false
+
                 if (stage == AppStage.MAIN && testMode && !speaking) {
                     handler.postDelayed({ startListening() }, 450)
                 }
@@ -285,6 +319,7 @@ fun DizaApp() {
 
                 listening = false
                 micLevel = 0f
+
                 if (stage == AppStage.MAIN && testMode && !speaking) {
                     handler.postDelayed({ startListening() }, 250)
                 }
@@ -307,6 +342,7 @@ fun DizaApp() {
         })
 
         var engine: TextToSpeech? = null
+
         engine = TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 engine?.language = Locale("id", "ID")
@@ -315,41 +351,53 @@ fun DizaApp() {
             }
         }
 
-        engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(utteranceId: String?) {
-                handler.post {
-                    stopListening()
-                    ttsLevel = 0f
-                    speaking = true
-                }
-            }
-
-            override fun onAudioAvailable(utteranceId: String?, audio: ByteArray?) {
-                val level = audioLevel(audio)
-                handler.post {
-                    ttsLevel = (ttsLevel * 0.42f + level * 0.58f).coerceIn(0f, 1f)
-                }
-            }
-
-            override fun onDone(utteranceId: String?) {
-                handler.post {
-                    ttsLevel = 0f
-                    speaking = false
-                    if (stage == AppStage.MAIN && testMode) {
-                        handler.postDelayed({ startListening() }, 280)
+        engine?.setOnUtteranceProgressListener(
+            object : UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {
+                    handler.post {
+                        stopListening()
+                        ttsLevel = 0f
+                        speaking = true
                     }
                 }
-            }
 
-            @Deprecated("Deprecated in Java")
-            override fun onError(utteranceId: String?) {
-                onDone(utteranceId)
-            }
+                override fun onAudioAvailable(
+                    utteranceId: String?,
+                    audio: ByteArray?
+                ) {
+                    val level = audioLevel(audio)
 
-            override fun onError(utteranceId: String?, errorCode: Int) {
-                onDone(utteranceId)
+                    handler.post {
+                        ttsLevel =
+                            (ttsLevel * 0.42f + level * 0.58f)
+                                .coerceIn(0f, 1f)
+                    }
+                }
+
+                override fun onDone(utteranceId: String?) {
+                    handler.post {
+                        ttsLevel = 0f
+                        speaking = false
+
+                        if (stage == AppStage.MAIN && testMode) {
+                            handler.postDelayed({ startListening() }, 280)
+                        }
+                    }
+                }
+
+                @Deprecated("Deprecated in Java")
+                override fun onError(utteranceId: String?) {
+                    onDone(utteranceId)
+                }
+
+                override fun onError(
+                    utteranceId: String?,
+                    errorCode: Int
+                ) {
+                    onDone(utteranceId)
+                }
             }
-        })
+        )
 
         tts = engine
 
@@ -357,6 +405,7 @@ fun DizaApp() {
             runCatching { speech.cancel() }
             speech.destroy()
             recognizer = null
+
             engine?.stop()
             engine?.shutdown()
             tts = null
@@ -371,7 +420,10 @@ fun DizaApp() {
 
     val voiceLevel by animateFloatAsState(
         targetValue = rawVoiceLevel,
-        animationSpec = tween(durationMillis = 70, easing = LinearEasing),
+        animationSpec = tween(
+            durationMillis = 70,
+            easing = LinearEasing
+        ),
         label = "voice-level"
     )
 
@@ -397,6 +449,7 @@ fun DizaApp() {
                         letterSpacing = 6.sp,
                         textAlign = TextAlign.Center
                     )
+
                     Text(
                         text = "AI Personal Assistant",
                         color = Color.White.copy(alpha = 0.78f),
@@ -409,178 +462,326 @@ fun DizaApp() {
                 }
             }
         } else {
-            Column(
+            // Keep one constant full-screen viewport for BOTH the video and
+            // the static final frame. All controls are overlays, so the image
+            // never resizes when UI appears.
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFF08090C))
+                    .clipToBounds()
+                    .background(Color.Black)
             ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth()
-                        .clipToBounds()
-                        .background(Color(0xFF11131A))
-                ) {
-                    Image(
-                        bitmap = avatarBitmap.asImageBitmap(),
-                        contentDescription = "Diza",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                Image(
+                    bitmap = avatarBitmap.asImageBitmap(),
+                    contentDescription = "Diza",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
 
-                    if (stage == AppStage.VIDEO) {
-                        OpeningVideo(
-                            modifier = Modifier.fillMaxSize(),
-                            onFinished = {
-                                if (stage == AppStage.VIDEO) {
-                                    stage = AppStage.MAIN
-                                }
-                            }
-                        )
-                    }
-
-                    if (stage == AppStage.MAIN) {
-                        Text(
-                            text = buildString {
-                                if (speaker.isNotBlank()) append(speaker).append(" · ")
-                                append(transcript)
-                            },
-                            color = Color.White,
-                            fontSize = 19.sp,
-                            lineHeight = 24.sp,
-                            textAlign = TextAlign.Center,
-                            maxLines = 3,
-                            style = TextStyle(
-                                shadow = Shadow(
-                                    color = Color.Black,
-                                    offset = Offset(0f, 2f),
-                                    blurRadius = 14f
-                                )
-                            ),
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .padding(start = 22.dp, end = 22.dp, bottom = 68.dp)
-                                .graphicsLayer {
-                                    alpha = uiAlpha.value * (0.82f + voiceLevel * 0.18f)
-                                    translationY = -voiceLevel * 8f
-                                    scaleX = 1f + voiceLevel * 0.018f
-                                    scaleY = 1f + voiceLevel * 0.055f
-                                }
-                        )
-
-                        Canvas(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .fillMaxWidth(0.78f)
-                                .height(56.dp)
-                                .padding(bottom = 8.dp)
-                                .graphicsLayer {
-                                    alpha = uiAlpha.value
-                                }
-                        ) {
-                            val count = 36
-                            val gap = size.width / count
-                            val centerY = size.height / 2f
-                            val maxH = size.height * 0.82f
-
-                            repeat(count) { i ->
-                                val center = (count - 1) / 2f
-                                val distance = abs(i - center) / center
-                                val shape = 0.34f + (1f - distance) * 0.66f
-                                val harmonic = 0.62f + 0.38f * abs(
-                                    kotlin.math.sin(i * 0.71f + voiceLevel * 7.0f)
-                                )
-                                val h = 3f + maxH * voiceLevel * shape * harmonic
-                                val x = gap * i + gap / 2f
-
-                                drawLine(
-                                    color = if (voiceLevel > 0.02f) {
-                                        Color.White
-                                    } else {
-                                        Color.White.copy(alpha = 0.28f)
-                                    },
-                                    start = Offset(x, centerY - h / 2f),
-                                    end = Offset(x, centerY + h / 2f),
-                                    strokeWidth = 3f
-                                )
+                if (stage == AppStage.VIDEO) {
+                    OpeningVideo(
+                        modifier = Modifier.fillMaxSize(),
+                        onFinished = {
+                            if (stage == AppStage.VIDEO) {
+                                stage = AppStage.MAIN
                             }
                         }
-                    }
+                    )
                 }
 
                 if (stage == AppStage.MAIN) {
-                    Column(
-                        modifier = Modifier.graphicsLayer {
-                            alpha = uiAlpha.value
-                        }
+                    // Professional glass-style transcript card.
+                    Surface(
+                        shape = RoundedCornerShape(22.dp),
+                        color = Color(0xB8000000),
+                        border = BorderStroke(
+                            1.dp,
+                            Color.White.copy(alpha = 0.14f)
+                        ),
+                        shadowElevation = 8.dp,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(
+                                start = 18.dp,
+                                end = 18.dp,
+                                bottom = 176.dp
+                            )
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                alpha = uiAlpha.value
+                                translationY = -voiceLevel * 5f
+                                scaleX = 1f + voiceLevel * 0.008f
+                                scaleY = 1f + voiceLevel * 0.020f
+                            }
                     ) {
-                        if (errorText.isNotBlank()) {
+                        Column(
+                            modifier = Modifier.padding(
+                                horizontal = 18.dp,
+                                vertical = 14.dp
+                            )
+                        ) {
                             Text(
-                                "⚠ " + errorText,
-                                color = Color(0xFFFFB4AB),
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                text = speaker.uppercase(),
+                                color = Color.White.copy(alpha = 0.60f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 1.5.sp
+                            )
+
+                            Spacer(
+                                modifier = Modifier.height(5.dp)
+                            )
+
+                            Text(
+                                text = transcript,
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                lineHeight = 24.sp,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
+                                style = TextStyle(
+                                    shadow = Shadow(
+                                        color = Color.Black.copy(alpha = 0.45f),
+                                        offset = Offset(0f, 2f),
+                                        blurRadius = 8f
+                                    )
+                                )
                             )
                         }
+                    }
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Canvas(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth(0.76f)
+                            .height(46.dp)
+                            .padding(bottom = 2.dp)
+                            .graphicsLayer {
+                                alpha = uiAlpha.value
+                                translationY = -126f
+                            }
+                    ) {
+                        val count = 36
+                        val gap = size.width / count
+                        val centerY = size.height / 2f
+                        val maxH = size.height * 0.82f
+
+                        repeat(count) { i ->
+                            val center = (count - 1) / 2f
+                            val distance = abs(i - center) / center
+                            val shape =
+                                0.34f +
+                                    (1f - distance) * 0.66f
+                            val harmonic =
+                                0.62f +
+                                    0.38f *
+                                    abs(
+                                        kotlin.math.sin(
+                                            i * 0.71f +
+                                                voiceLevel * 7.0f
+                                        )
+                                    )
+                            val h =
+                                3f +
+                                    maxH *
+                                    voiceLevel *
+                                    shape *
+                                    harmonic
+                            val x =
+                                gap * i +
+                                    gap / 2f
+
+                            drawLine(
+                                color = if (voiceLevel > 0.02f) {
+                                    Color.White
+                                } else {
+                                    Color.White.copy(alpha = 0.24f)
+                                },
+                                start = Offset(
+                                    x,
+                                    centerY - h / 2f
+                                ),
+                                end = Offset(
+                                    x,
+                                    centerY + h / 2f
+                                ),
+                                strokeWidth = 3f
+                            )
+                        }
+                    }
+
+                    // Bottom control panel slides up after the video instead
+                    // of resizing the media viewport.
+                    Surface(
+                        shape = RoundedCornerShape(
+                            topStart = 30.dp,
+                            topEnd = 30.dp,
+                            bottomStart = 0.dp,
+                            bottomEnd = 0.dp
+                        ),
+                        color = Color(0xE90B0D12),
+                        border = BorderStroke(
+                            1.dp,
+                            Color.White.copy(alpha = 0.10f)
+                        ),
+                        shadowElevation = 18.dp,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .graphicsLayer {
+                                alpha = controlsProgress.value
+                                translationY =
+                                    (1f - controlsProgress.value) *
+                                        180f
+                            }
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 10.dp,
+                                bottom = 14.dp
+                            )
                         ) {
-                            Button(
-                                modifier = Modifier.weight(1f),
-                                onClick = {
-                                    if (testMode) {
-                                        testMode = false
-                                        stopListening()
-                                    } else {
-                                        val granted = ContextCompat.checkSelfPermission(
-                                            context,
-                                            Manifest.permission.RECORD_AUDIO
-                                        ) == PackageManager.PERMISSION_GRANTED
+                            Surface(
+                                shape = RoundedCornerShape(99.dp),
+                                color = Color.White.copy(alpha = 0.25f),
+                                modifier = Modifier
+                                    .width(40.dp)
+                                    .height(4.dp)
+                            ) {}
 
-                                        if (granted) {
-                                            testMode = true
-                                            handler.postDelayed({ startListening() }, 120)
+                            Spacer(
+                                modifier = Modifier.height(12.dp)
+                            )
+
+                            if (errorText.isNotBlank()) {
+                                Text(
+                                    text = errorText,
+                                    color = Color(0xFFFFB4AB),
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(
+                                        bottom = 8.dp
+                                    )
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement =
+                                    Arrangement.spacedBy(10.dp)
+                            ) {
+                                Button(
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(18.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor =
+                                            if (testMode) {
+                                                Color(0xFF252A33)
+                                            } else {
+                                                Color.White
+                                            },
+                                        contentColor =
+                                            if (testMode) {
+                                                Color.White
+                                            } else {
+                                                Color.Black
+                                            }
+                                    ),
+                                    onClick = {
+                                        if (testMode) {
+                                            testMode = false
+                                            stopListening()
+                                            transcript = "Diza siap"
+                                            speaker = "Diza"
                                         } else {
-                                            micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                                            val granted =
+                                                ContextCompat
+                                                    .checkSelfPermission(
+                                                        context,
+                                                        Manifest.permission
+                                                            .RECORD_AUDIO
+                                                    ) ==
+                                                    PackageManager
+                                                        .PERMISSION_GRANTED
+
+                                            if (granted) {
+                                                testMode = true
+                                                handler.postDelayed(
+                                                    { startListening() },
+                                                    120
+                                                )
+                                            } else {
+                                                micPermission.launch(
+                                                    Manifest.permission
+                                                        .RECORD_AUDIO
+                                                )
+                                            }
                                         }
                                     }
-                                }
-                            ) {
-                                Text(if (testMode) "Stop Test" else "Test Mode")
-                            }
-
-                            Button(
-                                modifier = Modifier.weight(1f),
-                                onClick = {
-                                    val demo =
-                                        "Hai Fatoni. Diza siap. Opening baru sudah aktif."
-                                    transcript = demo
-                                    speaker = "Diza"
-
-                                    val result = tts?.speak(
-                                        demo,
-                                        TextToSpeech.QUEUE_FLUSH,
-                                        null,
-                                        "diza-demo"
+                                ) {
+                                    Text(
+                                        if (testMode) {
+                                            "Stop Test"
+                                        } else {
+                                            "Test Mode"
+                                        },
+                                        fontWeight = FontWeight.SemiBold
                                     )
-
-                                    if (result == TextToSpeech.ERROR) {
-                                        errorText = "TTS Android di HP ini belum siap."
-                                    }
                                 }
-                            ) {
-                                Text("Diza ngomong")
-                            }
-                        }
 
-                        Text(
-                            "v0.3.7 · cinematic opening · seamless fade-in",
-                            color = Color(0xFF9EA2AD),
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                        )
+                                Button(
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(18.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFF252A33),
+                                        contentColor = Color.White
+                                    ),
+                                    onClick = {
+                                        val demo =
+                                            "Hai Fatoni. Diza siap."
+
+                                        transcript = demo
+                                        speaker = "Diza"
+
+                                        val result =
+                                            tts?.speak(
+                                                demo,
+                                                TextToSpeech.QUEUE_FLUSH,
+                                                null,
+                                                "diza-demo"
+                                            )
+
+                                        if (
+                                            result ==
+                                            TextToSpeech.ERROR
+                                        ) {
+                                            errorText =
+                                                "TTS Android di HP ini belum siap."
+                                        }
+                                    }
+                                ) {
+                                    Text(
+                                        "Diza Bicara",
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                            }
+
+                            Spacer(
+                                modifier = Modifier.height(8.dp)
+                            )
+
+                            Text(
+                                text =
+                                    "v0.3.8 · seamless frame · polished controls",
+                                color = Color.White.copy(alpha = 0.38f),
+                                fontSize = 10.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
