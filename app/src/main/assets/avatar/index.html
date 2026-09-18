@@ -201,11 +201,17 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:radial-grad
     const base = String(cfg.backendUrl || '').replace(/\/+$/, '');
     const response = await fetch(base + '/token');
 
+    const raw = await response.text();
+    let data = {};
+    try { data = JSON.parse(raw); } catch (_) {}
+
     if (!response.ok) {
-      throw new Error((await response.text()) || ('Backend ' + response.status));
+      if (data?.error?.code === 'credit_balance_exhausted') {
+        throw new Error('Saldo OpenAI API habis. Tambahkan API credits dulu.');
+      }
+      throw new Error(data?.error?.message || raw || ('Backend ' + response.status));
     }
 
-    const data = await response.json();
     if (!data?.value) throw new Error('Backend tidak mengembalikan client secret.');
     return data.value;
   }
