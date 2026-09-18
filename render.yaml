@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: diza-realtime-gateway
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: DIZA_REALTIME_MODEL
+        value: gpt-realtime-1.5
+      - key: DIZA_VOICE
+        value: marin
+      - key: DIZA_SAFETY_IDENTIFIER
+        value: diza-personal-user-v1
