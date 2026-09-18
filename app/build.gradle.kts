@@ -19,8 +19,8 @@ android {
         applicationId = "com.fatoni.diza"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.2.1"
+        versionCode = 4
+        versionName = "0.2.2"
         buildConfigField(
             "String",
             "DIZA_REALTIME_BACKEND_URL",
