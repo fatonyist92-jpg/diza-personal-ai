@@ -33,9 +33,9 @@ jobs:
         run: |
           mkdir -p app/src/main/res/drawable-nodpi
           curl --fail --location --retry 3 --retry-delay 2 \
-            'https://ucf35748654de6f7e19b5595c9c0.dl.dropboxusercontent.com/cd/0/get/DIV3JH0AgVj1TFchObgZBU5Bs7S8qyb0No4vDIQs_GQyob2dpUI9cw82UBQyv-aCbK0K_WYH3NiOppQE3QGRsAr136ALCJ2Sw-lyy1pXuNODASph32PNATDZ-XDrq6fWO9W7faBQxHqFvUjPbqJBMyegh3upKQfWg7TNAe4lOwrvcA/file?c_luid=41a51812' \
-            --output app/src/main/res/drawable-nodpi/diza_avatar_default.jpg
-          echo 'de8189f05495cc290893fe9b748d970393932a8bf1f6233a0fedac07093dff47  app/src/main/res/drawable-nodpi/diza_avatar_default.jpg' | sha256sum -c -
+            'https://ucc8379d82bc263fba16a7b2ead1.dl.dropboxusercontent.com/cd/0/get/DIUmPnHNwnOoac9ixtzawnbq1aArqmtZrSM1u0j0ILnhmPGDOTp6UMeRdWQseKUK5i1Sw_wYqKa_pWNmrVAQdr_BSdWPIPcCUo8RT1CpLMqiCYuZqNnNxhEMDvThEkFwgTeaPXVt4S9kvDEwmaF0Bpf0C_Ic1vMviX1Lt676ITMpQA/file?c_luid=41a51812' \
+            --output app/src/main/res/drawable-nodpi/diza_avatar_default.png
+          echo 'c614a927bc68b64c40862ada63139ad3fe3c7cc7b7312ff4f40372d20c674376  app/src/main/res/drawable-nodpi/diza_avatar_default.png' | sha256sum -c -
 
       - name: Java 17
         uses: actions/setup-java@v4
@@ -52,21 +52,21 @@ jobs:
         run: gradle :app:assembleDebug
 
       - name: Copy APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk Diza-v0.3.5.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk Diza-v0.3.6.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Diza-v0.3.5
-          path: Diza-v0.3.5.apk
+          name: Diza-v0.3.6
+          path: Diza-v0.3.6.apk
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete v0.3.5 --cleanup-tag --yes || true
-          git tag -f v0.3.5
-          git push origin -f v0.3.5
-          gh release create v0.3.5 Diza-v0.3.5.apk \
-            --title "Diza v0.3.5" \
-            --notes "Avatar Diza otomatis saat app dibuka, tidak ada avatar picker, fake whole-photo motion dihapus, icon Diza baru, waveform Test Mode tetap aktif."
+          gh release delete v0.3.6 --cleanup-tag --yes || true
+          git tag -f v0.3.6
+          git push origin -f v0.3.6
+          gh release create v0.3.6 Diza-v0.3.6.apk \
+            --title "Diza v0.3.6" \
+            --notes "Avatar diganti ke foto terbaru. Transcript dipindah tepat di atas waveform dan bergerak mengikuti level suara mic/TTS. Fake whole-photo motion tetap dimatikan."

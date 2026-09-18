@@ -17,10 +17,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -50,15 +47,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import java.util.Locale
 import kotlin.math.abs
-import kotlin.math.sin
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,6 +80,7 @@ fun DizaApp() {
     var speaker by remember { mutableStateOf("") }
     var errorText by remember { mutableStateOf("") }
     var micLevel by remember { mutableFloatStateOf(0f) }
+    var ttsLevel by remember { mutableFloatStateOf(0f) }
     var recognizer by remember { mutableStateOf<SpeechRecognizer?>(null) }
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
 
@@ -109,6 +108,24 @@ fun DizaApp() {
         runCatching { recognizer?.cancel() }
     }
 
+    fun audioLevel(audio: ByteArray?): Float {
+        if (audio == null || audio.size < 2) return 0f
+        var total = 0L
+        var count = 0
+        var i = 0
+        while (i + 1 < audio.size) {
+            val lo = audio[i].toInt() and 0xFF
+            val hi = audio[i + 1].toInt()
+            val sample = ((hi shl 8) or lo).toShort().toInt()
+            total += abs(sample).toLong()
+            count++
+            i += 2
+        }
+        if (count == 0) return 0f
+        val avg = total.toFloat() / count
+        return (avg / 7000f).coerceIn(0f, 1f)
+    }
+
     val micPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { ok ->
@@ -133,7 +150,10 @@ fun DizaApp() {
             }
 
             override fun onBufferReceived(buffer: ByteArray?) = Unit
-            override fun onEndOfSpeech() { micLevel = 0f }
+
+            override fun onEndOfSpeech() {
+                micLevel = 0f
+            }
 
             override fun onError(error: Int) {
                 micLevel = 0f
@@ -191,12 +211,21 @@ fun DizaApp() {
             override fun onStart(utteranceId: String?) {
                 handler.post {
                     stopListening()
+                    ttsLevel = 0f
                     speaking = true
+                }
+            }
+
+            override fun onAudioAvailable(utteranceId: String?, audio: ByteArray?) {
+                val level = audioLevel(audio)
+                handler.post {
+                    ttsLevel = (ttsLevel * 0.42f + level * 0.58f).coerceIn(0f, 1f)
                 }
             }
 
             override fun onDone(utteranceId: String?) {
                 handler.post {
+                    ttsLevel = 0f
                     speaking = false
                     if (testMode) handler.postDelayed({ startListening() }, 280)
                 }
@@ -222,22 +251,17 @@ fun DizaApp() {
         }
     }
 
-    val waveform = rememberInfiniteTransition(label = "waveform")
-    val phase by waveform.animateFloat(
-        initialValue = 0f,
-        targetValue = 6.2831855f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(950, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "wave-phase"
-    )
-
-    val talkPulse = if (speaking) {
-        0.18f + abs(sin(phase * 2.2f)) * 0.82f
-    } else {
-        0f
+    val rawVoiceLevel = when {
+        listening -> micLevel
+        speaking -> ttsLevel
+        else -> 0f
     }
+
+    val voiceLevel by animateFloatAsState(
+        targetValue = rawVoiceLevel,
+        animationSpec = tween(durationMillis = 70, easing = LinearEasing),
+        label = "voice-level"
+    )
 
     MaterialTheme {
         Column(
@@ -265,46 +289,27 @@ fun DizaApp() {
                         append(transcript)
                     },
                     color = Color.White,
-                    fontSize = 20.sp,
-                    lineHeight = 25.sp,
+                    fontSize = 19.sp,
+                    lineHeight = 24.sp,
+                    textAlign = TextAlign.Center,
+                    maxLines = 3,
                     style = TextStyle(
                         shadow = Shadow(
                             color = Color.Black,
                             offset = Offset(0f, 2f),
-                            blurRadius = 12f
+                            blurRadius = 14f
                         )
                     ),
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(horizontal = 22.dp, vertical = 22.dp)
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 22.dp, bottom = 68.dp)
+                        .graphicsLayer {
+                            translationY = -voiceLevel * 8f
+                            scaleX = 1f + voiceLevel * 0.018f
+                            scaleY = 1f + voiceLevel * 0.055f
+                            alpha = 0.82f + voiceLevel * 0.18f
+                        }
                 )
-
-                Text(
-                    text = when {
-                        speaking -> "● Diza lagi ngomong"
-                        listening -> "● Diza dengerin Fatoni"
-                        testMode -> "● Test Mode"
-                        else -> "● Diza siap"
-                    },
-                    color = Color.White,
-                    fontSize = 12.sp,
-                    style = TextStyle(
-                        shadow = Shadow(
-                            color = Color.Black,
-                            offset = Offset(0f, 2f),
-                            blurRadius = 8f
-                        )
-                    ),
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 16.dp, bottom = 72.dp)
-                )
-
-                val waveformLevel = when {
-                    listening -> micLevel
-                    speaking -> talkPulse
-                    else -> 0f
-                }
 
                 Canvas(
                     modifier = Modifier
@@ -322,14 +327,14 @@ fun DizaApp() {
                         val center = (count - 1) / 2f
                         val distance = abs(i - center) / center
                         val shape = 0.34f + (1f - distance) * 0.66f
-                        val jitter = 0.55f + 0.45f * abs(
-                            sin(phase * 7.5f + i * 0.73f)
+                        val harmonic = 0.62f + 0.38f * abs(
+                            kotlin.math.sin(i * 0.71f + voiceLevel * 7.0f)
                         )
-                        val h = 3f + maxH * waveformLevel * shape * jitter
+                        val h = 3f + maxH * voiceLevel * shape * harmonic
                         val x = gap * i + gap / 2f
 
                         drawLine(
-                            color = if (waveformLevel > 0.02f) {
+                            color = if (voiceLevel > 0.02f) {
                                 Color.White
                             } else {
                                 Color.White.copy(alpha = 0.28f)
@@ -383,7 +388,7 @@ fun DizaApp() {
                 Button(
                     modifier = Modifier.weight(1f),
                     onClick = {
-                        val demo = "Hai Fatoni. Diza siap. Engine gerak natural lagi disiapkan."
+                        val demo = "Hai Fatoni. Diza siap. Teks sekarang bergerak mengikuti suara."
                         transcript = demo
                         speaker = "Diza"
 
@@ -404,7 +409,7 @@ fun DizaApp() {
             }
 
             Text(
-                "v0.3.5 · avatar otomatis · no fake motion",
+                "v0.3.6 · avatar baru · transcript audio-reactive",
                 color = Color(0xFF9EA2AD),
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
             )
