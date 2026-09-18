@@ -32,9 +32,9 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08090c;fon
     <img id="mouth" class="layer" alt="">
     <div id="shade"></div>
   </div>
-  <div id="subtitle"><span id="who"></span><span id="text">Pilih Avatar HD dari Gallery</span></div>
+  <div id="subtitle"><span id="who"></span><span id="text">Pilih Avatar HD sekali kalau foto belum muncul</span></div>
   <div id="status"><span id="dot"></span><span id="statusText">Diza siap</span></div>
-  <div id="hint">HD · no recompress</div>
+  <div id="hint">HD · direct file</div>
   <div id="wave"></div>
 </div>
 <script>
@@ -63,42 +63,42 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08090c;fon
 
   fetch('diza_reference.b64').then(r=>r.text()).then(t=>{
     const src='data:image/jpeg;base64,'+t.replace(/\s+/g,'');
-    setAvatarData(src);
+    setAvatarUrl(src);
   }).catch(()=>{});
 
-  function setAvatarData(src){
+  function setAvatarUrl(src){
     base.src=src;
     hair.src=src;
     mouth.src=src;
   }
 
   function updateState(){
-    stage.className = speaking ? 'speaking' : (listening ? 'listening' : mode);
-    statusText.textContent = speaking ? 'Diza lagi ngomong' : (listening ? 'Diza dengerin Fatoni' : (mode==='test' ? 'Test Mode' : 'Diza siap'));
+    stage.className=speaking?'speaking':(listening?'listening':mode);
+    statusText.textContent=speaking?'Diza lagi ngomong':(listening?'Diza dengerin Fatoni':(mode==='test'?'Test Mode':'Diza siap'));
   }
 
-  function setMode(v){ mode=v||'idle'; updateState(); }
-  function setListening(v){ listening=!!v; if(listening) speaking=false; updateState(); }
-  function setSpeaking(v){ speaking=!!v; if(speaking) listening=false; updateState(); }
-  function setInputLevel(v){ input=Math.max(0,Math.min(1,Number(v)||0)); }
+  function setMode(v){mode=v||'idle';updateState();}
+  function setListening(v){listening=!!v;if(listening)speaking=false;updateState();}
+  function setSpeaking(v){speaking=!!v;if(speaking)listening=false;updateState();}
+  function setInputLevel(v){input=Math.max(0,Math.min(1,Number(v)||0));}
   function setTranscript(v,w){
     text.textContent=v||'';
-    who.textContent=v ? ((w||'') + (w ? ' ·' : '')) : '';
+    who.textContent=v?((w||'')+(w?' ·':'')):'';
   }
 
   function animate(ms){
     const t=ms/1000;
-    const talk=speaking ? Math.min(1,.22+.78*Math.abs(Math.sin(t*10.6)+.28*Math.sin(t*17.2))) : 0;
+    const talk=speaking?Math.min(1,.22+.78*Math.abs(Math.sin(t*10.6)+.28*Math.sin(t*17.2))):0;
     const breathe=.45+.55*Math.sin(t*.9);
-    const headX=Math.sin(t*.62)*1.2 + (speaking?Math.sin(t*1.7)*.55:0);
-    const headY=Math.cos(t*.55)*1.35 - talk*.55;
-    const rot=Math.sin(t*.48)*.12 + (speaking?Math.sin(t*1.1)*.08:0);
+    const headX=Math.sin(t*.62)*1.2+(speaking?Math.sin(t*1.7)*.55:0);
+    const headY=Math.cos(t*.55)*1.35-talk*.55;
+    const rot=Math.sin(t*.48)*.12+(speaking?Math.sin(t*1.1)*.08:0);
 
     base.style.transform='translate3d('+headX+'px,'+headY+'px,0) rotate('+rot+'deg) scale('+(1.008+breathe*.003+talk*.002)+')';
     hair.style.transform='translate3d('+(headX+Math.sin(t*1.2)*.6)+'px,'+(headY+Math.cos(t*.82)*.32)+'px,0) rotate('+(rot*.75)+'deg)';
     mouth.style.transform='translate3d('+headX+'px,'+(headY+talk*1.1)+'px,0) rotate('+rot+'deg) scaleY('+(1+talk*.055)+')';
 
-    const e=listening ? input : (speaking ? (.18 + talk*.66) : 0);
+    const e=listening?input:(speaking?(.18+talk*.66):0);
     const center=(bars.length-1)/2;
     bars.forEach((b,i)=>{
       const dist=Math.abs(i-center)/center;
@@ -108,12 +108,11 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08090c;fon
       b.style.height=h.toFixed(1)+'px';
       b.style.opacity=(e>.02?.92:.24).toString();
     });
-
     requestAnimationFrame(animate);
   }
   requestAnimationFrame(animate);
 
-  window.DizaAvatar={setAvatarData,setMode,setListening,setSpeaking,setInputLevel,setTranscript};
+  window.DizaAvatar={setAvatarUrl,setMode,setListening,setSpeaking,setInputLevel,setTranscript};
   updateState();
 })();
 </script>
