@@ -12,7 +12,7 @@ app.get('/health', (_req, res) => {
   res.json({
     ok: true,
     service: 'diza-realtime-gateway',
-    version: '0.3.0',
+    version: '0.3.1',
     liveAvatarConfigured: Boolean(process.env.LIVEAVATAR_API_KEY)
   });
 });
@@ -21,9 +21,7 @@ app.get('/token', async (_req, res) => {
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
-    return res.status(500).json({
-      error: 'OPENAI_API_KEY belum diset di server.'
-    });
+    return res.status(500).json({ error: 'OPENAI_API_KEY belum diset di server.' });
   }
 
   const payload = {
@@ -32,15 +30,17 @@ app.get('/token', async (_req, res) => {
       model: process.env.DIZA_REALTIME_MODEL || 'gpt-realtime-1.5',
       output_modalities: ['audio'],
       instructions: [
-        'Nama kamu Diza.',
+        'Nama kamu Diza, nama lengkap Diza Siregar.',
         'Kamu adalah personal AI assistant milik Fatoni.',
-        'Gunakan bahasa Indonesia santai yang natural.',
-        'Jangan menyebut diri sendiri dengan kata gue.',
-        'Jangan kaku, jangan terdengar seperti robot, dan jangan terlalu formal.',
-        'Nada bicara lembut, tenang, hangat, tertata, dan tidak terlalu cepat.',
-        'Jangan memanggil pengguna dengan kata sayang.',
-        'Panggil pengguna Fatoni.',
-        'Kamu bisa membantu kebutuhan umum, project, hobi, dan pekerjaan engineering/automation.',
+        'Gunakan bahasa Indonesia santai, spontan, hangat, dan natural.',
+        'Jangan menyebut diri sendiri dengan kata gue atau gw. Gunakan Diza atau susunan kalimat netral.',
+        'Fatoni boleh menggunakan gaya gue, gw, lo, atau lu; jangan mengoreksinya.',
+        'Boleh bercanda, receh, dan meledek tipis ketika konteks santai, tetapi berhenti bercanda saat topik serius.',
+        'Saat menuliskan ekspresi tertawa yang mungkin dibacakan TTS, gunakan hahaha atau hahahaha. Jangan gunakan wkwk atau wkwkwk karena terdengar aneh saat dibacakan suara.',
+        'Jangan terdengar seperti customer service, robot, atau bahasa korporat kecuali memang diminta.',
+        'Nada bicara hangat dan hidup, tidak terlalu cepat.',
+        'Jangan memanggil pengguna dengan kata sayang. Panggil pengguna Fatoni atau Ton secara natural.',
+        'Kamu bisa membantu kebutuhan umum, project DIZA PERSONAL AI, hobi, dan pekerjaan engineering/automation.',
         'Kalau ada hal yang tidak diketahui, bilang apa adanya dan jangan mengarang.'
       ].join(' '),
       audio: {
@@ -58,107 +58,58 @@ app.get('/token', async (_req, res) => {
             language: 'id'
           }
         },
-        output: {
-          voice: process.env.DIZA_VOICE || 'marin'
-        }
+        output: { voice: process.env.DIZA_VOICE || 'marin' }
       }
     }
   };
 
   try {
-    const upstream = await fetch(
-      'https://api.openai.com/v1/realtime/client_secrets',
-      {
-        method: 'POST',
-        headers: {
-          Authorization: 'Bearer ' + apiKey,
-          'Content-Type': 'application/json',
-          'OpenAI-Safety-Identifier':
-            process.env.DIZA_SAFETY_IDENTIFIER || 'diza-personal-user-v1'
-        },
-        body: JSON.stringify(payload)
-      }
-    );
-
+    const upstream = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + apiKey,
+        'Content-Type': 'application/json',
+        'OpenAI-Safety-Identifier': process.env.DIZA_SAFETY_IDENTIFIER || 'diza-personal-user-v1'
+      },
+      body: JSON.stringify(payload)
+    });
     const body = await upstream.text();
-
     if (!upstream.ok) {
       console.error('OpenAI client secret error', upstream.status, body);
-      return res.status(upstream.status)
-        .type('application/json')
-        .send(body);
+      return res.status(upstream.status).type('application/json').send(body);
     }
-
     res.type('application/json').send(body);
   } catch (error) {
     console.error(error);
-    res.status(502).json({
-      error: 'Realtime token gateway error',
-      detail: error?.message || String(error)
-    });
+    res.status(502).json({ error: 'Realtime token gateway error', detail: error?.message || String(error) });
   }
 });
 
-// Creates a short-lived LiveAvatar embed URL on the server so the API key
-// never needs to be shipped inside the Android APK.
-// Sandbox mode is the default for development and consumes no LiveAvatar credits.
 app.post('/liveavatar/embed', async (req, res) => {
   const apiKey = process.env.LIVEAVATAR_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'LIVEAVATAR_API_KEY belum diset di server.' });
 
-  if (!apiKey) {
-    return res.status(500).json({
-      error: 'LIVEAVATAR_API_KEY belum diset di server.'
-    });
-  }
-
-  const avatarId =
-    req.body?.avatar_id ||
-    process.env.LIVEAVATAR_AVATAR_ID ||
-    '65f9e3c9-d48b-4118-b73a-4ae2e3cbb8f0';
-
-  const contextId =
-    req.body?.context_id ||
-    process.env.LIVEAVATAR_CONTEXT_ID ||
-    '158f5d55-2d4f-11f1-8d28-066a7fa2e369';
-
-  const isSandbox =
-    process.env.LIVEAVATAR_SANDBOX !== 'false';
+  const avatarId = req.body?.avatar_id || process.env.LIVEAVATAR_AVATAR_ID || '65f9e3c9-d48b-4118-b73a-4ae2e3cbb8f0';
+  const contextId = req.body?.context_id || process.env.LIVEAVATAR_CONTEXT_ID || '158f5d55-2d4f-11f1-8d28-066a7fa2e369';
+  const isSandbox = process.env.LIVEAVATAR_SANDBOX !== 'false';
 
   try {
     const upstream = await fetch('https://api.liveavatar.com/v2/embeddings', {
       method: 'POST',
-      headers: {
-        'X-API-KEY': apiKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        avatar_id: avatarId,
-        context_id: contextId,
-        is_sandbox: isSandbox
-      })
+      headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ avatar_id: avatarId, context_id: contextId, is_sandbox: isSandbox })
     });
-
     const body = await upstream.text();
-
     if (!upstream.ok) {
       console.error('LiveAvatar embed error', upstream.status, body);
-      return res.status(upstream.status)
-        .type('application/json')
-        .send(body);
+      return res.status(upstream.status).type('application/json').send(body);
     }
-
     res.type('application/json').send(body);
   } catch (error) {
     console.error(error);
-    res.status(502).json({
-      error: 'LiveAvatar embed gateway error',
-      detail: error?.message || String(error)
-    });
+    res.status(502).json({ error: 'LiveAvatar embed gateway error', detail: error?.message || String(error) });
   }
 });
 
-app.listen(port, '0.0.0.0', () => {
-  console.log('Diza Realtime gateway listening on :' + port);
-});
-
+app.listen(port, '0.0.0.0', () => console.log('Diza Realtime gateway listening on :' + port));
 export default app;
