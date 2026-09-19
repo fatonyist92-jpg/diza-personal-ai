@@ -90,7 +90,7 @@ Required composer inputs:
 - File picker: attach supported documents/files from device storage.
 
 UX contract:
-- Provide a ChatGPT-like composer with text field, microphone control, send action, and an attachment (+) menu.
+- Provide a Diza-native composer with text field, microphone control, send action, and an attachment (+) menu. The text-field placeholder must read `Balas ke Diza`, never `Balas ke ChatGPT`.
 - Attachment menu exposes Camera, Photo, Video, and File as explicit choices.
 - Show an attachment preview/card before sending, with remove/cancel support.
 - Upload progress and failure must be visible; never silently discard an attachment.
