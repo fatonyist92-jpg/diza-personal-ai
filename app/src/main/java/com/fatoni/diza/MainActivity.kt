@@ -3,6 +3,7 @@ package com.fatoni.diza
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -23,6 +24,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,7 +55,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -159,6 +163,10 @@ private fun LocalVideo(
 fun DizaApp() {
     val context = LocalContext.current
     val handler = remember { Handler(Looper.getMainLooper()) }
+
+    val avatarBitmap = remember {
+        BitmapFactory.decodeResource(context.resources, R.drawable.diza_avatar_default)
+    }
 
     var stage by remember { mutableStateOf(AppStage.SPLASH) }
     val splashAlpha = remember { Animatable(0f) }
@@ -471,13 +479,11 @@ fun DizaApp() {
                     .clipToBounds()
                     .background(Color.Black)
             ) {
-                // Temporary base while the final Diza portrait is pending:
-                // keep the talk clip paused on its first frame.
-                LocalVideo(
-                    rawResId = R.raw.diza_talk_short,
-                    modifier = Modifier.fillMaxSize(),
-                    startPaused = true,
-                    muted = true
+                Image(
+                    bitmap = avatarBitmap.asImageBitmap(),
+                    contentDescription = "Diza",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
 
                 if (stage == AppStage.VIDEO) {
@@ -492,9 +498,18 @@ fun DizaApp() {
                     )
                 }
 
+                if (stage == AppStage.MAIN && !talkVisual) {
+                    LocalVideo(
+                        rawResId = R.raw.diza_wait,
+                        modifier = Modifier.fillMaxSize(),
+                        repeat = true,
+                        muted = true
+                    )
+                }
+
                 if (stage == AppStage.MAIN && talkVisual) {
                     LocalVideo(
-                        rawResId = R.raw.diza_talk_short,
+                        rawResId = R.raw.diza_talk_long,
                         modifier = Modifier.fillMaxSize(),
                         repeat = true,
                         muted = true
