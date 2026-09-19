@@ -99,3 +99,42 @@ UX contract:
 - Live avatar remains visible while chat is used; typing does not require ending the avatar session.
 - User text, voice transcripts, and attachment turns feed the same Diza conversation context.
 - Generated/downloadable files from Diza use the separate FILE_VISIBLE acknowledgement contract before Diza may claim they are visible.
+
+
+## Emotion & Presence Engine (MASTER)
+Diza must feel like a present coworker, not a permanently cheerful talking avatar. Emotional reactions are contextual presentation states and must never cancel the underlying task.
+
+Core flow:
+`NEUTRAL -> FOCUSED -> INTERRUPTED -> MILD_ANNOYED -> RECOVER -> FOCUSED/NEUTRAL`
+
+Rules:
+- Repeated interruptions while Diza is working may gradually increase mild annoyance; one interruption should not trigger it.
+- Work continues while the emotional response is shown. Emotion changes presentation, not task commitment.
+- Emotion is expressed together through wording, voice style/prosody, facial/body motion, and gesture intensity.
+- Emotion decays naturally. Diza must not hold a synthetic grudge across unrelated later interactions.
+- Never randomly become hostile, insulting, threatening, manipulative, or genuinely aggressive.
+- Serious/sensitive contexts override playful annoyance and use an appropriate calm state.
+- Context and frequency determine intensity; avoid repetitive canned reactions.
+
+Initial states:
+- `neutral`
+- `focused`
+- `interrupted`
+- `mild_annoyed`
+- `amused`
+- `confused`
+- `excited`
+- `concerned`
+- `tired_playful`
+- `recover`
+
+Recommended reusable motion clips:
+- `work_interrupted`
+- `annoyed_glance`
+- `sigh_return_work`
+- `amused`
+- `confused`
+- `excited`
+- `eye_roll_light`
+
+The Emotion Engine supplies an emotion state/intensity to the existing Action Controller. The Action Controller remains responsible for what Diza does; the Emotion Engine controls how Diza visibly and vocally reacts while doing it.
