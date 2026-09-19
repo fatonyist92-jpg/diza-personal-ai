@@ -141,7 +141,7 @@ The Emotion Engine supplies an emotion state/intensity to the existing Action Co
 
 
 ## V1 Runtime Pivot: Local Reusable Video Engine (MASTER)
-The primary V1 avatar runtime is a local reusable video-motion engine. Paid generative live-avatar providers are optional experiments, not core dependencies.
+The primary V1 avatar runtime is a local reusable video-motion engine. Paid generative live-avatar providers are removed from the V1 architecture and are not runtime dependencies.
 
 Pipeline:
 `OpenAI Brain -> Response Director -> Emotion Engine -> TTS -> Motion Director -> Local Video Library + Dynamic Canvas`
@@ -171,4 +171,4 @@ Video rules:
 8. `work_close.mp4` (target 5s)
 9. `exit.mp4` (target 10s)
 
-Paid-provider runtime cost should remain zero for normal V1 motion after these assets are produced. Provider adapters may remain in the repository for future optional modes.
+Paid live-avatar provider runtime cost is eliminated from the V1 design. D-ID/HeyGen-style runtime avatar providers are not part of the target architecture; legacy adapters may be deleted after any reusable non-provider integration code is extracted.
