@@ -172,3 +172,18 @@ Video rules:
 9. `exit.mp4` (target 10s)
 
 Paid live-avatar provider runtime cost is eliminated from the V1 design. D-ID/HeyGen-style runtime avatar providers are not part of the target architecture; legacy adapters may be deleted after any reusable non-provider integration code is extracted.
+
+
+## Zero-Key Installation Mode (V1 acceptance target)
+The APK must be installable and testable without an OpenAI API key while the reusable motion assets are being produced.
+
+Zero-key mode must support:
+- app launch and local UI
+- text composer and local attachment selection
+- local motion/state-machine playback when assets exist
+- idle/emotion timers and exit lifecycle
+- Dynamic Canvas demo content
+- deterministic local demo responses for end-to-end UI/motion testing
+- no hidden dependency on OpenAI, D-ID, HeyGen, or other paid avatar runtime
+
+Network AI is an adapter layered on later. Missing credentials must never prevent the APK from launching or exercising the local avatar experience.
