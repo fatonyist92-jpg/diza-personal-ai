@@ -3,7 +3,6 @@ package com.fatoni.diza
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -86,83 +85,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class AppStage {
-    SPLASH,
-    VIDEO,
-    MAIN
-}
-
-@Composable
-private fun OpeningVideo(
-    modifier: Modifier = Modifier,
-    onFinished: () -> Unit
-) {
-    val context = LocalContext.current
-    val player = remember {
-        ExoPlayer.Builder(context).build().apply {
-            repeatMode = Player.REPEAT_MODE_OFF
-            volume = 1f
-            setMediaItem(
-                MediaItem.fromUri(
-                    Uri.parse(
-                        "android.resource://" +
-                            context.packageName +
-                            "/" +
-                            R.raw.diza_opening
-                    )
-                )
-            )
-            prepare()
-        }
-    }
-
-    DisposableEffect(player) {
-        val listener = object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) {
-                    onFinished()
-                }
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                onFinished()
-            }
-        }
-
-        player.addListener(listener)
-        player.playWhenReady = true
-
-        onDispose {
-            player.removeListener(listener)
-            player.release()
-        }
-    }
-
-    AndroidView(
-        modifier = modifier,
-        factory = {
-            PlayerView(it).apply {
-                useController = false
-                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                setShutterBackgroundColor(android.graphics.Color.BLACK)
-                setKeepContentOnPlayerReset(true)
-                this.player = player
-            }
-        },
-        update = { it.player = player }
-    )
-}
+private enum class AppStage { SPLASH, MAIN }
 
 @Composable
 fun DizaApp() {
     val context = LocalContext.current
     val handler = remember { Handler(Looper.getMainLooper()) }
-
-    // Uses the video's exact final frame as the static avatar.
-    // This keeps framing, scale and crop identical across VIDEO -> MAIN.
-    val avatarBitmap = remember {
-        BitmapFactory.decodeResource(context.resources, R.drawable.diza_avatar_default)
-    }
 
     var stage by remember { mutableStateOf(AppStage.SPLASH) }
     val splashAlpha = remember { Animatable(0f) }
@@ -179,7 +107,7 @@ fun DizaApp() {
             targetValue = 0f,
             animationSpec = tween(480, easing = FastOutSlowInEasing)
         )
-        stage = AppStage.VIDEO
+        stage = AppStage.MAIN
     }
 
     LaunchedEffect(stage) {
@@ -472,25 +400,7 @@ fun DizaApp() {
                     .clipToBounds()
                     .background(Color.Black)
             ) {
-                Image(
-                    bitmap = avatarBitmap.asImageBitmap(),
-                    contentDescription = "Diza",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-
-                if (stage == AppStage.VIDEO) {
-                    OpeningVideo(
-                        modifier = Modifier.fillMaxSize(),
-                        onFinished = {
-                            if (stage == AppStage.VIDEO) {
-                                stage = AppStage.MAIN
-                            }
-                        }
-                    )
-                }
-
-                if (stage == AppStage.MAIN) {
+                Box(modifier = Modifier.fillMaxSize().background(Color(0xFF111318)))\n\n                if (stage == AppStage.MAIN) {
                     // Professional glass-style transcript card.
                     Surface(
                         shape = RoundedCornerShape(22.dp),
@@ -777,7 +687,7 @@ fun DizaApp() {
 
                             Text(
                                 text =
-                                    "v0.3.9 · raised waveform · polished controls",
+                                    "Live Avatar Preview · zero-cost build",
                                 color = Color.White.copy(alpha = 0.38f),
                                 fontSize = 10.sp,
                                 textAlign = TextAlign.Center
