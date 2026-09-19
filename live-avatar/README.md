@@ -77,3 +77,25 @@ Rules:
 - Task completion and file-delivery acknowledgement are separate states. If the task produced a file, do not verbally claim delivery until the client has emitted `FILE_VISIBLE`.
 
 Suggested asset contract: `diza_work_open.mp4`, `diza_work_loop.mp4`, and `diza_work_close.mp4`.
+
+## Multimodal APK input contract
+
+The APK must support both voice-first and chat-first interaction. Voice is optional, never mandatory.
+
+Required composer inputs:
+- Text chat: user can type and send messages without activating the microphone.
+- Camera: capture a new photo/video from the device camera and attach it to the conversation.
+- Photo/gallery: choose existing images from device media and attach them.
+- Video/gallery: choose existing video files from device media and attach them.
+- File picker: attach supported documents/files from device storage.
+
+UX contract:
+- Provide a ChatGPT-like composer with text field, microphone control, send action, and an attachment (+) menu.
+- Attachment menu exposes Camera, Photo, Video, and File as explicit choices.
+- Show an attachment preview/card before sending, with remove/cancel support.
+- Upload progress and failure must be visible; never silently discard an attachment.
+- A message containing text plus one or more attachments is one conversational turn.
+- Camera/gallery/file permissions are requested only when the related action is invoked.
+- Live avatar remains visible while chat is used; typing does not require ending the avatar session.
+- User text, voice transcripts, and attachment turns feed the same Diza conversation context.
+- Generated/downloadable files from Diza use the separate FILE_VISIBLE acknowledgement contract before Diza may claim they are visible.
