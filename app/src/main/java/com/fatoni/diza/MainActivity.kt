@@ -3,7 +3,6 @@ package com.fatoni.diza
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
@@ -24,7 +23,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -55,9 +53,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -503,6 +499,7 @@ fun DizaApp() {
                         rawResId = R.raw.diza_wait,
                         modifier = Modifier.fillMaxSize(),
                         repeat = true,
+                        reverseRawResId = R.raw.diza_wait_reverse,
                         muted = true
                     )
                 }
@@ -512,6 +509,7 @@ fun DizaApp() {
                         rawResId = R.raw.diza_talk_long,
                         modifier = Modifier.fillMaxSize(),
                         repeat = true,
+                        reverseRawResId = R.raw.diza_talk_long_reverse,
                         muted = true
                     )
                 }
