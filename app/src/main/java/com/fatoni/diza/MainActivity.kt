@@ -25,6 +25,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,7 +39,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -106,7 +110,11 @@ private fun LocalVideo(
     val context = LocalContext.current
     val player = remember {
         ExoPlayer.Builder(context).build().apply {
-            repeatMode = if (repeat) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+            repeatMode = when {
+                repeat && reverseRawResId != null -> Player.REPEAT_MODE_ALL
+                repeat -> Player.REPEAT_MODE_ONE
+                else -> Player.REPEAT_MODE_OFF
+            }
             volume = if (muted) 0f else 1f
             val forward = MediaItem.fromUri(
                 Uri.parse("android.resource://" + context.packageName + "/" + rawResId)
@@ -207,6 +215,8 @@ fun DizaApp() {
     }
 
     var testMode by remember { mutableStateOf(false) }
+    var messageText by remember { mutableStateOf("") }
+    var attachmentMenu by remember { mutableStateOf(false) }
     var listening by remember { mutableStateOf(false) }
     var speaking by remember { mutableStateOf(false) }
     var talkVisual by remember { mutableStateOf(false) }
@@ -277,6 +287,40 @@ fun DizaApp() {
             handler.postDelayed({ startListening() }, 120)
         } else {
             errorText = "Izin mikrofon dibutuhin buat Test Mode."
+        }
+    }
+
+    val photoPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            transcript = "Foto siap dianalisis"
+            speaker = "Diza"
+            attachmentMenu = false
+        }
+    }
+
+    val filePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            transcript = "File siap dianalisis"
+            speaker = "Diza"
+            attachmentMenu = false
+        }
+    }
+
+    LaunchedEffect(stage) {
+        if (stage == AppStage.MAIN && !testMode) {
+            val granted = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+            if (granted) {
+                testMode = true
+                handler.postDelayed({ startListening() }, 300)
+            } else {
+                micPermission.launch(Manifest.permission.RECORD_AUDIO)
+            }
         }
     }
 
@@ -692,12 +736,155 @@ fun DizaApp() {
                                     text = errorText,
                                     color = Color(0xFFFFB4AB),
                                     fontSize = 12.sp,
-                                    modifier = Modifier.padding(
-                                        bottom = 8.dp
-                                    )
+                                    modifier = Modifier.padding(bottom = 8.dp)
                                 )
                             }
 
+                            if (attachmentMenu) {
+                                Surface(
+                                    shape = RoundedCornerShape(22.dp),
+                                    color = Color(0xFF202126),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Text(
+                                            "Kamera",
+                                            color = Color.White,
+                                            fontSize = 16.sp,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    attachmentMenu = false
+                                                    runCatching {
+                                                        context.startActivity(
+                                                            Intent("android.media.action.IMAGE_CAPTURE")
+                                                        )
+                                                    }
+                                                }
+                                                .padding(14.dp)
+                                        )
+                                        Text(
+                                            "Foto",
+                                            color = Color.White,
+                                            fontSize = 16.sp,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { photoPicker.launch("image/*") }
+                                                .padding(14.dp)
+                                        )
+                                        Text(
+                                            "File",
+                                            color = Color.White,
+                                            fontSize = 16.sp,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { filePicker.launch("*/*") }
+                                                .padding(14.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(28.dp),
+                                color = Color(0xFF202126),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.10f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp)
+                                ) {
+                                    Text(
+                                        "+",
+                                        color = Color.White,
+                                        fontSize = 34.sp,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier
+                                            .size(46.dp)
+                                            .clickable { attachmentMenu = !attachmentMenu }
+                                    )
+
+                                    BasicTextField(
+                                        value = messageText,
+                                        onValueChange = { messageText = it },
+                                        singleLine = true,
+                                        textStyle = TextStyle(
+                                            color = Color.White,
+                                            fontSize = 17.sp
+                                        ),
+                                        decorationBox = { inner ->
+                                            Box(modifier = Modifier.fillMaxWidth()) {
+                                                if (messageText.isBlank()) {
+                                                    Text(
+                                                        "Balas ke Diza",
+                                                        color = Color.White.copy(alpha = 0.52f),
+                                                        fontSize = 17.sp
+                                                    )
+                                                }
+                                                inner()
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f)
+                                    )
+
+                                    Text(
+                                        if (listening) "●" else "🎙",
+                                        color = Color.White,
+                                        fontSize = 22.sp,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier
+                                            .size(46.dp)
+                                            .clickable {
+                                                if (listening) {
+                                                    stopListening()
+                                                } else {
+                                                    testMode = true
+                                                    startListening()
+                                                }
+                                            }
+                                            .padding(top = 8.dp)
+                                    )
+
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color(0xFF2F7DF4),
+                                        modifier = Modifier
+                                            .size(46.dp)
+                                            .clickable {
+                                                if (messageText.isNotBlank()) {
+                                                    transcript = messageText.trim()
+                                                    speaker = "Fatoni"
+                                                    messageText = ""
+                                                } else {
+                                                    testMode = true
+                                                    startListening()
+                                                }
+                                            }
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                if (messageText.isNotBlank()) "➤" else "▮▮▮",
+                                                color = Color.White,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Text(
+                                text = when {
+                                    speaking -> "Diza sedang bicara"
+                                    listening -> "Diza mendengarkan"
+                                    else -> "Voice siap"
+                                },
+                                color = Color.White.copy(alpha = 0.45f),
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(top = 7.dp, bottom = 2.dp)
+                            )
 
                         }
                     }
