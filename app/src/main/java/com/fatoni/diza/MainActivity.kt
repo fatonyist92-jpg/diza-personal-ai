@@ -93,22 +93,25 @@ private enum class AppStage {
 }
 
 @Composable
-private fun OpeningVideo(
+private fun LocalVideo(
+    rawResId: Int,
     modifier: Modifier = Modifier,
-    onFinished: () -> Unit
+    repeat: Boolean = false,
+    muted: Boolean = false,
+    onFinished: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val player = remember {
         ExoPlayer.Builder(context).build().apply {
-            repeatMode = Player.REPEAT_MODE_OFF
-            volume = 1f
+            repeatMode = if (repeat) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
+            volume = if (muted) 0f else 1f
             setMediaItem(
                 MediaItem.fromUri(
                     Uri.parse(
                         "android.resource://" +
                             context.packageName +
                             "/" +
-                            R.raw.diza_opening
+                            rawResId
                     )
                 )
             )
@@ -119,7 +122,7 @@ private fun OpeningVideo(
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) {
+                if (!repeat && playbackState == Player.STATE_ENDED) {
                     onFinished()
                 }
             }
@@ -204,6 +207,7 @@ fun DizaApp() {
     var testMode by remember { mutableStateOf(false) }
     var listening by remember { mutableStateOf(false) }
     var speaking by remember { mutableStateOf(false) }
+    var talkVisual by remember { mutableStateOf(false) }
     var transcript by remember { mutableStateOf("Diza siap") }
     var speaker by remember { mutableStateOf("Diza") }
     var errorText by remember { mutableStateOf("") }
@@ -359,6 +363,7 @@ fun DizaApp() {
                         stopListening()
                         ttsLevel = 0f
                         speaking = true
+                        talkVisual = true
                     }
                 }
 
@@ -379,6 +384,7 @@ fun DizaApp() {
                     handler.post {
                         ttsLevel = 0f
                         speaking = false
+                        talkVisual = false
 
                         if (stage == AppStage.MAIN && testMode) {
                             handler.postDelayed({ startListening() }, 280)
@@ -480,13 +486,23 @@ fun DizaApp() {
                 )
 
                 if (stage == AppStage.VIDEO) {
-                    OpeningVideo(
+                    LocalVideo(
+                        rawResId = R.raw.diza_opening,
                         modifier = Modifier.fillMaxSize(),
                         onFinished = {
                             if (stage == AppStage.VIDEO) {
                                 stage = AppStage.MAIN
                             }
                         }
+                    )
+                }
+
+                if (stage == AppStage.MAIN && talkVisual) {
+                    LocalVideo(
+                        rawResId = R.raw.diza_talk_short,
+                        modifier = Modifier.fillMaxSize(),
+                        repeat = true,
+                        muted = true
                     )
                 }
 
