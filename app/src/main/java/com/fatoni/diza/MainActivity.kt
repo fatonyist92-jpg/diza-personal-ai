@@ -400,7 +400,9 @@ fun DizaApp() {
                     .clipToBounds()
                     .background(Color.Black)
             ) {
-                Box(modifier = Modifier.fillMaxSize().background(Color(0xFF111318)))\n\n                if (stage == AppStage.MAIN) {
+                Box(modifier = Modifier.fillMaxSize().background(Color(0xFF111318)))
+
+                if (stage == AppStage.MAIN) {
                     // Professional glass-style transcript card.
                     Surface(
                         shape = RoundedCornerShape(22.dp),
