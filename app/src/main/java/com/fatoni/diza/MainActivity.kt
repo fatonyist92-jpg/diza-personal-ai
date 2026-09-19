@@ -184,6 +184,7 @@ fun DizaApp() {
 
     var stage by remember { mutableStateOf(AppStage.SPLASH) }
     val splashAlpha = remember { Animatable(0f) }
+    val openingReveal = remember { Animatable(0f) }
     val uiAlpha = remember { Animatable(0f) }
     val controlsProgress = remember { Animatable(0f) }
 
@@ -197,7 +198,14 @@ fun DizaApp() {
             targetValue = 0f,
             animationSpec = tween(480, easing = FastOutSlowInEasing)
         )
+        // Hold on pure black for a beat, then reveal the opening video smoothly.
         stage = AppStage.VIDEO
+        openingReveal.snapTo(0f)
+        delay(120)
+        openingReveal.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(650, easing = FastOutSlowInEasing)
+        )
     }
 
     LaunchedEffect(stage) {
@@ -526,7 +534,9 @@ fun DizaApp() {
                 if (stage == AppStage.VIDEO) {
                     LocalVideo(
                         rawResId = R.raw.diza_opening,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { alpha = openingReveal.value },
                         onFinished = {
                             if (stage == AppStage.VIDEO) {
                                 stage = AppStage.MAIN
