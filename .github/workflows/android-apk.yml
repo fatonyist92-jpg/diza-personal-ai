@@ -40,6 +40,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Generate ping-pong reverse clips
         run: |
           ffmpeg -y -i app/src/main/res/raw/diza_wait.mp4 -an -vf reverse app/src/main/res/raw/diza_wait_reverse.mp4
