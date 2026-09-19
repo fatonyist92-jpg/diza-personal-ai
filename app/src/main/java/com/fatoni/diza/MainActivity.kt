@@ -97,6 +97,7 @@ private fun LocalVideo(
     rawResId: Int,
     modifier: Modifier = Modifier,
     repeat: Boolean = false,
+    reverseRawResId: Int? = null,
     muted: Boolean = false,
     onFinished: () -> Unit = {}
 ) {
@@ -105,16 +106,17 @@ private fun LocalVideo(
         ExoPlayer.Builder(context).build().apply {
             repeatMode = if (repeat) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
             volume = if (muted) 0f else 1f
-            setMediaItem(
-                MediaItem.fromUri(
-                    Uri.parse(
-                        "android.resource://" +
-                            context.packageName +
-                            "/" +
-                            rawResId
-                    )
-                )
+            val forward = MediaItem.fromUri(
+                Uri.parse("android.resource://" + context.packageName + "/" + rawResId)
             )
+            if (reverseRawResId != null) {
+                val reverse = MediaItem.fromUri(
+                    Uri.parse("android.resource://" + context.packageName + "/" + reverseRawResId)
+                )
+                setMediaItems(listOf(forward, reverse))
+            } else {
+                setMediaItem(forward)
+            }
             prepare()
         }
     }
@@ -502,6 +504,7 @@ fun DizaApp() {
                         rawResId = R.raw.diza_talk_short,
                         modifier = Modifier.fillMaxSize(),
                         repeat = true,
+                        reverseRawResId = R.raw.diza_talk_short_reverse,
                         muted = true
                     )
                 }
