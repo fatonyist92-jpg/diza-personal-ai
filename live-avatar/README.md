@@ -35,3 +35,19 @@ Do not generate a new full video for every response. Normal conversation uses li
 3. Add a dynamic-canvas state contract.
 4. Connect D-ID only after credentials/Agent ID are available.
 5. Keep paid avatar usage optional while development budget is zero.
+
+## Live-mode delivery contract
+
+Never claim that a generated file is visible to the user merely because generation or backend delivery succeeded.
+
+Required flow:
+
+1. Generate the file.
+2. Send an attachment/file event to the APK client.
+3. Render a visible file card/button in the client UI.
+4. Client sends a `FILE_VISIBLE` acknowledgement only after the attachment is rendered.
+5. Only after `FILE_VISIBLE` may Diza tell the user that the file has appeared/is available on screen.
+
+If acknowledgement is missing or times out, Diza must report that the file has not appeared yet and retry/recover instead of claiming success.
+
+Success is defined at the user-visible client layer, not at generation or server-delivery layer.
