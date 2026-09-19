@@ -36,6 +36,11 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
+      - name: Generate ping-pong reverse clips
+        run: |
+          ffmpeg -y -i app/src/main/res/raw/diza_wait.mp4 -an -vf reverse app/src/main/res/raw/diza_wait_reverse.mp4
+          ffmpeg -y -i app/src/main/res/raw/diza_talk_short.mp4 -an -vf reverse app/src/main/res/raw/diza_talk_short_reverse.mp4
+          ffmpeg -y -i app/src/main/res/raw/diza_talk_long.mp4 -an -vf reverse app/src/main/res/raw/diza_talk_long_reverse.mp4
       - name: Build APK
         run: gradle :app:assembleDebug
       - name: Prepare APK
