@@ -42,6 +42,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +51,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -135,6 +137,9 @@ fun DizaApp() {
     var transcript by remember { mutableStateOf("Diza siap") }
     var speaker by remember { mutableStateOf("Diza") }
     var errorText by remember { mutableStateOf("") }
+    var chatText by remember { mutableStateOf(TextFieldValue("")) }
+    var attachmentMenu by remember { mutableStateOf(false) }
+    var pendingAttachment by remember { mutableStateOf<String?>(null) }
     var micLevel by remember { mutableFloatStateOf(0f) }
     var ttsLevel by remember { mutableFloatStateOf(0f) }
     var recognizer by remember { mutableStateOf<SpeechRecognizer?>(null) }
@@ -190,6 +195,10 @@ fun DizaApp() {
         val average = total.toFloat() / count
         return (average / 7000f).coerceIn(0f, 1f)
     }
+
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? -> pendingAttachment = uri?.let { "File dipilih" } }
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? -> pendingAttachment = uri?.let { "Foto dipilih" } }
+    val videoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? -> pendingAttachment = uri?.let { "Video dipilih" } }
 
     val micPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -580,6 +589,29 @@ fun DizaApp() {
                                     )
                                 )
                             }
+
+                            if (pendingAttachment != null) {
+                                Text(text = pendingAttachment ?: "", color = Color.White, fontSize = 12.sp)
+                                Spacer(modifier = Modifier.height(6.dp))
+                            }
+                            OutlinedTextField(
+                                value = chatText,
+                                onValueChange = { chatText = it },
+                                placeholder = { Text("Balas ke Diza") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
+                                trailingIcon = { Button(onClick = { val msg = chatText.text.trim(); if (msg.isNotBlank() || pendingAttachment != null) { transcript = if (pendingAttachment != null) msg + "  📎 " + pendingAttachment else msg; speaker = "Fatoni"; chatText = TextFieldValue(""); pendingAttachment = null; attachmentMenu = false } }) { Text("Kirim") } }
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(onClick = { attachmentMenu = !attachmentMenu }) { Text("+") }
+                                if (attachmentMenu) {
+                                    Button(onClick = { photoPicker.launch("image/*") }) { Text("Foto") }
+                                    Button(onClick = { videoPicker.launch("video/*") }) { Text("Video") }
+                                    Button(onClick = { filePicker.launch("*/*") }) { Text("File") }
+                                }
+                            }
+                            if (attachmentMenu) { Text("Kamera menyusul · Foto · Video · File aktif", color = Color.White.copy(alpha = 0.55f), fontSize = 10.sp); Spacer(modifier = Modifier.height(8.dp)) }
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
