@@ -207,12 +207,7 @@ fun DizaApp() {
         )
         // Hold on pure black for a beat, then reveal the opening video smoothly.
         stage = AppStage.VIDEO
-        openingReveal.snapTo(0f)
-        delay(250)
-        openingReveal.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(2400, easing = FastOutSlowInEasing)
-        )
+        openingReveal.snapTo(1f)
     }
 
     LaunchedEffect(stage) {
