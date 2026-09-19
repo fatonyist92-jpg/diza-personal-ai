@@ -42,6 +42,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -246,7 +251,7 @@ fun DizaApp() {
             recognizer?.startListening(recognizerIntent())
         }.onFailure {
             listening = false
-            errorText = "Mic test gagal: " + (it.message ?: "unknown")
+            errorText = "Mikrofon gagal aktif: " + (it.message ?: "unknown")
         }
     }
 
@@ -286,7 +291,7 @@ fun DizaApp() {
             testMode = true
             handler.postDelayed({ startListening() }, 120)
         } else {
-            errorText = "Izin mikrofon dibutuhin buat Test Mode."
+            errorText = "Izin mikrofon dibutuhkan untuk percakapan suara."
         }
     }
 
@@ -310,19 +315,6 @@ fun DizaApp() {
         }
     }
 
-    LaunchedEffect(stage) {
-        if (stage == AppStage.MAIN && !testMode) {
-            val granted = ContextCompat.checkSelfPermission(
-                context, Manifest.permission.RECORD_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED
-            if (granted) {
-                testMode = true
-                handler.postDelayed({ startListening() }, 300)
-            } else {
-                micPermission.launch(Manifest.permission.RECORD_AUDIO)
-            }
-        }
-    }
 
     DisposableEffect(Unit) {
         val speech = SpeechRecognizer.createSpeechRecognizer(context)
@@ -829,46 +821,47 @@ fun DizaApp() {
                                         modifier = Modifier.weight(1f)
                                     )
 
-                                    Text(
-                                        if (listening) "●" else "🎙",
-                                        color = Color.White,
-                                        fontSize = 22.sp,
-                                        textAlign = TextAlign.Center,
+                                    Icon(
+                                        imageVector = Icons.Filled.Mic,
+                                        contentDescription = "Mikrofon",
+                                        tint = if (testMode) Color(0xFF2F7DF4) else Color.White.copy(alpha = 0.82f),
                                         modifier = Modifier
-                                            .size(46.dp)
-                                            .clickable {
-                                                if (listening) {
-                                                    stopListening()
-                                                } else {
-                                                    testMode = true
-                                                    startListening()
-                                                }
-                                            }
-                                            .padding(top = 8.dp)
+                                            .size(42.dp)
+                                            .padding(9.dp)
                                     )
 
                                     Surface(
                                         shape = CircleShape,
-                                        color = Color(0xFF2F7DF4),
+                                        color = if (testMode) Color(0xFFE5484D) else Color(0xFF2F7DF4),
                                         modifier = Modifier
                                             .size(46.dp)
                                             .clickable {
-                                                if (messageText.isNotBlank()) {
+                                                if (messageText.isNotBlank() && !testMode) {
                                                     transcript = messageText.trim()
                                                     speaker = "Fatoni"
                                                     messageText = ""
+                                                } else if (testMode) {
+                                                    testMode = false
+                                                    stopListening()
                                                 } else {
-                                                    testMode = true
-                                                    startListening()
+                                                    val granted = ContextCompat.checkSelfPermission(
+                                                        context, Manifest.permission.RECORD_AUDIO
+                                                    ) == PackageManager.PERMISSION_GRANTED
+                                                    if (granted) {
+                                                        testMode = true
+                                                        startListening()
+                                                    } else {
+                                                        micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                                                    }
                                                 }
                                             }
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                if (messageText.isNotBlank()) "➤" else "▮▮▮",
-                                                color = Color.White,
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.Bold
+                                            Icon(
+                                                imageVector = if (testMode) Icons.Filled.Stop else Icons.Filled.GraphicEq,
+                                                contentDescription = if (testMode) "Hentikan percakapan" else "Mulai percakapan live",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(24.dp)
                                             )
                                         }
                                     }
@@ -879,7 +872,7 @@ fun DizaApp() {
                                 text = when {
                                     speaking -> "Diza sedang bicara"
                                     listening -> "Diza mendengarkan"
-                                    else -> "Voice siap"
+                                    else -> "Tekan tombol biru untuk Live Percakapan"
                                 },
                                 color = Color.White.copy(alpha = 0.45f),
                                 fontSize = 11.sp,
