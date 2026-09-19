@@ -6,114 +6,66 @@
 <style>
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#08090c;font-family:system-ui,-apple-system,sans-serif}
 *{box-sizing:border-box}
-#stage{position:relative;width:100%;height:100%;overflow:hidden;background:radial-gradient(circle at 50% 24%,#242833 0,#111319 55%,#08090c 100%)}
-#scene{position:absolute;inset:-1%;overflow:hidden}
-.layer{position:absolute;inset:0;width:102%;height:102%;object-fit:cover;object-position:50% 38%;will-change:transform;transform-origin:50% 46%;backface-visibility:hidden}
+#stage{position:relative;width:100%;height:100%;overflow:hidden;background:#08090c}
+.visual{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 38%;transition:opacity .22s ease}
 #base{z-index:1}
-#hair{z-index:2;clip-path:polygon(0 0,100% 0,100% 78%,75% 73%,67% 40%,33% 40%,25% 73%,0 78%);pointer-events:none}
-#mouth{z-index:3;clip-path:inset(42% 31% 43% 31% round 18px);pointer-events:none}
-#shade{position:absolute;inset:0;z-index:4;background:linear-gradient(180deg,rgba(0,0,0,.03),transparent 30%,transparent 76%,rgba(0,0,0,.28));pointer-events:none}
-#subtitle{position:absolute;z-index:8;top:max(18px,env(safe-area-inset-top));left:22px;right:22px;text-align:center;color:white;font-size:clamp(18px,4.8vw,27px);font-weight:700;line-height:1.28;text-shadow:0 2px 4px #000,0 0 10px #000,0 0 22px rgba(0,0,0,.85);min-height:58px;pointer-events:none}
+#opening{z-index:2;opacity:0;pointer-events:none}
+#live{position:absolute;inset:0;z-index:3;opacity:0;transition:opacity .22s ease;background:#08090c}
+#live video{width:100%;height:100%;object-fit:cover;object-position:50% 38%}
+#shade{position:absolute;inset:0;z-index:4;background:linear-gradient(180deg,rgba(0,0,0,.03),transparent 30%,transparent 76%,rgba(0,0,0,.24));pointer-events:none}
+#subtitle{position:absolute;z-index:8;top:max(18px,env(safe-area-inset-top));left:22px;right:22px;text-align:center;color:white;font-size:clamp(18px,4.8vw,27px);font-weight:700;line-height:1.28;text-shadow:0 2px 4px #000,0 0 10px #000;min-height:58px;pointer-events:none}
 #who{font-size:.73em;opacity:.82;margin-right:6px}
-#status{position:absolute;z-index:8;left:15px;bottom:79px;color:rgba(255,255,255,.92);font-size:12px;font-weight:700;text-shadow:0 1px 4px #000,0 0 10px #000}
+#status{position:absolute;z-index:8;left:15px;bottom:79px;color:rgba(255,255,255,.92);font-size:12px;font-weight:700;text-shadow:0 1px 4px #000}
 #dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:7px;background:#9da1aa}
-.test #dot,.listening #dot{background:#61e7c0;box-shadow:0 0 12px rgba(97,231,192,.8)}
+.listening #dot{background:#61e7c0;box-shadow:0 0 12px rgba(97,231,192,.8)}
 .speaking #dot{background:#ffafcf;box-shadow:0 0 12px rgba(255,175,207,.85)}
-#wave{position:absolute;z-index:9;left:50%;bottom:20px;transform:translateX(-50%);width:min(78vw,440px);height:48px;display:flex;align-items:center;justify-content:center;gap:3px;filter:drop-shadow(0 2px 5px rgba(0,0,0,.85));pointer-events:none}
-.bar{width:3px;height:3px;min-height:3px;border-radius:99px;background:rgba(255,255,255,.95);opacity:.28;transform-origin:center}
-#hint{position:absolute;z-index:8;right:15px;bottom:79px;color:rgba(255,255,255,.78);font-size:11px;font-weight:650;text-shadow:0 1px 4px #000}
+#wave{position:absolute;z-index:9;left:50%;bottom:20px;transform:translateX(-50%);width:min(78vw,440px);height:48px;display:flex;align-items:center;justify-content:center;gap:3px;pointer-events:none}
+.bar{width:3px;height:3px;min-height:3px;border-radius:99px;background:rgba(255,255,255,.95);opacity:.24}
 </style>
 </head>
 <body>
 <div id="stage" class="idle">
-  <div id="scene">
-    <img id="base" class="layer" alt="Diza">
-    <img id="hair" class="layer" alt="">
-    <img id="mouth" class="layer" alt="">
-    <div id="shade"></div>
-  </div>
-  <div id="subtitle"><span id="who"></span><span id="text">Pilih Avatar HD sekali kalau foto belum muncul</span></div>
+  <img id="base" class="visual" alt="Diza">
+  <video id="opening" class="visual" playsinline preload="auto"></video>
+  <div id="live"><video id="liveVideo" autoplay playsinline></video></div>
+  <div id="shade"></div>
+  <div id="subtitle"><span id="who"></span><span id="text"></span></div>
   <div id="status"><span id="dot"></span><span id="statusText">Diza siap</span></div>
-  <div id="hint">HD · direct file</div>
   <div id="wave"></div>
 </div>
 <script>
 (() => {
-  const stage=document.getElementById('stage');
-  const base=document.getElementById('base');
-  const hair=document.getElementById('hair');
-  const mouth=document.getElementById('mouth');
-  const who=document.getElementById('who');
-  const text=document.getElementById('text');
-  const statusText=document.getElementById('statusText');
-  const wave=document.getElementById('wave');
-
-  const bars=[];
-  for(let i=0;i<36;i++){
-    const b=document.createElement('div');
-    b.className='bar';
-    wave.appendChild(b);
-    bars.push(b);
-  }
-
-  let mode='idle';
-  let listening=false;
-  let speaking=false;
-  let input=0;
-
-  fetch('diza_reference.b64').then(r=>r.text()).then(t=>{
-    const src='data:image/jpeg;base64,'+t.replace(/\s+/g,'');
-    setAvatarUrl(src);
-  }).catch(()=>{});
-
-  function setAvatarUrl(src){
-    base.src=src;
-    hair.src=src;
-    mouth.src=src;
-  }
-
-  function updateState(){
-    stage.className=speaking?'speaking':(listening?'listening':mode);
-    statusText.textContent=speaking?'Diza lagi ngomong':(listening?'Diza dengerin Fatoni':(mode==='test'?'Test Mode':'Diza siap'));
-  }
-
-  function setMode(v){mode=v||'idle';updateState();}
-  function setListening(v){listening=!!v;if(listening)speaking=false;updateState();}
-  function setSpeaking(v){speaking=!!v;if(speaking)listening=false;updateState();}
-  function setInputLevel(v){input=Math.max(0,Math.min(1,Number(v)||0));}
-  function setTranscript(v,w){
-    text.textContent=v||'';
-    who.textContent=v?((w||'')+(w?' ·':'')):'';
-  }
-
-  function animate(ms){
-    const t=ms/1000;
-    const talk=speaking?Math.min(1,.22+.78*Math.abs(Math.sin(t*10.6)+.28*Math.sin(t*17.2))):0;
-    const breathe=.45+.55*Math.sin(t*.9);
-    const headX=Math.sin(t*.62)*1.2+(speaking?Math.sin(t*1.7)*.55:0);
-    const headY=Math.cos(t*.55)*1.35-talk*.55;
-    const rot=Math.sin(t*.48)*.12+(speaking?Math.sin(t*1.1)*.08:0);
-
-    base.style.transform='translate3d('+headX+'px,'+headY+'px,0) rotate('+rot+'deg) scale('+(1.008+breathe*.003+talk*.002)+')';
-    hair.style.transform='translate3d('+(headX+Math.sin(t*1.2)*.6)+'px,'+(headY+Math.cos(t*.82)*.32)+'px,0) rotate('+(rot*.75)+'deg)';
-    mouth.style.transform='translate3d('+headX+'px,'+(headY+talk*1.1)+'px,0) rotate('+rot+'deg) scaleY('+(1+talk*.055)+')';
-
-    const e=listening?input:(speaking?(.18+talk*.66):0);
-    const center=(bars.length-1)/2;
-    bars.forEach((b,i)=>{
-      const dist=Math.abs(i-center)/center;
-      const shape=.34+(1-dist)*.66;
-      const jitter=.52+.48*Math.abs(Math.sin(t*8.4+i*.71));
-      const h=3+Math.min(42,e*42*shape*jitter);
-      b.style.height=h.toFixed(1)+'px';
-      b.style.opacity=(e>.02?.92:.24).toString();
-    });
-    requestAnimationFrame(animate);
-  }
-  requestAnimationFrame(animate);
-
-  window.DizaAvatar={setAvatarUrl,setMode,setListening,setSpeaking,setInputLevel,setTranscript};
-  updateState();
+ const stage=document.getElementById('stage'),base=document.getElementById('base'),opening=document.getElementById('opening'),live=document.getElementById('live'),liveVideo=document.getElementById('liveVideo'),who=document.getElementById('who'),text=document.getElementById('text'),statusText=document.getElementById('statusText'),wave=document.getElementById('wave');
+ const bars=[]; for(let i=0;i<36;i++){const b=document.createElement('div');b.className='bar';wave.appendChild(b);bars.push(b)}
+ let listening=false,speaking=false,input=0,visualState='base';
+ fetch('diza_reference.b64').then(r=>r.text()).then(t=>base.src='data:image/jpeg;base64,'+t.replace(/\s+/g,'')).catch(()=>{});
+ function show(state){
+   visualState=state;
+   base.style.opacity=state==='base'?'1':'0';
+   opening.style.opacity=state==='opening'?'1':'0';
+   live.style.opacity=state==='live'?'1':'0';
+ }
+ function setAvatarUrl(src){base.src=src}
+ function setOpeningUrl(src){opening.src=src}
+ async function playOpening(){
+   if(!opening.src){show('base');return false}
+   show('opening'); opening.currentTime=0;
+   try{await opening.play();return true}catch(e){show('base');return false}
+ }
+ opening.addEventListener('ended',()=>show('base'));
+ function setLiveStream(stream){liveVideo.srcObject=stream;show(stream?'live':'base')}
+ function setListening(v){listening=!!v;if(listening)speaking=false;update()}
+ function setSpeaking(v){speaking=!!v;if(speaking)listening=false;update()}
+ function setInputLevel(v){input=Math.max(0,Math.min(1,Number(v)||0))}
+ function setTranscript(v,w){text.textContent=v||'';who.textContent=v?((w||'')+(w?' ·':'')):''}
+ function update(){stage.className=speaking?'speaking':(listening?'listening':'idle');statusText.textContent=speaking?'Diza lagi ngomong':(listening?'Diza dengerin Fatoni':'Diza siap')}
+ function animate(ms){
+   const t=ms/1000,e=listening?input:(speaking?.5:0),center=(bars.length-1)/2;
+   bars.forEach((b,i)=>{const dist=Math.abs(i-center)/center,shape=.34+(1-dist)*.66,jitter=.52+.48*Math.abs(Math.sin(t*8.4+i*.71));b.style.height=(3+Math.min(42,e*42*shape*jitter)).toFixed(1)+'px';b.style.opacity=e>.02?'.92':'.24'});
+   requestAnimationFrame(animate)
+ }
+ requestAnimationFrame(animate); update(); show('base');
+ window.DizaAvatar={setAvatarUrl,setOpeningUrl,playOpening,setLiveStream,showBase:()=>show('base'),showLive:()=>show('live'),setListening,setSpeaking,setInputLevel,setTranscript,getVisualState:()=>visualState};
 })();
 </script>
 </body>
