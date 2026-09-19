@@ -51,3 +51,29 @@ Required flow:
 If acknowledgement is missing or times out, Diza must report that the file has not appeared yet and retry/recover instead of claiming success.
 
 Success is defined at the user-visible client layer, not at generation or server-delivery layer.
+
+## Work-presence motion workflow
+
+Long-running work must have a natural visual lifecycle instead of leaving the base avatar frozen or abruptly stopping a loop.
+
+State sequence:
+
+`BASE -> WORK_OPEN -> WORK_LOOP -> WORK_CLOSE -> BASE`
+
+- `BASE`: canonical seated base composition.
+- `WORK_OPEN`: one-shot transition where Diza opens the laptop and moves into the working pose.
+- `WORK_LOOP`: seamless loop of Diza typing/working on the laptop while a task is actively running. It may repeat for as long as the task remains active.
+- `WORK_CLOSE`: one-shot completion transition where Diza closes the laptop and returns to the exact canonical base composition.
+- Return to `BASE` only after `WORK_CLOSE` finishes.
+
+Rules:
+
+- Never jump directly from `BASE` to the typing loop when a work-start transition is available.
+- Never stop `WORK_LOOP` abruptly when work completes. Finish the current safe loop boundary, play `WORK_CLOSE`, then return to `BASE`.
+- The first frame of `WORK_OPEN` must visually match `BASE`.
+- The end of `WORK_OPEN` must match the loop seam of `WORK_LOOP`.
+- The start of `WORK_CLOSE` must match that same work pose/loop seam.
+- The final frame of `WORK_CLOSE` must match `BASE` in framing, body position, camera, lighting, and scale.
+- Task completion and file-delivery acknowledgement are separate states. If the task produced a file, do not verbally claim delivery until the client has emitted `FILE_VISIBLE`.
+
+Suggested asset contract: `diza_work_open.mp4`, `diza_work_loop.mp4`, and `diza_work_close.mp4`.
