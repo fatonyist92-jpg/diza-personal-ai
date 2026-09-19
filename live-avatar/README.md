@@ -138,3 +138,37 @@ Recommended reusable motion clips:
 - `eye_roll_light`
 
 The Emotion Engine supplies an emotion state/intensity to the existing Action Controller. The Action Controller remains responsible for what Diza does; the Emotion Engine controls how Diza visibly and vocally reacts while doing it.
+
+
+## V1 Runtime Pivot: Local Reusable Video Engine (MASTER)
+The primary V1 avatar runtime is a local reusable video-motion engine. Paid generative live-avatar providers are optional experiments, not core dependencies.
+
+Pipeline:
+`OpenAI Brain -> Response Director -> Emotion Engine -> TTS -> Motion Director -> Local Video Library + Dynamic Canvas`
+
+Idle presence timeline:
+- 0-30s: `idle_friendly`
+- 30-60s: `idle_waiting`
+- 60-120s: `idle_impatient`
+- at ~120s true idle: disconnect paid/network session first, play `exit`, fade to black, then close activity.
+- meaningful user/system activity resets the idle clock and may cancel a pending exit before the irreversible exit phase.
+
+Video rules:
+- Reusable loops must have visually compatible first/last frames for seamless repetition.
+- Talking duration follows audio dynamically; never force the semantic answer to fit one fixed video duration.
+- Use `talk_start -> talk_loop x N -> talk_end` when transition clips exist; V1 may use a neutral-seam `talk_loop` alone to reduce asset cost.
+- Work remains `work_open -> work_loop x N -> work_close`.
+- Dynamic Canvas remains independent of motion playback.
+
+### V1 minimum asset BOQ
+1. `arrival.mp4` (target 10s)
+2. `idle_friendly.mp4` (target 5s seamless loop)
+3. `idle_waiting.mp4` (target 5s seamless loop)
+4. `idle_impatient.mp4` (target 5s seamless loop)
+5. `talk_loop.mp4` (target 5s seamless neutral talking motion)
+6. `work_open.mp4` (target 5s)
+7. `work_loop.mp4` (target 5s seamless loop)
+8. `work_close.mp4` (target 5s)
+9. `exit.mp4` (target 10s)
+
+Paid-provider runtime cost should remain zero for normal V1 motion after these assets are produced. Provider adapters may remain in the repository for future optional modes.
