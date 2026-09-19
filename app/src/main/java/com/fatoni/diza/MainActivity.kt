@@ -22,6 +22,10 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -46,6 +50,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -187,6 +192,8 @@ fun DizaApp() {
     val openingReveal = remember { Animatable(0f) }
     val uiAlpha = remember { Animatable(0f) }
     val controlsProgress = remember { Animatable(0f) }
+    val transcriptAlpha = remember { Animatable(1f) }
+    val transcriptRise = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
         splashAlpha.animateTo(
@@ -236,6 +243,13 @@ fun DizaApp() {
     var transcript by remember { mutableStateOf("Diza siap") }
     var speaker by remember { mutableStateOf("Diza") }
     var errorText by remember { mutableStateOf("") }
+
+    LaunchedEffect(transcript) {
+        transcriptAlpha.snapTo(0f)
+        transcriptRise.snapTo(10f)
+        transcriptAlpha.animateTo(1f, tween(260, easing = FastOutSlowInEasing))
+        transcriptRise.animateTo(0f, tween(300, easing = FastOutSlowInEasing))
+    }
     var micLevel by remember { mutableFloatStateOf(0f) }
     var ttsLevel by remember { mutableFloatStateOf(0f) }
     var recognizer by remember { mutableStateOf<SpeechRecognizer?>(null) }
@@ -610,12 +624,16 @@ fun DizaApp() {
 
                             Text(
                                 text = transcript,
-                                color = Color.White,
+                                color = Color.White.copy(alpha = 0.96f),
                                 fontSize = 18.sp,
                                 lineHeight = 24.sp,
                                 fontWeight = FontWeight.Medium,
-                                maxLines = 3,
+                                maxLines = 4,
                                 overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.graphicsLayer {
+                                    alpha = transcriptAlpha.value
+                                    translationY = transcriptRise.value
+                                },
                                 style = TextStyle(
                                     shadow = Shadow(
                                         color = Color.Black.copy(alpha = 0.45f),
