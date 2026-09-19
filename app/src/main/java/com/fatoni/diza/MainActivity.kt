@@ -1,6 +1,7 @@
 package com.fatoni.diza
 
 import android.Manifest
+import android.graphics.BitmapFactory
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -56,6 +57,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
