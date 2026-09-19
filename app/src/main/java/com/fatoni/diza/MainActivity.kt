@@ -208,10 +208,10 @@ fun DizaApp() {
         // Hold on pure black for a beat, then reveal the opening video smoothly.
         stage = AppStage.VIDEO
         openingReveal.snapTo(0f)
-        delay(120)
+        delay(180)
         openingReveal.animateTo(
             targetValue = 1f,
-            animationSpec = tween(650, easing = FastOutSlowInEasing)
+            animationSpec = tween(1400, easing = FastOutSlowInEasing)
         )
     }
 
@@ -241,6 +241,7 @@ fun DizaApp() {
     var speaking by remember { mutableStateOf(false) }
     var talkVisual by remember { mutableStateOf(false) }
     var transcript by remember { mutableStateOf("Diza siap") }
+    var transcriptHistory by remember { mutableStateOf(listOf("Diza siap")) }
     var speaker by remember { mutableStateOf("Diza") }
     var errorText by remember { mutableStateOf("") }
 
@@ -623,7 +624,7 @@ fun DizaApp() {
                             )
 
                             Text(
-                                text = transcript,
+                                text = transcriptHistory.takeLast(4).joinToString("\n"),
                                 color = Color.White.copy(alpha = 0.96f),
                                 fontSize = 18.sp,
                                 lineHeight = 24.sp,
@@ -880,8 +881,10 @@ fun DizaApp() {
                                         modifier = Modifier
                                             .size(46.dp)
                                             .clickable {
-                                                if (messageText.isNotBlank() && !testMode) {
-                                                    transcript = messageText.trim()
+                                                if (messageText.isNotBlank()) {
+                                                    val sent = messageText.trim()
+                                                    transcript = sent
+                                                    transcriptHistory = (transcriptHistory + sent).takeLast(4)
                                                     speaker = "Fatoni"
                                                     messageText = ""
                                                 } else if (testMode) {
@@ -902,8 +905,16 @@ fun DizaApp() {
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             Icon(
-                                                imageVector = if (testMode) Icons.Filled.Stop else Icons.Filled.GraphicEq,
-                                                contentDescription = if (testMode) "Hentikan percakapan" else "Mulai percakapan live",
+                                                imageVector = when {
+                                                    messageText.isNotBlank() -> Icons.Filled.Send
+                                                    testMode -> Icons.Filled.Stop
+                                                    else -> Icons.Filled.GraphicEq
+                                                },
+                                                contentDescription = when {
+                                                    messageText.isNotBlank() -> "Kirim pesan"
+                                                    testMode -> "Hentikan percakapan"
+                                                    else -> "Mulai percakapan live"
+                                                },
                                                 tint = Color.White,
                                                 modifier = Modifier.size(24.dp)
                                             )
