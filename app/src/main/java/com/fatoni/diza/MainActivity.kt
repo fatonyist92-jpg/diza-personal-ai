@@ -208,10 +208,10 @@ fun DizaApp() {
         // Hold on pure black for a beat, then reveal the opening video smoothly.
         stage = AppStage.VIDEO
         openingReveal.snapTo(0f)
-        delay(180)
+        delay(250)
         openingReveal.animateTo(
             targetValue = 1f,
-            animationSpec = tween(1400, easing = FastOutSlowInEasing)
+            animationSpec = tween(2400, easing = FastOutSlowInEasing)
         )
     }
 
@@ -581,68 +581,54 @@ fun DizaApp() {
                 }
 
                 if (stage == AppStage.MAIN) {
-                    // Professional glass-style transcript card.
-                    Surface(
-                        shape = RoundedCornerShape(22.dp),
-                        color = Color(0xB8000000),
-                        border = BorderStroke(
-                            1.dp,
-                            Color.White.copy(alpha = 0.14f)
-                        ),
-                        shadowElevation = 8.dp,
+                    // Each message gets its own floating card. Older cards fade as they rise.
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(7.dp),
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(
-                                start = 18.dp,
-                                end = 18.dp,
-                                bottom = 176.dp
-                            )
+                            .padding(start = 18.dp, end = 18.dp, bottom = 176.dp)
                             .fillMaxWidth()
-                            .graphicsLayer {
-                                alpha = uiAlpha.value
-                                translationY = -voiceLevel * 5f
-                                scaleX = 1f + voiceLevel * 0.008f
-                                scaleY = 1f + voiceLevel * 0.020f
-                            }
+                            .graphicsLayer { alpha = uiAlpha.value }
                     ) {
-                        Column(
-                            modifier = Modifier.padding(
-                                horizontal = 18.dp,
-                                vertical = 14.dp
-                            )
-                        ) {
-                            Text(
-                                text = speaker.uppercase(),
-                                color = Color.White.copy(alpha = 0.60f),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 1.5.sp
-                            )
-
-                            Spacer(
-                                modifier = Modifier.height(5.dp)
-                            )
-
-                            Text(
-                                text = transcriptHistory.takeLast(4).joinToString("\n"),
-                                color = Color.White.copy(alpha = 0.96f),
-                                fontSize = 18.sp,
-                                lineHeight = 24.sp,
-                                fontWeight = FontWeight.Medium,
-                                maxLines = 4,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.graphicsLayer {
-                                    alpha = transcriptAlpha.value
-                                    translationY = transcriptRise.value
-                                },
-                                style = TextStyle(
-                                    shadow = Shadow(
-                                        color = Color.Black.copy(alpha = 0.45f),
-                                        offset = Offset(0f, 2f),
-                                        blurRadius = 8f
+                        val visibleMessages = transcriptHistory.takeLast(4)
+                        visibleMessages.forEachIndexed { index, message ->
+                            val age = visibleMessages.lastIndex - index
+                            val cardAlpha = when (age) {
+                                3 -> 0.30f
+                                2 -> 0.50f
+                                1 -> 0.72f
+                                else -> 0.96f
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(18.dp),
+                                color = Color.Black.copy(alpha = 0.68f * cardAlpha),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f * cardAlpha)),
+                                shadowElevation = if (age == 0) 8.dp else 2.dp,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .graphicsLayer {
+                                        alpha = if (age == 0) transcriptAlpha.value else cardAlpha
+                                        translationY = if (age == 0) transcriptRise.value else 0f
+                                    }
+                            ) {
+                                Text(
+                                    text = message,
+                                    color = Color.White.copy(alpha = cardAlpha),
+                                    fontSize = 17.sp,
+                                    lineHeight = 22.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 11.dp),
+                                    style = TextStyle(
+                                        shadow = Shadow(
+                                            color = Color.Black.copy(alpha = 0.35f),
+                                            offset = Offset(0f, 2f),
+                                            blurRadius = 6f
+                                        )
                                     )
                                 )
-                            )
+                            }
                         }
                     }
 
