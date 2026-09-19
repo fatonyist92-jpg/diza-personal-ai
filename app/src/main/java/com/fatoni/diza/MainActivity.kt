@@ -827,6 +827,22 @@ fun DizaApp() {
                                         tint = if (testMode) Color(0xFF2F7DF4) else Color.White.copy(alpha = 0.82f),
                                         modifier = Modifier
                                             .size(42.dp)
+                                            .clickable {
+                                                if (testMode) {
+                                                    testMode = false
+                                                    stopListening()
+                                                } else {
+                                                    val granted = ContextCompat.checkSelfPermission(
+                                                        context, Manifest.permission.RECORD_AUDIO
+                                                    ) == PackageManager.PERMISSION_GRANTED
+                                                    if (granted) {
+                                                        testMode = true
+                                                        handler.postDelayed({ startListening() }, 80)
+                                                    } else {
+                                                        micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                                                    }
+                                                }
+                                            }
                                             .padding(9.dp)
                                     )
 
