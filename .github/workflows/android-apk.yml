@@ -1,80 +1,48 @@
-name: Build Diza APK
+name: Build Diza Live Avatar Preview
 
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ main, live-avatar-v0.1 ]
     paths:
       - "app/**"
       - "avatar-engine/**"
+      - "live-avatar/**"
       - "*.gradle.kts"
       - "gradle.properties"
       - "settings.gradle.kts"
       - ".github/workflows/android-apk.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Restore debug signing cache
         uses: actions/cache@v4
         with:
           path: ~/.android/debug.keystore
           key: diza-debug-keystore-v1
-
-      - name: Fetch Diza v0.3.9 visual assets
-        run: |
-          mkdir -p app/src/main/res/drawable-nodpi
-          mkdir -p app/src/main/res/raw
-
-          curl --fail --location --retry 3 --retry-delay 2 \
-            'https://uc5ec5a8bb4c0058e4e1b0f09a47.dl.dropboxusercontent.com/cd/0/get/DIUO-94MK0zyfLnL--Xyl5ng2GtzZuONrCq_XAunkwz_Tu73yq_sVoZ3f-Bor68Cqnp0mixQkTYfmJoGK4uRuMwkC95yhZN0oSIs6lkXmWpECcqnj852aglzH6mACDrNXQF4fR0m3Zvqs8J3qQEhT6Ll5XL2hEEOTr6gtpqh8tXWzw/file?c_luid=41a51812' \
-            --output app/src/main/res/drawable-nodpi/diza_avatar_default.png
-
-          curl --fail --location --retry 3 --retry-delay 2 \
-            'https://ucb89f92255760ea061dd4d9580b.dl.dropboxusercontent.com/cd/0/get/DIVWqfRkAyzbdWr3VrDVA6HaEMQh7melWs7SdMqZBA55dgrwtg50okuUJ2OnOUaoJhHxuKa_SVarOG8ku6KO0NIC89U_fO05ii_VH8y4RNR7exbGPbNOO9Dh10zzvdH3ZYJQACXM8pK9AgXluLH6GxmSRx3iVEPeaQr6hJUgDZzRPg/file?c_luid=41a51812' \
-            --output app/src/main/res/raw/diza_opening.mp4
-
-          echo '2ca272ac6d2acf935038fe4d83536a2da844d117aebce058a04bc95ec8fcee16  app/src/main/res/drawable-nodpi/diza_avatar_default.png' | sha256sum -c -
-          echo '9064d50d7335671d298cbc5431af9fc419190150a90fd8dc86e2b6e748665904  app/src/main/res/raw/diza_opening.mp4' | sha256sum -c -
-
       - name: Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-
       - name: Build APK
         run: gradle :app:assembleDebug
-
-      - name: Copy release APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk Diza-v0.3.9.apk
-
-      - name: Upload APK artifact
+      - name: Prepare preview APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk Diza-LiveAvatar-Preview.apk
+      - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: Diza-v0.3.9
-          path: Diza-v0.3.9.apk
-
-      - name: Publish GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release delete v0.3.9 --cleanup-tag --yes || true
-          git tag -f v0.3.9
-          git push origin -f v0.3.9
-          gh release create v0.3.9 Diza-v0.3.9.apk \
-            --title "Diza v0.3.9" \
-            --notes "Waveform dinaikkan agar terlihat jelas tepat di atas bottom sheet. Seamless final-frame transition, glass transcript, cinematic opening, dan bottom-sheet controls dipertahankan."
+          name: Diza-LiveAvatar-Preview
+          path: Diza-LiveAvatar-Preview.apk
+          retention-days: 14
