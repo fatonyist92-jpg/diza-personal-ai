@@ -22,6 +22,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Normalize uploaded Diza base portrait
+        run: |
+          src="$(find app/src/main/res/drawable -maxdepth 1 -type f -iname '*.png' ! -name 'diza_avatar_default.png' | head -n 1)"
+          if [ -n "$src" ]; then cp "$src" app/src/main/res/drawable/diza_avatar_default.png; fi
       - name: Restore debug signing cache
         uses: actions/cache@v4
         with:
