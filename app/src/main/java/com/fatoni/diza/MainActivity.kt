@@ -169,7 +169,7 @@ private fun LocalVideo(
             PlayerView(it).apply {
                 useController = false
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                setShutterBackgroundColor(android.graphics.Color.BLACK)
+                setShutterBackgroundColor(android.graphics.Color.TRANSPARENT)
                 setKeepContentOnPlayerReset(true)
                 this.player = player
             }
@@ -212,20 +212,8 @@ fun DizaApp() {
 
     LaunchedEffect(stage) {
         if (stage == AppStage.MAIN) {
-            uiAlpha.snapTo(0f)
-            controlsProgress.snapTo(0f)
-
-            delay(80)
-
-            uiAlpha.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(520, easing = FastOutSlowInEasing)
-            )
-
-            controlsProgress.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(560, easing = FastOutSlowInEasing)
-            )
+            uiAlpha.snapTo(1f)
+            controlsProgress.snapTo(1f)
         }
     }
 
