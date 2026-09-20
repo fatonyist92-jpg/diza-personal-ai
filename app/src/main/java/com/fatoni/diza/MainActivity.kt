@@ -96,6 +96,7 @@ import kotlin.math.abs
 import com.fatoni.diza.core.DizaWorld
 import com.fatoni.diza.core.DizaProfile
 import com.fatoni.diza.core.DizaDirector
+import com.fatoni.diza.actions.ChatGptHandoff
 import com.fatoni.diza.actions.AndroidActionLayer
 import com.fatoni.diza.actions.PhoneActionResult
 
@@ -899,6 +900,13 @@ fun DizaApp() {
                                                     transcript = sent
                                                     transcriptHistory = (transcriptHistory + sent).takeLast(4)
                                                     speaker = "Fatoni"
+                                                    val handedOff = ChatGptHandoff.send(context, sent)
+                                                    if (handedOff) {
+                                                        transcriptHistory = (transcriptHistory + "Diza: dikirim ke ChatGPT").takeLast(4)
+                                                        dizaState = DizaState.THINKING
+                                                    } else {
+                                                        transcriptHistory = (transcriptHistory + "Diza: aplikasi ChatGPT tidak ditemukan").takeLast(4)
+                                                    }
                                                     messageText = ""
                                                 } else if (testMode) {
                                                     testMode = false
