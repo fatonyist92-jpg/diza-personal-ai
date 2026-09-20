@@ -416,7 +416,7 @@ fun DizaApp() {
                     when (val phone = androidActions.execute(value)) {
                         is PhoneActionResult.Done -> transcriptHistory = (transcriptHistory + "Diza: " + phone.message).takeLast(4)
                         is PhoneActionResult.NeedsConfirmation -> { phone.action(); transcriptHistory = (transcriptHistory + "Diza: " + phone.message).takeLast(4) }
-                        is PhoneActionResult.Unsupported -> Unit
+                        is PhoneActionResult.Unsupported -> { ChatGptBridge.submit(context, value) }
                     }
                     dizaState = DizaState.THINKING
                 }
@@ -915,7 +915,7 @@ fun DizaApp() {
                                                     transcript = sent
                                                     transcriptHistory = (transcriptHistory + sent).takeLast(4)
                                                     speaker = "Fatoni"
-                                                    val handedOff = ChatGptHandoff.send(context, sent)
+                                                    val handedOff = ChatGptBridge.submit(context, sent)
                                                     if (handedOff) {
                                                         transcriptHistory = (transcriptHistory + "Diza: dikirim ke ChatGPT").takeLast(4)
                                                         dizaState = DizaState.THINKING
