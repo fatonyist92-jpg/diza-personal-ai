@@ -96,6 +96,8 @@ import kotlin.math.abs
 import com.fatoni.diza.core.DizaWorld
 import com.fatoni.diza.core.DizaProfile
 import com.fatoni.diza.core.DizaDirector
+import com.fatoni.diza.actions.AndroidActionLayer
+import com.fatoni.diza.actions.PhoneActionResult
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -242,6 +244,7 @@ fun DizaApp() {
     var speaker by remember { mutableStateOf("Diza") }
     var errorText by remember { mutableStateOf("") }
     val dizaDirector = remember { DizaDirector() }
+    val androidActions = remember { AndroidActionLayer(context) }
     var activeWorld by remember { mutableStateOf(DizaWorld.PERSONAL) }
     var modeMenu by remember { mutableStateOf(false) }
 
