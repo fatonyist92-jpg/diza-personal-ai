@@ -235,6 +235,7 @@ fun DizaApp() {
     var talkVisual by remember { mutableStateOf(false) }
     var transcript by remember { mutableStateOf("Diza siap") }
     var transcriptHistory by remember { mutableStateOf(listOf("Diza siap")) }
+    var liveTranscript by remember { mutableStateOf("") }
     var speaker by remember { mutableStateOf("Diza") }
     var errorText by remember { mutableStateOf("") }
 
@@ -262,6 +263,7 @@ fun DizaApp() {
     fun startListening() {
         if (stage != AppStage.MAIN || !testMode || speaking) return
         listening = true
+        dizaState = DizaState.LISTENING
         errorText = ""
         runCatching {
             recognizer?.startListening(recognizerIntent())
@@ -274,6 +276,7 @@ fun DizaApp() {
     fun stopListening() {
         listening = false
         micLevel = 0f
+        if (!speaking && dizaState == DizaState.LISTENING) dizaState = DizaState.IDLE
         runCatching { recognizer?.cancel() }
     }
 
@@ -316,6 +319,9 @@ fun DizaApp() {
     ) { uri ->
         if (uri != null) {
             transcript = "Foto siap dianalisis"
+            transcriptHistory = (transcriptHistory + transcript).takeLast(4)
+            dizaState = DizaState.PRESENTING
+            handler.postDelayed({ if (dizaState == DizaState.PRESENTING) dizaState = DizaState.IDLE }, 900)
             speaker = "Diza"
             attachmentMenu = false
         }
@@ -326,6 +332,9 @@ fun DizaApp() {
     ) { uri ->
         if (uri != null) {
             transcript = "File siap dianalisis"
+            transcriptHistory = (transcriptHistory + transcript).takeLast(4)
+            dizaState = DizaState.WORKING
+            handler.postDelayed({ if (dizaState == DizaState.WORKING) dizaState = DizaState.IDLE }, 900)
             speaker = "Diza"
             attachmentMenu = false
         }
@@ -339,10 +348,12 @@ fun DizaApp() {
         speech.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
                 listening = true
+                dizaState = DizaState.LISTENING
             }
 
             override fun onBeginningOfSpeech() {
                 listening = true
+                dizaState = DizaState.LISTENING
             }
 
             override fun onRmsChanged(rmsdB: Float) {
@@ -374,6 +385,7 @@ fun DizaApp() {
                 if (value.isNotBlank()) {
                     transcript = value
                     transcriptHistory = (transcriptHistory + value).takeLast(4)
+                    liveTranscript = ""
                     speaker = "Fatoni"
                     dizaState = DizaState.THINKING
                 }
@@ -395,6 +407,8 @@ fun DizaApp() {
 
                 if (value.isNotBlank()) {
                     transcript = value
+                    liveTranscript = value
+                    dizaState = DizaState.LISTENING
                     speaker = "Fatoni"
                 }
             }
@@ -419,6 +433,7 @@ fun DizaApp() {
                         stopListening()
                         ttsLevel = 0f
                         speaking = true
+                        dizaState = DizaState.TALKING
                         talkVisual = true
                     }
                 }
@@ -441,6 +456,7 @@ fun DizaApp() {
                         ttsLevel = 0f
                         speaking = false
                         talkVisual = false
+                        dizaState = if (testMode) DizaState.LISTENING else DizaState.IDLE
 
                         if (stage == AppStage.MAIN && testMode) {
                             handler.postDelayed({ startListening() }, 280)
@@ -475,14 +491,6 @@ fun DizaApp() {
         }
     }
 
-    LaunchedEffect(listening, speaking, stage) {
-        dizaState = when {
-            stage != AppStage.MAIN -> DizaState.IDLE
-            speaking -> DizaState.TALKING
-            listening -> DizaState.LISTENING
-            else -> DizaState.IDLE
-        }
-    }
 
     val rawVoiceLevel = when {
         listening -> micLevel
@@ -594,7 +602,7 @@ fun DizaApp() {
                             .fillMaxWidth()
                             .graphicsLayer { alpha = uiAlpha.value }
                     ) {
-                        val visibleMessages = transcriptHistory.takeLast(4)
+                        val visibleMessages = (transcriptHistory + listOfNotNull(liveTranscript.takeIf { it.isNotBlank() })).takeLast(4)
                         visibleMessages.forEachIndexed { index, message ->
                             val age = visibleMessages.lastIndex - index
                             val cardAlpha = when (age) {
