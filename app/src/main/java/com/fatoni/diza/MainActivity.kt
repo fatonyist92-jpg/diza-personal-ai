@@ -96,7 +96,7 @@ import kotlin.math.abs
 import com.fatoni.diza.core.DizaWorld
 import com.fatoni.diza.core.DizaProfile
 import com.fatoni.diza.core.DizaDirector
-import com.fatoni.diza.actions.ChatGptBridge
+import com.fatoni.diza.actions.ChatGptHandoff
 import com.fatoni.diza.actions.AndroidActionLayer
 import com.fatoni.diza.actions.PhoneActionResult
 
@@ -402,7 +402,7 @@ fun DizaApp() {
                         is PhoneActionResult.Done -> transcriptHistory = (transcriptHistory + "Diza: " + phone.message).takeLast(4)
                         is PhoneActionResult.NeedsConfirmation -> { phone.action(); transcriptHistory = (transcriptHistory + "Diza: " + phone.message).takeLast(4) }
                         is PhoneActionResult.Unsupported -> {
-                            ChatGptBridge.submit(context, value) || ChatGptHandoff.send(context, value)
+                            ChatGptHandoff.send(context, value) || ChatGptHandoff.send(context, value)
                         }
                     }
                     dizaState = DizaState.THINKING
@@ -902,7 +902,7 @@ fun DizaApp() {
                                                     transcript = sent
                                                     transcriptHistory = (transcriptHistory + sent).takeLast(4)
                                                     speaker = "Fatoni"
-                                                    val handedOff = ChatGptBridge.submit(context, sent)
+                                                    val handedOff = ChatGptHandoff.send(context, sent)
                                                     if (handedOff) {
                                                         transcriptHistory = (transcriptHistory + "Diza: dikirim ke ChatGPT").takeLast(4)
                                                         dizaState = DizaState.THINKING
