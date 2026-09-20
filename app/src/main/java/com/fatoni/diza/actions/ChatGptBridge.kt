@@ -10,6 +10,7 @@ object ChatGptBridge {
     private const val KEY_PROMPT = "prompt"
     private const val KEY_RESULT = "result"
     private const val KEY_REQUEST_AT = "request_at"
+    private const val KEY_LAST_RESULT = "last_result"
 
     fun submit(context: Context, prompt: String): Boolean {
         if (prompt.isBlank() || !DizaAccessibilityService.isEnabled(context)) return false
@@ -29,8 +30,11 @@ object ChatGptBridge {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY_PROMPT).apply()
 
     internal fun publishResult(context: Context, text: String) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putString(KEY_RESULT, text).apply()
+        val clean = text.trim()
+        if (clean.isBlank()) return
+        val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (p.getString(KEY_LAST_RESULT, null) == clean) return
+        p.edit().putString(KEY_RESULT, clean).putString(KEY_LAST_RESULT, clean).apply()
     }
 
     fun consumeResult(context: Context): String? {
