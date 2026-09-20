@@ -93,6 +93,9 @@ import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.abs
+import com.fatoni.diza.core.DizaWorld
+import com.fatoni.diza.core.DizaProfile
+import com.fatoni.diza.core.DizaDirector
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -238,6 +241,9 @@ fun DizaApp() {
     var liveTranscript by remember { mutableStateOf("") }
     var speaker by remember { mutableStateOf("Diza") }
     var errorText by remember { mutableStateOf("") }
+    val dizaDirector = remember { DizaDirector() }
+    var activeWorld by remember { mutableStateOf(DizaWorld.PERSONAL) }
+    var modeMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(transcript) {
         transcriptAlpha.snapTo(0f)
