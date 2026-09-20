@@ -97,6 +97,7 @@ import com.fatoni.diza.core.DizaWorld
 import com.fatoni.diza.core.DizaProfile
 import com.fatoni.diza.core.DizaDirector
 import com.fatoni.diza.actions.ChatGptHandoff
+import com.fatoni.diza.actions.ChatGptBridge
 import com.fatoni.diza.actions.AndroidActionLayer
 import com.fatoni.diza.actions.PhoneActionResult
 
@@ -248,6 +249,20 @@ fun DizaApp() {
     val androidActions = remember { AndroidActionLayer(context) }
     var activeWorld by remember { mutableStateOf(DizaWorld.PERSONAL) }
     var modeMenu by remember { mutableStateOf(false) }
+
+    LaunchedEffect(stage) {
+        if (stage == AppStage.MAIN) {
+            while (true) {
+                ChatGptBridge.consumeResult(context)?.let { reply ->
+                    transcript = reply
+                    transcriptHistory = (transcriptHistory + "Diza: " + reply).takeLast(4)
+                    speaker = "Diza"
+                    dizaState = DizaState.IDLE
+                }
+                kotlinx.coroutines.delay(700L)
+            }
+        }
+    }
 
     LaunchedEffect(transcript) {
         transcriptAlpha.snapTo(0f)
