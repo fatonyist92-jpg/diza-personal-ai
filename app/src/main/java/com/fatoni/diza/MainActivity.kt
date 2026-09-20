@@ -396,6 +396,11 @@ fun DizaApp() {
                     transcriptHistory = (transcriptHistory + value).takeLast(4)
                     liveTranscript = ""
                     speaker = "Fatoni"
+                    when (val phone = androidActions.execute(value)) {
+                        is PhoneActionResult.Done -> transcriptHistory = (transcriptHistory + "Diza: " + phone.message).takeLast(4)
+                        is PhoneActionResult.NeedsConfirmation -> { phone.action(); transcriptHistory = (transcriptHistory + "Diza: " + phone.message).takeLast(4) }
+                        is PhoneActionResult.Unsupported -> Unit
+                    }
                     dizaState = DizaState.THINKING
                 }
 
