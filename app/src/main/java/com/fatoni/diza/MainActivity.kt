@@ -373,7 +373,9 @@ fun DizaApp() {
 
                 if (value.isNotBlank()) {
                     transcript = value
+                    transcriptHistory = (transcriptHistory + value).takeLast(4)
                     speaker = "Fatoni"
+                    dizaState = DizaState.THINKING
                 }
 
                 listening = false
