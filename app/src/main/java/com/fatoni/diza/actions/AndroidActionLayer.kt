@@ -60,7 +60,9 @@ class AndroidActionLayer(private val context: Context) {
                 if (launch(Intent("android.media.action.IMAGE_CAPTURE"))) PhoneActionResult.Done("Kamera dibuka")
                 else PhoneActionResult.Unsupported("Kamera gagal dibuka")
 
-            q.startsWith("buka whatsapp") ->
+            (q.contains("whatsapp") || q.contains("whats app") ||
+                q.contains("watsap") || Regex("\\bwa\\b").containsMatchIn(q)) &&
+                (q.contains("buka") || q.contains("bukain") || q.contains("open")) ->
                 if (launch(context.packageManager.getLaunchIntentForPackage("com.whatsapp") ?: Intent())) PhoneActionResult.Done("WhatsApp dibuka")
                 else PhoneActionResult.Unsupported("WhatsApp tidak ditemukan")
 
