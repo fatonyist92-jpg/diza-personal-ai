@@ -257,8 +257,7 @@ fun DizaApp() {
                     transcript = reply
                     transcriptHistory = (transcriptHistory + "Diza: " + reply).takeLast(4)
                     speaker = "Diza"
-                    dizaState = DizaState.TALKING
-                    tts?.speak(reply, TextToSpeech.QUEUE_FLUSH, null, "diza-gpt-reply")
+                    dizaState = DizaState.IDLE
                 }
                 kotlinx.coroutines.delay(700L)
             }
@@ -418,7 +417,7 @@ fun DizaApp() {
                         is PhoneActionResult.Done -> transcriptHistory = (transcriptHistory + "Diza: " + phone.message).takeLast(4)
                         is PhoneActionResult.NeedsConfirmation -> { phone.action(); transcriptHistory = (transcriptHistory + "Diza: " + phone.message).takeLast(4) }
                         is PhoneActionResult.Unsupported -> {
-                            if (!ChatGptBridge.submit(context, value)) ChatGptHandoff.send(context, value)
+                            ChatGptBridge.submit(context, value) || ChatGptHandoff.send(context, value)
                         }
                     }
                     dizaState = DizaState.THINKING
@@ -918,7 +917,8 @@ fun DizaApp() {
                                                     transcript = sent
                                                     transcriptHistory = (transcriptHistory + sent).takeLast(4)
                                                     speaker = "Fatoni"
-                                                    val handedOff = ChatGptBridge.submit(context, sent) || ChatGptHandoff.send(context, sent)
+                                                    val bridgeSent = ChatGptBridge.submit(context, sent)
+                                                    val handedOff = if (bridgeSent) true else ChatGptHandoff.send(context, sent)
                                                     if (handedOff) {
                                                         transcriptHistory = (transcriptHistory + "Diza: dikirim ke ChatGPT").takeLast(4)
                                                         dizaState = DizaState.THINKING
