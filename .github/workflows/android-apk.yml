@@ -47,9 +47,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Match opening endpoint to idle start
         run: |
-          # Replace the last ~0.45 s of opening with a short bridge into the first idle frame.
-          # This removes the visible pose jump without reintroducing a black/fade transition.
-          ffmpeg -y -i app/src/main/res/raw/diza_opening.mp4 -i app/src/main/res/raw/diza_wait.mp4 -filter_complex "[0:v]trim=end=4.55,setpts=PTS-STARTPTS[a];[1:v]trim=start=0:end=0.45,setpts=PTS-STARTPTS[b];[a][b]xfade=transition=fade:duration=0.30:offset=4.25[v]" -map "[v]" -an -c:v libx264 -preset fast -crf 18 -pix_fmt yuv420p app/src/main/res/raw/diza_opening_bridge.mp4
+          # Preserve the COMPLETE opening. Only after its final frame, add a short
+          # visual bridge into idle so the opening action is never truncated.
+          dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 app/src/main/res/raw/diza_opening.mp4)
+          ffmpeg -y -i app/src/main/res/raw/diza_opening.mp4 -i app/src/main/res/raw/diza_wait.mp4 -filter_complex "[0:v]setpts=PTS-STARTPTS,tpad=stop_mode=clone:stop_duration=0.35[a];[1:v]trim=start=0:end=0.35,setpts=PTS-STARTPTS[b];[a][b]xfade=transition=fade:duration=0.35:offset=$dur[v]" -map "[v]" -an -c:v libx264 -preset fast -crf 18 -pix_fmt yuv420p app/src/main/res/raw/diza_opening_bridge.mp4
 
       - name: Generate ping-pong reverse clips
         run: |
