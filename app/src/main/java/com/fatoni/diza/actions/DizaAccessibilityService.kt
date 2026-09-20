@@ -17,7 +17,18 @@ class DizaAccessibilityService : AccessibilityService() {
     private var scheduled = false
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event?.packageName?.toString() != CHATGPT_PACKAGE || !hasPendingRequest()) return
+        if (event?.packageName?.toString() != CHATGPT_PACKAGE) return
+        ChatGptBridge.pendingPrompt(this)?.let { prompt ->
+            val root = rootInActiveWindow ?: return
+            if (ChatGptBridge.setTextAndSend(root, prompt)) {
+                ChatGptBridge.clearPrompt(this)
+                handler.postDelayed({ captureBridgeResult() }, 2500L)
+                handler.postDelayed({ captureBridgeResult() }, 5000L)
+            }
+            return
+        }
+        captureBridgeResult()
+        if (!hasPendingRequest()) return
         if (scheduled) return
         scheduled = true
 
@@ -39,6 +50,12 @@ class DizaAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() = Unit
+
+    private fun captureBridgeResult() {
+        val root = rootInActiveWindow ?: return
+        val text = ChatGptBridge.readLargestText(root)
+        if (text.isNotBlank()) ChatGptBridge.publishResult(this, text)
+    }
 
     private fun hasPendingRequest(): Boolean {
         val until = getSharedPreferences(PREFS, MODE_PRIVATE).getLong(KEY_PENDING_UNTIL, 0L)
