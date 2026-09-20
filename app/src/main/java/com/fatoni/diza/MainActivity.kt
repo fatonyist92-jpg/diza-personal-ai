@@ -418,7 +418,7 @@ fun DizaApp() {
                         is PhoneActionResult.Done -> transcriptHistory = (transcriptHistory + "Diza: " + phone.message).takeLast(4)
                         is PhoneActionResult.NeedsConfirmation -> { phone.action(); transcriptHistory = (transcriptHistory + "Diza: " + phone.message).takeLast(4) }
                         is PhoneActionResult.Unsupported -> {
-                            ChatGptBridge.submit(context, value) || ChatGptHandoff.send(context, value)
+                            if (!ChatGptBridge.submit(context, value)) ChatGptHandoff.send(context, value)
                         }
                     }
                     dizaState = DizaState.THINKING
