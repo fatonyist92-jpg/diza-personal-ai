@@ -560,7 +560,7 @@ fun DizaApp() {
 
                 if (stage == AppStage.VIDEO) {
                     LocalVideo(
-                        rawResId = R.raw.diza_opening,
+                        rawResId = R.raw.diza_opening_bridge,
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer { alpha = openingReveal.value },
