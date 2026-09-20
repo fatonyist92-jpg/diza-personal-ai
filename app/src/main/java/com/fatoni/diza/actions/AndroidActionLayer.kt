@@ -18,9 +18,32 @@ class AndroidActionLayer(private val context: Context) {
         true
     }.getOrDefault(false)
 
+    private fun openChatGptLive(): PhoneActionResult {
+        if (!DizaAccessibilityService.isEnabled(context)) {
+            launch(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            return PhoneActionResult.Done(
+                "Aktifkan layanan Kontrol Diza, lalu ucapkan buka GPT Live sekali lagi"
+            )
+        }
+
+        val chatGpt = context.packageManager.getLaunchIntentForPackage(CHATGPT_PACKAGE)
+            ?: return PhoneActionResult.Unsupported("Aplikasi ChatGPT tidak ditemukan")
+
+        DizaAccessibilityService.queueChatGptVoice(context)
+        return if (launch(chatGpt)) {
+            PhoneActionResult.Done("ChatGPT dibuka, Diza menyalakan Live Voice")
+        } else {
+            PhoneActionResult.Unsupported("ChatGPT gagal dibuka")
+        }
+    }
+
     fun execute(command: String): PhoneActionResult {
         val q = command.trim().lowercase()
         return when {
+            (q.contains("gpt") || q.contains("chat gpt") || q.contains("chatgpt")) &&
+                (q.contains("live") || q.contains("voice") || q.contains("suara")) ->
+                openChatGptLive()
+
             q.startsWith("buka settings") || q.startsWith("buka pengaturan") ->
                 if (launch(Intent(Settings.ACTION_SETTINGS))) PhoneActionResult.Done("Pengaturan dibuka")
                 else PhoneActionResult.Unsupported("Pengaturan gagal dibuka")
@@ -66,5 +89,9 @@ class AndroidActionLayer(private val context: Context) {
 
             else -> PhoneActionResult.Unsupported("Perintah HP belum dikenali")
         }
+    }
+
+    private companion object {
+        const val CHATGPT_PACKAGE = "com.openai.chatgpt"
     }
 }
