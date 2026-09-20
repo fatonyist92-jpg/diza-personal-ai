@@ -249,20 +249,6 @@ fun DizaApp() {
     var activeWorld by remember { mutableStateOf(DizaWorld.PERSONAL) }
     var modeMenu by remember { mutableStateOf(false) }
 
-    LaunchedEffect(stage) {
-        if (stage == AppStage.MAIN) {
-            while (true) {
-                ChatGptBridge.consumeResult(context)?.let { reply ->
-                    transcript = reply
-                    transcriptHistory = (transcriptHistory + "Diza: " + reply).takeLast(4)
-                    speaker = "Diza"
-                    dizaState = DizaState.IDLE
-                }
-                kotlinx.coroutines.delay(700L)
-            }
-        }
-    }
-
     LaunchedEffect(transcript) {
         transcriptAlpha.snapTo(0f)
         transcriptRise.snapTo(10f)
