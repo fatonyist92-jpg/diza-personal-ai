@@ -385,11 +385,12 @@ fun DizaApp() {
             }
 
             override fun onResults(results: Bundle?) {
-                val value = results
+                val candidates = results
                     ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    ?.firstOrNull()
-                    ?.trim()
                     .orEmpty()
+                    .map { it.trim() }
+                    .filter { it.isNotBlank() }
+                val value = androidActions.pickBest(candidates)
 
                 if (value.isNotBlank()) {
                     transcript = value
