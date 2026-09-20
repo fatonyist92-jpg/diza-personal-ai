@@ -107,6 +107,15 @@ private enum class AppStage {
     MAIN
 }
 
+private enum class DizaState {
+    IDLE,
+    LISTENING,
+    THINKING,
+    TALKING,
+    WORKING,
+    PRESENTING
+}
+
 @Composable
 private fun LocalVideo(
     rawResId: Int,
@@ -218,6 +227,7 @@ fun DizaApp() {
     }
 
     var testMode by remember { mutableStateOf(false) }
+    var dizaState by remember { mutableStateOf(DizaState.IDLE) }
     var messageText by remember { mutableStateOf("") }
     var attachmentMenu by remember { mutableStateOf(false) }
     var listening by remember { mutableStateOf(false) }
@@ -460,6 +470,15 @@ fun DizaApp() {
             engine?.stop()
             engine?.shutdown()
             tts = null
+        }
+    }
+
+    LaunchedEffect(listening, speaking, stage) {
+        dizaState = when {
+            stage != AppStage.MAIN -> DizaState.IDLE
+            speaking -> DizaState.TALKING
+            listening -> DizaState.LISTENING
+            else -> DizaState.IDLE
         }
     }
 
@@ -894,8 +913,11 @@ fun DizaApp() {
 
                             Text(
                                 text = when {
-                                    speaking -> "Diza sedang bicara"
-                                    listening -> "Diza mendengarkan"
+                                    dizaState == DizaState.TALKING -> "Diza sedang bicara"
+                                    dizaState == DizaState.LISTENING -> "Diza mendengarkan"
+                                    dizaState == DizaState.THINKING -> "Diza sedang berpikir"
+                                    dizaState == DizaState.WORKING -> "Diza sedang bekerja"
+                                    dizaState == DizaState.PRESENTING -> "Diza sedang menampilkan hasil"
                                     else -> "Tekan tombol biru untuk Live Percakapan"
                                 },
                                 color = Color.White.copy(alpha = 0.45f),
