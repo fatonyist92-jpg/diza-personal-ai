@@ -17,8 +17,14 @@ object ChatGptBridge {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
             .putString(KEY_PROMPT, prompt.trim()).remove(KEY_RESULT)
             .putLong(KEY_REQUEST_AT, SystemClock.elapsedRealtime()).apply()
-        val launch = context.packageManager.getLaunchIntentForPackage("com.openai.chatgpt") ?: return false
-        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val pm = context.packageManager
+        val launch = pm.getLaunchIntentForPackage("com.openai.chatgpt")
+            ?: Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_LAUNCHER)
+                setPackage("com.openai.chatgpt")
+            }.takeIf { it.resolveActivity(pm) != null }
+            ?: return false
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
         context.startActivity(launch)
         return true
     }
