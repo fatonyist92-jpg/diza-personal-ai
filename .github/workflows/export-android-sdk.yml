@@ -1,0 +1,32 @@
+name: Export Android SDK tools
+on:
+  push:
+    branches: [ avm-sdk-tooling-20260923 ]
+  workflow_dispatch:
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Package minimal Android SDK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          BT="$(ls -1d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          PLATFORM="$(ls -1d "$ANDROID_HOME"/platforms/android-* | sort -V | tail -1)"
+          echo "Using build tools: $BT"
+          echo "Using platform: $PLATFORM"
+          mkdir -p sdk/build-tools sdk/platform
+          cp -a "$BT/aapt2" "$BT/d8" "$BT/apksigner" "$BT/zipalign" sdk/build-tools/
+          cp -a "$BT/lib" sdk/build-tools/lib
+          cp -a "$PLATFORM/android.jar" sdk/platform/android.jar
+          tar -czf android-sdk-min.tar.gz sdk
+          ls -lh android-sdk-min.tar.gz
+      - name: Upload SDK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-sdk-min
+          path: android-sdk-min.tar.gz
+          compression-level: 0
+          retention-days: 1
