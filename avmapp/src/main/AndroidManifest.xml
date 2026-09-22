@@ -2,9 +2,14 @@
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
-        android:label="AVM Technical Bot"
+        android:label="AVM Technical Guide"
         android:supportsRtl="true"
+        android:hardwareAccelerated="true"
         android:theme="@style/Theme.AVMTechnical">
+        <activity
+            android:name=".PdfActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
