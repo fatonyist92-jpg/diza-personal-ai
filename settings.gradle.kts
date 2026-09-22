@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "DizaPersonalAI"
 include(":app")
+include(":avmapp")
