@@ -7,11 +7,11 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.fatoni.avmtechnical"
+        applicationId = "com.fatoni.avmtechnicalguide"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 30
+        versionName = "2.0.1"
     }
 
     compileOptions {
