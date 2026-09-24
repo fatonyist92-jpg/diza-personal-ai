@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-24  
 **North Star:** perceived output quality >90% versus the frozen Grok Imagine 2025 reference set.  
-**DIZA source baseline:** `175f5ef715196d35b6c235617b170362be05846c`  
+**DIZA Android smoke runtime baseline:** `809eeb688d70990fe989a08c5cfffaa0b127869c` (v0.2.0)  
 **Bloks resource baseline:** v2.0.0, `2434fd854c77f94de2ace52c8c0ab77edabe49ca`
 
 ## 1. Product contract
@@ -327,7 +327,7 @@ No phase advances officially while a required previous phase is FAIL. Preparator
 | --- | --- | --- |
 | Requirement lock | PASS | product contract frozen in current project |
 | Transformer Phantom -> ONNX -> MNN INT8 | PASS | GitHub Actions smoke build #7 |
-| MNN Android smoke APK compile | PASS | Local Video Smoke APK run #5 |
+| MNN Android smoke APK compile | PASS | Local Video Smoke APK run #8, v0.2.0 |
 | Offline smoke APK permissions / audio stripping | PASS | current DIZA main commit |
 | Real transformer forward on Xiaomi 17T | FAIL | not yet measured on target phone |
 | Device RAM / thermal baseline | FAIL | not yet measured on target phone |
