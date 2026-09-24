@@ -99,7 +99,12 @@ function cleanProviderName(cell){
     .trim();
 }
 function rowLinks(row){
-  return [...String(row).matchAll(/\[[^\]]+\]\((https?:\/\/[^)]+)\)/g)].map(m=>m[1]);
+  const markdown=[...String(row).matchAll(/\[[^\]]+\]\((https?:\/\/[^)]+)\)/g)].map(m=>m[1]);
+  const plain=[...String(row).matchAll(/https?:\/\/[^\s|)\`]+/g)].map(m=>m[0]);
+  return [...new Set([...markdown,...plain])];
+}
+function probableOpenAIBaseUrls(row){
+  return rowLinks(row).filter(u=>/\/v1\/?$|\/openai\/v1\/?$|\/compatibility\/v1\/?$/i.test(u));
 }
 export function extractDiscoveryCandidates(raw,sourceId){
   const out=[];
@@ -112,10 +117,17 @@ export function extractDiscoveryCandidates(raw,sourceId){
     if(!name||/^(provider|platform|name|---|:--)/i.test(name)||name.length>80)continue;
     const row=line.toLowerCase();
     if(!/(free|\$0|no card|registration|phone verification|trial)/.test(row))continue;
+    const links=rowLinks(line);
+    const baseUrlCandidates=probableOpenAIBaseUrls(line);
     out.push({
       name,
       observedSources:[sourceId],
-      links:rowLinks(line),
+      links,
+      baseUrlCandidates,
+      declared:{
+        openAICompatible:/openai[- ]compat|openai-compatible|openai compatible/i.test(line)
+          || baseUrlCandidates.length>0
+      },
       confidence:0.52
     });
   }
@@ -140,6 +152,7 @@ export function extractJsonDiscoveryCandidates(raw,sourceId){
       name,
       observedSources:[sourceId],
       links,
+      baseUrlCandidates:[row?.base_url,row?.api_base,row?.openai_base_url].filter(Boolean),
       confidence:0.68,
       declared:{
         freeType:freeType||"unknown",
@@ -279,12 +292,16 @@ export class ProviderIntelMonitor {
         const raw=await this.fetcher.fetchText(url);
         const facts=extractFreeTierFacts(raw);
         if(facts.freeStatus==="recurring"){
+          const baseUrl=(candidate.baseUrlCandidates||[])[0]||null;
+          const compatible=facts.openAICompatible||candidate?.declared?.openAICompatible===true||Boolean(baseUrl);
           return {
             ...candidate,
             status:"verified_free",
             officialUrl:url,
             facts,
-            pullable:facts.openAICompatible
+            suggestedAdapter:compatible?"openai-compatible":"custom",
+            baseUrl,
+            pullable:compatible
           };
         }
       }catch{}
