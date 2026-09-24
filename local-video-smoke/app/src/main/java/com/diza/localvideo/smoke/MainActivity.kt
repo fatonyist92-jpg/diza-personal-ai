@@ -2,6 +2,7 @@ package com.diza.localvideo.smoke
 
 import android.app.Activity
 import android.app.ActivityManager
+import android.app.ApplicationExitInfo
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -11,6 +12,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Debug
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.provider.OpenableColumns
 import android.view.Gravity
@@ -27,21 +30,34 @@ import java.security.MessageDigest
 class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var importButton: Button
-    private lateinit var autoButton: Button
+    private lateinit var loadButton: Button
     private lateinit var cpuButton: Button
     private lateinit var openClButton: Button
     private lateinit var vulkanButton: Button
     private lateinit var copyButton: Button
+
     private var lastReport: String = ""
+    private val handler = Handler(Looper.getMainLooper())
+    private var activeRunId: Long? = null
+    private var activeStartedAt: Long = 0L
+    private var pollCount = 0
+
     private val modelDir by lazy { File(filesDir, "models/phantom").apply { mkdirs() } }
 
     companion object {
         private const val PICK_MODELS = 41
         private val EXPECTED = mapOf(
-            "transformer.mnn" to Pair(1433184L, "934a20b6d46db253376dded722097f0bdd9cb052ff9836d9e73d7969c8e880ec"),
-            "transformer.mnn.weight" to Pair(1602075690L, "724935c8cfd58e220d9c0d0309ff41718a920efbe2e33708100c6ff126b05274")
+            "transformer.mnn" to Pair(
+                1433184L,
+                "934a20b6d46db253376dded722097f0bdd9cb052ff9836d9e73d7969c8e880ec"
+            ),
+            "transformer.mnn.weight" to Pair(
+                1602075690L,
+                "724935c8cfd58e220d9c0d0309ff41718a920efbe2e33708100c6ff126b05274"
+            )
         )
-        private val SPLIT_WEIGHT_PARTS = (0..5).map { "transformer.mnn.weight.part.%02d".format(it) }
+        private val SPLIT_WEIGHT_PARTS =
+            (0..5).map { "transformer.mnn.weight.part.%02d".format(it) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,23 +70,23 @@ class MainActivity : Activity() {
         }
 
         val title = TextView(this).apply {
-            text = "DIZA Local Video · MNN Smoke"
+            text = "DIZA Local Video · MNN Smoke v0.4"
             textSize = 24f
             setTextColor(Color.WHITE)
         }
 
         val subtitle = TextView(this).apply {
-            text = "Phase-1 proof: exact model hash + real MNN forward + RAM reclaim + thermal. Tidak ada cloud, login, audio, atau INTERNET permission."
+            text = "Phase-1 diagnostics now run in a separate :inference process. If MNN crashes or Android kills it, this screen should survive and report the exit reason."
             textSize = 14f
             setTextColor(Color.LTGRAY)
             setPadding(0, 12, 0, 28)
         }
 
         importButton = button("1. Import transformer smoke pack") { pickModels() }
-        autoButton = button("2. Auto QC: CPU → OpenCL") { runAutoQc() }
-        cpuButton = button("Test CPU saja") { runSmoke(0) }
-        openClButton = button("Test OpenCL GPU saja") { runSmoke(1) }
-        vulkanButton = button("Test Vulkan GPU saja") { runSmoke(2) }
+        loadButton = button("2. Load model only · isolated") { runWorker("load", 0) }
+        cpuButton = button("3. Test CPU · isolated") { runWorker("forward", 0) }
+        openClButton = button("4. Test OpenCL GPU · isolated") { runWorker("forward", 1) }
+        vulkanButton = button("Test Vulkan GPU · isolated") { runWorker("forward", 2) }
         copyButton = button("Copy laporan terakhir") { copyReport() }.apply { isEnabled = false }
 
         status = TextView(this).apply {
@@ -83,7 +99,7 @@ class MainActivity : Activity() {
         root.addView(title)
         root.addView(subtitle)
         root.addView(importButton)
-        root.addView(autoButton)
+        root.addView(loadButton)
         root.addView(cpuButton)
         root.addView(openClButton)
         root.addView(vulkanButton)
@@ -92,6 +108,11 @@ class MainActivity : Activity() {
 
         setContentView(ScrollView(this).apply { addView(root) })
         refreshStatus()
+    }
+
+    override fun onDestroy() {
+        handler.removeCallbacksAndMessages(null)
+        super.onDestroy()
     }
 
     private fun button(label: String, action: () -> Unit) = Button(this).apply {
@@ -172,6 +193,7 @@ class MainActivity : Activity() {
                 val out = File(staging, "transformer.mnn.weight")
                 val digest = MessageDigest.getInstance("SHA-256")
                 var copied = 0L
+
                 FileOutputStream(out).use { output ->
                     val buf = ByteArray(8 * 1024 * 1024)
                     for (name in SPLIT_WEIGHT_PARTS) {
@@ -190,6 +212,7 @@ class MainActivity : Activity() {
                     }
                     output.fd.sync()
                 }
+
                 val spec = EXPECTED.getValue("transformer.mnn.weight")
                 require(copied == spec.first) {
                     "Ukuran hasil gabung salah: $copied != ${spec.first}"
@@ -218,9 +241,15 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun copyAndVerify(uri: Uri, out: File, spec: Pair<Long, String>, name: String) {
+    private fun copyAndVerify(
+        uri: Uri,
+        out: File,
+        spec: Pair<Long, String>,
+        name: String
+    ) {
         val digest = MessageDigest.getInstance("SHA-256")
         var copied = 0L
+
         contentResolver.openInputStream(uri).use { input ->
             requireNotNull(input) { "Tidak bisa membuka $name" }
             FileOutputStream(out).use { output ->
@@ -236,9 +265,14 @@ class MainActivity : Activity() {
                 output.fd.sync()
             }
         }
-        require(copied == spec.first) { "Ukuran $name salah: $copied != ${spec.first}" }
+
+        require(copied == spec.first) {
+            "Ukuran $name salah: $copied != ${spec.first}"
+        }
         val sha = digest.digest().joinToString("") { "%02x".format(it) }
-        require(sha == spec.second) { "SHA-256 $name tidak cocok dengan Release #7" }
+        require(sha == spec.second) {
+            "SHA-256 $name tidak cocok dengan Release #7"
+        }
     }
 
     private fun displayName(uri: Uri): String {
@@ -257,58 +291,139 @@ class MainActivity : Activity() {
         return uri.lastPathSegment ?: ""
     }
 
-    private fun runSmoke(backend: Int) {
-        setBusy(true, "Menjalankan native forward. Jangan tutup app…")
-        Thread {
-            val report = executeSmoke(backend)
-            lastReport = report.toString(2)
-            runOnUiThread {
-                setBusy(false, lastReport)
-                copyButton.isEnabled = true
-            }
-        }.start()
-    }
-
-    private fun runAutoQc() {
-        setBusy(true, "AUTO QC: CPU lalu OpenCL. Kalau proses mati/OOM, itu bukti FAIL Phase 1.")
-        Thread {
-            val report = JSONObject()
-                .put("schema", "diza-phase1-smoke-v2")
-                .put("startedAtEpochMs", System.currentTimeMillis())
-                .put("device", deviceSnapshot())
-                .put("engineStatus", jsonOrError(DizaNative.status(modelDir.absolutePath)))
-                .put("cpu", executeSmoke(0))
-                .put("opencl", executeSmoke(1))
-                .put("finishedAtEpochMs", System.currentTimeMillis())
-
-            lastReport = report.toString(2)
-
-            runOnUiThread {
-                setBusy(false, lastReport)
-                copyButton.isEnabled = true
-            }
-        }.start()
-    }
-
-    private fun executeSmoke(backend: Int): JSONObject {
-        val before = deviceSnapshot()
-
-        val native = runCatching {
-            jsonOrError(DizaNative.smoke(modelDir.absolutePath, backend))
-        }.getOrElse {
-            JSONObject()
-                .put("ok", false)
-                .put("stage", "jni")
-                .put("error", it.message ?: it.javaClass.simpleName)
+    private fun runWorker(mode: String, backend: Int) {
+        if (!File(modelDir, "transformer.mnn").exists() ||
+            !File(modelDir, "transformer.mnn.weight").exists()
+        ) {
+            status.text = "FAIL: import model dulu."
+            return
         }
 
-        val after = deviceSnapshot()
+        val runId = System.currentTimeMillis()
+        activeRunId = runId
+        activeStartedAt = runId
+        pollCount = 0
+        File(filesDir, "worker_result_$runId.json").delete()
+
+        setBusy(
+            true,
+            if (mode == "load") {
+                "Worker isolated: load model saja… layar utama harus tetap hidup jika worker crash."
+            } else {
+                "Worker isolated: ${backendName(backend)} forward… layar utama harus tetap hidup jika worker crash."
+            }
+        )
+
+        val intent = Intent(this, InferenceService::class.java)
+            .putExtra("mode", mode)
+            .putExtra("backend", backend)
+            .putExtra("runId", runId)
+
+        runCatching { startService(intent) }.onFailure {
+            activeRunId = null
+            setBusy(false, "FAIL start worker: ${it.message}")
+            return
+        }
+
+        pollWorker(runId, mode, backend)
+    }
+
+    private fun pollWorker(runId: Long, mode: String, backend: Int) {
+        if (activeRunId != runId) return
+
+        val resultFile = File(filesDir, "worker_result_$runId.json")
+        if (resultFile.exists()) {
+            val worker = runCatching { JSONObject(resultFile.readText()) }.getOrElse {
+                JSONObject()
+                    .put("ok", false)
+                    .put("stage", "worker-result-read")
+                    .put("error", it.message)
+            }
+
+            val report = JSONObject()
+                .put("schema", "diza-phase1-isolated-v1")
+                .put("mode", mode)
+                .put("backendRequested", backendName(backend))
+                .put("workerResult", worker)
+                .put("deviceAfter", deviceSnapshot())
+
+            finishWorkerReport(report)
+            resultFile.delete()
+            return
+        }
+
+        val exit = workerExitSince(activeStartedAt)
+        if (exit != null) {
+            val report = JSONObject()
+                .put("schema", "diza-phase1-isolated-v1")
+                .put("ok", false)
+                .put("stage", "worker-process-exit")
+                .put("mode", mode)
+                .put("backendRequested", backendName(backend))
+                .put("exit", exit)
+                .put("deviceAfter", deviceSnapshot())
+
+            finishWorkerReport(report)
+            return
+        }
+
+        pollCount++
+        if (pollCount >= 900) {
+            val report = JSONObject()
+                .put("schema", "diza-phase1-isolated-v1")
+                .put("ok", false)
+                .put("stage", "timeout")
+                .put("mode", mode)
+                .put("backendRequested", backendName(backend))
+                .put("message", "No result after 15 minutes.")
+                .put("deviceAfter", deviceSnapshot())
+            finishWorkerReport(report)
+            return
+        }
+
+        handler.postDelayed({ pollWorker(runId, mode, backend) }, 1000)
+    }
+
+    private fun finishWorkerReport(report: JSONObject) {
+        activeRunId = null
+        lastReport = report.toString(2)
+        setBusy(false, lastReport)
+        copyButton.isEnabled = true
+    }
+
+    private fun workerExitSince(startedAt: Long): JSONObject? {
+        if (Build.VERSION.SDK_INT < 30) return null
+
+        val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val exit = am.getHistoricalProcessExitReasons(packageName, 0, 20)
+            .firstOrNull {
+                (it.processName?.endsWith(":inference") == true) &&
+                    it.timestamp >= startedAt
+            } ?: return null
 
         return JSONObject()
-            .put("backendRequested", backendName(backend))
-            .put("before", before)
-            .put("native", native)
-            .put("after", after)
+            .put("processName", exit.processName)
+            .put("reasonCode", exit.reason)
+            .put("reasonLabel", exitReasonLabel(exit.reason))
+            .put("description", exit.description ?: "")
+            .put("timestamp", exit.timestamp)
+            .put("pssMb", exit.pss / 1024.0)
+            .put("rssMb", exit.rss / 1024.0)
+            .put("importance", exit.importance)
+    }
+
+    private fun exitReasonLabel(reason: Int): String = when (reason) {
+        ApplicationExitInfo.REASON_EXIT_SELF -> "exit-self"
+        ApplicationExitInfo.REASON_SIGNALED -> "signaled"
+        ApplicationExitInfo.REASON_LOW_MEMORY -> "low-memory"
+        ApplicationExitInfo.REASON_CRASH -> "java-crash"
+        ApplicationExitInfo.REASON_CRASH_NATIVE -> "native-crash"
+        ApplicationExitInfo.REASON_ANR -> "anr"
+        ApplicationExitInfo.REASON_INITIALIZATION_FAILURE -> "initialization-failure"
+        ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "excessive-resource"
+        ApplicationExitInfo.REASON_USER_REQUESTED -> "user-requested"
+        ApplicationExitInfo.REASON_DEPENDENCY_DIED -> "dependency-died"
+        else -> "reason-$reason"
     }
 
     private fun backendName(backend: Int) = when (backend) {
@@ -316,14 +431,6 @@ class MainActivity : Activity() {
         2 -> "Vulkan"
         else -> "CPU"
     }
-
-    private fun jsonOrError(raw: String): JSONObject =
-        runCatching { JSONObject(raw) }.getOrElse {
-            JSONObject()
-                .put("ok", false)
-                .put("stage", "json")
-                .put("raw", raw)
-        }
 
     private fun deviceSnapshot(): JSONObject {
         val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -391,7 +498,7 @@ class MainActivity : Activity() {
 
     private fun setBusy(busy: Boolean, message: String) {
         importButton.isEnabled = !busy
-        autoButton.isEnabled = !busy
+        loadButton.isEnabled = !busy
         cpuButton.isEnabled = !busy
         openClButton.isEnabled = !busy
         vulkanButton.isEnabled = !busy
