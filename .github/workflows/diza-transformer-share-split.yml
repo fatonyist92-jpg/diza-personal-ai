@@ -1,0 +1,93 @@
+name: Package DIZA Transformer Split Share
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diza-transformer-share-split.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Download and verify exact Release #7
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p share parts
+          gh release download diza-phantom-mnn-smoke-7             --repo "${GITHUB_REPOSITORY}"             --dir share             --pattern transformer.mnn             --pattern transformer.mnn.weight
+          echo "934a20b6d46db253376dded722097f0bdd9cb052ff9836d9e73d7969c8e880ec  share/transformer.mnn" | sha256sum -c -
+          echo "724935c8cfd58e220d9c0d0309ff41718a920efbe2e33708100c6ff126b05274  share/transformer.mnn.weight" | sha256sum -c -
+          split -b 300000000 -d -a 2 share/transformer.mnn.weight parts/weight.part.
+          ls -lh parts
+          test "$(find parts -type f | wc -l)" -eq 6
+          sha256sum parts/* > parts/SHA256SUMS.parts.txt
+
+      - name: Upload transformer mnn
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: DIZA-transformer-mnn
+          path: share/transformer.mnn
+          compression-level: 0
+          retention-days: 2
+
+      - name: Upload weight part 00
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: DIZA-weight-part-00
+          path: parts/weight.part.00
+          compression-level: 0
+          retention-days: 2
+
+      - name: Upload weight part 01
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: DIZA-weight-part-01
+          path: parts/weight.part.01
+          compression-level: 0
+          retention-days: 2
+
+      - name: Upload weight part 02
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: DIZA-weight-part-02
+          path: parts/weight.part.02
+          compression-level: 0
+          retention-days: 2
+
+      - name: Upload weight part 03
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: DIZA-weight-part-03
+          path: parts/weight.part.03
+          compression-level: 0
+          retention-days: 2
+
+      - name: Upload weight part 04
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: DIZA-weight-part-04
+          path: parts/weight.part.04
+          compression-level: 0
+          retention-days: 2
+
+      - name: Upload weight part 05
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: DIZA-weight-part-05
+          path: parts/weight.part.05
+          compression-level: 0
+          retention-days: 2
+
+      - name: Upload part checksums
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: DIZA-weight-parts-checksums
+          path: parts/SHA256SUMS.parts.txt
+          compression-level: 0
+          retention-days: 2
