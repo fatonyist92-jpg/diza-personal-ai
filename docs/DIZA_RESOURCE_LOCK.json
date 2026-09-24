@@ -40,7 +40,19 @@
     "core_generation_local_offline": true,
     "hard_boundaries": [
       "no sexual content involving minors or characters clearly depicted as minors",
-      "no non-consensual sexual deepfakes of identifiable real people"
-    ]
+      "identifiable-real-person sexual generation requires consent; absent or unverifiable consent blocks that request"
+    ],
+    "real_person_routing": {
+      "blanket_real_person_block": false,
+      "distinguish": [
+        "consensual adult content",
+        "self-content",
+        "fictional or synthetic adults",
+        "generic non-identifiable resemblance",
+        "non-sexual edits",
+        "non-consensual sexual deepfakes"
+      ],
+      "ambiguous_identifiable_real_person_sexual_request": "consent-check"
+    }
   }
 }
