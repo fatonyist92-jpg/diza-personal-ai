@@ -122,6 +122,35 @@ export function extractDiscoveryCandidates(raw,sourceId){
   return out;
 }
 
+export function extractJsonDiscoveryCandidates(raw,sourceId){
+  let data;
+  try{data=JSON.parse(String(raw||""));}catch{return[];}
+  const rows=Array.isArray(data)?data:(Array.isArray(data?.providers)?data.providers:[]);
+  const out=[];
+  for(const row of rows){
+    const name=cleanProviderName(row?.name||row?.id||"");
+    if(!name)continue;
+    const freeType=String(row?.free_tier?.type||row?.freeTier?.type||"").toLowerCase();
+    const looksFree=/free|forever|trial|credit/.test(freeType)
+      || row?.free_tier?.requires_card===false
+      || (Array.isArray(row?.models)&&row.models.some(m=>m?.free===true));
+    if(!looksFree)continue;
+    const links=[row?.homepage,row?.signup_url,row?.pricing_url,row?.docs_url].filter(Boolean);
+    out.push({
+      name,
+      observedSources:[sourceId],
+      links,
+      confidence:0.68,
+      declared:{
+        freeType:freeType||"unknown",
+        requiresCard:row?.free_tier?.requires_card??null,
+        openAICompatible:row?.openai_compatible??null
+      }
+    });
+  }
+  return out;
+}
+
 function stableFacts(f){
   return JSON.stringify({
     freeStatus:f.freeStatus,
@@ -198,7 +227,10 @@ export class ProviderIntelMonitor {
     for(const feed of this.discoveryFeeds){
       try{
         const raw=await this.fetcher.fetchText(feed.url);
-        for(const candidate of extractDiscoveryCandidates(raw,feed.id)){
+        const candidates=feed.format==="json"
+          ? extractJsonDiscoveryCandidates(raw,feed.id)
+          : extractDiscoveryCandidates(raw,feed.id);
+        for(const candidate of candidates){
           if(this.catalog.findByName(candidate.name))continue;
           const saved=this.catalog.upsertCandidate(candidate);
           seen.push(saved);
