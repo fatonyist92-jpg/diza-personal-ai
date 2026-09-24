@@ -86,7 +86,7 @@ export class MatureProviderRegistry{
   constructor(seed=PROVIDERS){
     this.providers=new Map(seed.map(p=>[p.id,structuredClone(p)]));
   }
-  list(){return [...this.providers.values()].map(structuredClone);}
+  list(){return [...this.providers.values()].map(x=>structuredClone(x));}
   get(id){const p=this.providers.get(id);return p?structuredClone(p):null;}
   patch(id,patch={}){
     const p=this.providers.get(id);
