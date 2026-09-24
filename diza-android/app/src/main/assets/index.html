@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Diza Bot Agent</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:#000;color:#f5f5f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;height:100%;overflow:hidden}button,input,textarea{font:inherit}.hide{display:none!important}
+#app{height:100dvh;background:#000}
+.auth{height:100%;overflow:auto;display:flex;align-items:center;justify-content:center;padding:28px 22px}.authCard{width:100%;max-width:420px;padding:18px 0 40px}.avatar{width:82px;height:82px;border-radius:24px;object-fit:cover;border:1px solid #2b2b2f;display:block;margin-bottom:20px}.eyebrow{font-size:11px;letter-spacing:.14em;color:#8d8d94;font-weight:700}.auth h1{font-size:32px;letter-spacing:-.045em;margin:26px 0 8px}.muted{color:#7e7e85;font-size:14px;line-height:1.5;margin:0 0 24px}.field{width:100%;height:54px;margin:0 0 12px;padding:0 15px;border:1px solid #26262a;border-radius:16px;background:#0b0b0d;color:#fff;outline:none}.field:focus{border-color:#55505e;box-shadow:0 0 0 3px rgba(155,134,255,.08)}.primary{width:100%;height:52px;border:0;border-radius:16px;background:#f4f4f5;color:#050505;font-weight:800;margin-top:4px}.secondary{width:100%;height:48px;border:0;background:transparent;color:#a99cff;font-weight:600}.error{min-height:20px;color:#ff7777;font-size:12px;margin:4px 2px 8px}
+.chatPage{height:100%;display:flex;flex-direction:column}.top{height:64px;flex:none;display:flex;align-items:center;padding:8px 12px 8px 14px;border-bottom:1px solid #171719;background:#000}.brandAvatar{width:40px;height:40px;border-radius:13px;object-fit:cover;border:1px solid #29292c}.brandText{min-width:0;flex:1;padding-left:10px}.brandText b{font-size:14px;display:block}.online{font-size:10px;color:#49df9b;margin-top:2px}.topBtn{width:40px;height:40px;border:1px solid transparent;border-radius:12px;background:transparent;color:#aaa;font-size:21px}.agentBar{height:54px;flex:none;padding:8px 9px;display:flex;gap:7px;border-bottom:1px solid #111}.agent{flex:1;border:1px solid #1d1d20;border-radius:14px;background:#060607;color:#73737a;font-size:12px}.agent.on{background:#131315;color:#fff;border-color:#333338;font-weight:700}.messages{flex:1;overflow:auto;padding:16px 13px 24px}.welcome{max-width:520px;margin:15vh auto 0;text-align:center}.welcomeIcon{width:62px;height:62px;border-radius:19px;object-fit:cover;border:1px solid #2a2a2d}.welcome h2{font-size:27px;letter-spacing:-.04em;margin:18px 0 9px}.welcome p{font-size:14px;color:#75757c;line-height:1.55;margin:0 auto 22px;max-width:400px}.chips{display:flex;gap:7px;justify-content:center;flex-wrap:wrap}.chip{border:1px solid #242428;background:#09090b;color:#9b9ba1;border-radius:999px;padding:9px 13px;font-size:12px}.row{display:flex;margin:13px 0}.row.user{justify-content:flex-end}.bubble{max-width:84%;font-size:14px;line-height:1.58;white-space:pre-wrap;word-break:break-word}.user .bubble{background:#18181b;border:1px solid #29292d;padding:10px 13px;border-radius:18px 18px 5px 18px}.assistant .bubble{padding:8px 4px;color:#e7e7ea}.assistant{align-items:flex-start;gap:9px}.miniAv{width:29px;height:29px;border-radius:9px;object-fit:cover;border:1px solid #222}.typing{color:#777;font-size:13px;padding:9px 4px}.composerArea{flex:none;padding:12px 10px max(10px,env(safe-area-inset-bottom));background:linear-gradient(transparent,#000 28%)}.composer{display:flex;align-items:flex-end;gap:8px;border:1px solid #28282c;background:#0c0c0e;border-radius:22px;padding:8px 8px 8px 14px}.composer textarea{flex:1;min-height:38px;max-height:112px;resize:none;background:transparent;border:0;outline:0;color:#fff;padding:8px 0;line-height:1.35}.send{width:40px;height:40px;border:0;border-radius:13px;background:#f4f4f5;color:#050505;font-weight:900;font-size:17px}.send:disabled{background:#202024;color:#56565d}.fine{font-size:9px;color:#45454a;text-align:center;margin-top:7px}.fatal{height:100%;display:grid;place-items:center;text-align:center;padding:30px}.fatal button{margin-top:16px;padding:11px 16px;border:0;border-radius:13px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const AV='/_cdn/static/2daabeef-aac9-4289-9026-12a342ed4eee-diza-bot-agent-icon.png';
+const API='/_api/native';
+let mode='login',agent='chief',busy=false;
+const app=document.getElementById('app');
+
+window.onerror=(m)=>{app.innerHTML='<div class="fatal"><div><h2>Diza UI error</h2><p>'+esc(String(m))+'</p><button onclick="location.reload()">Reload</button></div></div>'};
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function token(){return localStorage.getItem('diza_native_token')||''}
+function setToken(t){localStorage.setItem('diza_native_token',t)}
+function logout(){localStorage.removeItem('diza_native_token');Object.keys(localStorage).filter(k=>k.startsWith('conv_')).forEach(k=>localStorage.removeItem(k));renderAuth()}
+function convKey(){return 'conv_'+agent}
+function conv(){return Number(localStorage.getItem(convKey())||0)||undefined}
+function setConv(v){if(v)localStorage.setItem(convKey(),String(v));else localStorage.removeItem(convKey())}
+
+async function post(path,body,auth=true){
+ const h={'content-type':'application/json'};
+ if(auth&&token())h.authorization='Bearer '+token();
+ const r=await fetch(API+path,{method:'POST',headers:h,body:JSON.stringify(body)});
+ let d={};try{d=await r.json()}catch{}
+ if(!r.ok){const e=new Error(d.error||d.message||'Request failed');e.status=r.status;throw e}
+ return d
+}
+
+function renderAuth(reg=false){
+ mode=reg?'register':'login';
+ app.innerHTML='<div class="auth"><div class="authCard">'+
+ '<img class="avatar" src="'+AV+'"><div class="eyebrow">DIZA BOT AGENT</div>'+
+ '<h1>'+(reg?'Create account':'Welcome back')+'</h1>'+
+ '<p class="muted">'+(reg?'Create your private AI workspace.':'Sign in to continue to your agent workspace.')+'</p>'+
+ (reg?'<input id="name" class="field" placeholder="Display name" autocomplete="name">':'')+
+ '<input id="email" class="field" placeholder="Email" type="email" autocomplete="email">'+
+ '<input id="pass" class="field" placeholder="Password" type="password" autocomplete="'+(reg?'new-password':'current-password')+'">'+
+ '<div id="err" class="error"></div>'+
+ '<button id="go" class="primary">'+(reg?'Create account':'Sign in')+'</button>'+
+ '<button id="swap" class="secondary">'+(reg?'Already have an account? Sign in':'New here? Create account')+'</button>'+
+ '</div></div>';
+ document.getElementById('swap').onclick=()=>renderAuth(!reg);
+ document.getElementById('go').onclick=async()=>{
+  const b=document.getElementById('go'),err=document.getElementById('err');
+  const email=document.getElementById('email').value.trim(),password=document.getElementById('pass').value;
+  const displayName=reg?document.getElementById('name').value.trim():'';
+  if(!email||password.length<8||(reg&&!displayName)){err.textContent='Check your email, name, and password.';return}
+  b.disabled=true;b.textContent=reg?'Creating...':'Signing in...';err.textContent='';
+  try{
+   const d=await post(reg?'/register':'/login',{email,password,...(reg?{displayName}:{})},false);
+   setToken(d.token);renderChat();
+  }catch(e){err.textContent=e.message}finally{b.disabled=false;b.textContent=reg?'Create account':'Sign in'}
+ }
+}
+
+function agentName(){return agent==='researcher'?'Researcher':agent==='operator'?'Operator':'Chief'}
+function renderChat(){
+ app.innerHTML='<div class="chatPage">'+
+ '<header class="top"><img class="brandAvatar" src="'+AV+'"><div class="brandText"><b>Diza Bot Agent</b><div id="status" class="online">● Online</div></div>'+
+ '<button id="fresh" class="topBtn">＋</button><button id="out" class="topBtn">↪</button></header>'+
+ '<div class="agentBar"><button class="agent '+(agent==='chief'?'on':'')+'" data-a="chief">Chief</button><button class="agent '+(agent==='researcher'?'on':'')+'" data-a="researcher">Research</button><button class="agent '+(agent==='operator'?'on':'')+'" data-a="operator">Operator</button></div>'+
+ '<main id="messages" class="messages"></main>'+
+ '<div class="composerArea"><div class="composer"><textarea id="box" rows="1" placeholder="Message Diza '+agentName()+'…"></textarea><button id="send" class="send">➤</button></div><div class="fine">Diza can make mistakes. Check important information.</div></div></div>';
+ document.querySelectorAll('.agent').forEach(b=>b.onclick=()=>{agent=b.dataset.a;renderChat()});
+ document.getElementById('fresh').onclick=()=>{setConv();renderChat()};
+ document.getElementById('out').onclick=logout;
+ document.getElementById('send').onclick=send;
+ const box=document.getElementById('box');
+ box.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};
+ box.oninput=()=>{box.style.height='auto';box.style.height=Math.min(box.scrollHeight,112)+'px'};
+ welcome();
+}
+function welcome(){
+ document.getElementById('messages').innerHTML='<section class="welcome"><img class="welcomeIcon" src="'+AV+'"><h2>What should Diza work on?</h2><p>Ask, research, plan, or hand off a task.</p><div class="chips"><button class="chip">Plan a project</button><button class="chip">Research something</button><button class="chip">Break down a task</button></div></section>';
+ document.querySelectorAll('.chip').forEach(x=>x.onclick=()=>{document.getElementById('box').value=x.textContent;document.getElementById('box').focus()})
+}
+function bubble(role,content){
+ const m=document.getElementById('messages');
+ if(m.querySelector('.welcome'))m.innerHTML='';
+ const row=document.createElement('div');row.className='row '+role;
+ if(role==='assistant'){const im=document.createElement('img');im.src=AV;im.className='miniAv';row.appendChild(im)}
+ const b=document.createElement('div');b.className='bubble';b.textContent=content;row.appendChild(b);m.appendChild(row);m.scrollTop=m.scrollHeight
+}
+async function send(){
+ if(busy)return;const box=document.getElementById('box');const text=box.value.trim();if(!text)return;
+ box.value='';box.style.height='auto';bubble('user',text);busy=true;document.getElementById('send').disabled=true;document.getElementById('status').textContent='● Thinking';
+ const m=document.getElementById('messages'),wait=document.createElement('div');wait.className='typing';wait.textContent='Diza is working…';m.appendChild(wait);m.scrollTop=m.scrollHeight;
+ try{
+  const d=await post('/chat',{conversationId:conv(),agentKey:agent,message:text});
+  setConv(d.conversationId);m.innerHTML='';(d.messages||[]).forEach(x=>bubble(x.role,x.content));
+ }catch(e){wait.remove();if(e.status===401){logout();return}bubble('assistant',e.message)}
+ finally{busy=false;const s=document.getElementById('send');if(s)s.disabled=false;const st=document.getElementById('status');if(st)st.textContent='● Online'}
+}
+token()?renderChat():renderAuth(false);
+</script>
+</body>
+</html>
