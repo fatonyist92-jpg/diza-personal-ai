@@ -37,15 +37,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends git git-lfs cmake ninja-build build-essential ca-certificates
           git lfs install
-          python3 -m pip install --upgrade pip
+          python3 -m pip install pip==26.2.1
           python3 -m pip install torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
-          python3 -m pip install diffusers==0.35.1 easydict safetensors huggingface_hub hf_xet onnx==1.17.0 ftfy regex transformers==4.49.0 tokenizers==0.21.0 accelerate einops
+          python3 -m pip install diffusers==0.35.1 easydict==1.13 safetensors==0.8.0 huggingface_hub==0.36.2 hf_xet==1.6.0 onnx==1.17.0 ftfy==6.3.1 regex==2026.9.10 transformers==4.49.0 tokenizers==0.21.0 accelerate==1.15.0 einops==0.8.2
 
       - name: Clone MNN and Phantom
         run: |
           set -euxo pipefail
-          git clone --depth 1 --branch 3.6.1 https://github.com/alibaba/MNN.git MNN
-          git clone --depth 1 https://github.com/Phantom-video/Phantom.git Phantom
+          git init MNN
+          git -C MNN remote add origin https://github.com/alibaba/MNN.git
+          git -C MNN fetch --depth 1 origin d407447ed56c4121a11ccbd266dc184ca1ead0c2
+          git -C MNN checkout --detach FETCH_HEAD
+          test "$(git -C MNN rev-parse HEAD)" = "d407447ed56c4121a11ccbd266dc184ca1ead0c2"
+
+          git init Phantom
+          git -C Phantom remote add origin https://github.com/Phantom-video/Phantom.git
+          git -C Phantom fetch --depth 1 origin bd84b602dcc949e23c89cbbf266b6f5975f2f025
+          git -C Phantom checkout --detach FETCH_HEAD
+          test "$(git -C Phantom rev-parse HEAD)" = "bd84b602dcc949e23c89cbbf266b6f5975f2f025"
 
       - name: Patch Phantom for transformer-only CPU export
         run: |
@@ -87,6 +96,7 @@ jobs:
           p = hf_hub_download(
               repo_id="bytedance-research/Phantom",
               filename="Phantom-Wan-1.3B.pth",
+              revision="6739b2d576426a211c9fec00a476253e538ca7d5",
               local_dir="checkpoints",
           )
           print(p)
@@ -214,8 +224,20 @@ jobs:
           mnn-build/MNNConvert             -f ONNX             --modelFile onnx/transformer.onnx             --MNNModel dist/transformer.mnn             --saveExternalData=1             --weightQuantBits=8             --weightQuantBlock=64
           rm -rf onnx
           find dist -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
-          cp Phantom/LICENSE dist/LICENSE_PHANTOM.txt
+          cp Phantom/LICENSE.txt dist/LICENSE_PHANTOM.txt
           cp MNN/LICENSE.txt dist/LICENSE_MNN.txt
+          cat > dist/SOURCE_PROVENANCE.txt <<'EOF'
+          MNN_COMMIT=d407447ed56c4121a11ccbd266dc184ca1ead0c2
+          PHANTOM_CODE_COMMIT=bd84b602dcc949e23c89cbbf266b6f5975f2f025
+          PHANTOM_HF_REVISION=6739b2d576426a211c9fec00a476253e538ca7d5
+          TORCH=2.4.1+cpu
+          DIFFUSERS=0.35.1
+          TRANSFORMERS=4.49.0
+          ONNX=1.17.0
+          QUANT_BITS=8
+          QUANT_BLOCK=64
+          SMOKE_SHAPE=1x16x4x32x32
+          EOF
           sha256sum dist/* | tee dist/SHA256SUMS.txt
           df -h /
           free -h
