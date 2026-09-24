@@ -120,7 +120,7 @@ Java_com_diza_localvideo_smoke_DizaNative_smoke(JNIEnv* env, jobject, jstring di
 
     auto tf = std::chrono::steady_clock::now();
     auto outputs = module->onForward({hidden, timestep, text, mask});
-    if (outputs.empty() || !outputs[0])
+    if (outputs.empty() || outputs[0].get() == nullptr)
         return jout(env, "{\"ok\":false,\"stage\":\"forward\",\"error\":\"empty output\"}");
     auto out = _Convert(outputs[0], NCHW);
     out.fix(VARP::CONSTANT);
