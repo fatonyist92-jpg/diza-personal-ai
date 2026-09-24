@@ -1,0 +1,27 @@
+name: Diza Item 7 Mature Media Tests
+
+on:
+  push:
+    branches:
+      - diza-bot-agent-dev-123
+    paths:
+      - "diza-core-7-mature/**"
+      - ".github/workflows/diza-core-7-mature-tests.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run Item 7 tests
+        working-directory: diza-core-7-mature
+        run: npm test
