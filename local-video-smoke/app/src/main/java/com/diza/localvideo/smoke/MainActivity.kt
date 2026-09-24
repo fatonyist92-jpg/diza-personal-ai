@@ -41,6 +41,7 @@ class MainActivity : Activity() {
             "transformer.mnn" to Pair(1433184L, "934a20b6d46db253376dded722097f0bdd9cb052ff9836d9e73d7969c8e880ec"),
             "transformer.mnn.weight" to Pair(1602075690L, "724935c8cfd58e220d9c0d0309ff41718a920efbe2e33708100c6ff126b05274")
         )
+        private val SPLIT_WEIGHT_PARTS = (0..5).map { "transformer.mnn.weight.part.%02d".format(it) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -137,13 +138,14 @@ class MainActivity : Activity() {
     }
 
     private fun importExactPack(uris: List<Uri>): String {
-        require(uris.size == 2) {
-            "Pilih tepat 2 file sekaligus: transformer.mnn dan transformer.mnn.weight"
-        }
-
         val byName = uris.associateBy { displayName(it) }
-        require(byName.keys.containsAll(EXPECTED.keys)) {
-            "Nama file harus persis transformer.mnn + transformer.mnn.weight"
+        val directMode = uris.size == 2 && byName.keys.containsAll(EXPECTED.keys)
+        val splitMode = uris.size == 7 &&
+            byName.containsKey("transformer.mnn") &&
+            byName.keys.containsAll(SPLIT_WEIGHT_PARTS)
+
+        require(directMode || splitMode) {
+            "Pilih 2 file asli, atau 7 file split: transformer.mnn + 6 part weight"
         }
 
         val staging = File(filesDir, "models/importing").apply {
@@ -152,35 +154,49 @@ class MainActivity : Activity() {
         }
 
         try {
-            for ((name, spec) in EXPECTED) {
-                val uri = requireNotNull(byName[name])
-                val out = File(staging, name)
+            copyAndVerify(
+                requireNotNull(byName["transformer.mnn"]),
+                File(staging, "transformer.mnn"),
+                EXPECTED.getValue("transformer.mnn"),
+                "transformer.mnn"
+            )
+
+            if (directMode) {
+                copyAndVerify(
+                    requireNotNull(byName["transformer.mnn.weight"]),
+                    File(staging, "transformer.mnn.weight"),
+                    EXPECTED.getValue("transformer.mnn.weight"),
+                    "transformer.mnn.weight"
+                )
+            } else {
+                val out = File(staging, "transformer.mnn.weight")
                 val digest = MessageDigest.getInstance("SHA-256")
                 var copied = 0L
-
-                contentResolver.openInputStream(uri).use { input ->
-                    requireNotNull(input) { "Tidak bisa membuka $name" }
-                    FileOutputStream(out).use { output ->
-                        val buf = ByteArray(8 * 1024 * 1024)
-                        while (true) {
-                            val n = input.read(buf)
-                            if (n < 0) break
-                            if (n == 0) continue
-                            output.write(buf, 0, n)
-                            digest.update(buf, 0, n)
-                            copied += n
+                FileOutputStream(out).use { output ->
+                    val buf = ByteArray(8 * 1024 * 1024)
+                    for (name in SPLIT_WEIGHT_PARTS) {
+                        val uri = requireNotNull(byName[name]) { "Part hilang: $name" }
+                        contentResolver.openInputStream(uri).use { input ->
+                            requireNotNull(input) { "Tidak bisa membuka $name" }
+                            while (true) {
+                                val n = input.read(buf)
+                                if (n < 0) break
+                                if (n == 0) continue
+                                output.write(buf, 0, n)
+                                digest.update(buf, 0, n)
+                                copied += n
+                            }
                         }
-                        output.fd.sync()
                     }
+                    output.fd.sync()
                 }
-
+                val spec = EXPECTED.getValue("transformer.mnn.weight")
                 require(copied == spec.first) {
-                    "Ukuran $name salah: $copied != ${spec.first}"
+                    "Ukuran hasil gabung salah: $copied != ${spec.first}"
                 }
-
                 val sha = digest.digest().joinToString("") { "%02x".format(it) }
                 require(sha == spec.second) {
-                    "SHA-256 $name tidak cocok dengan Release #7"
+                    "SHA-256 hasil gabung tidak cocok dengan Release #7"
                 }
             }
 
@@ -192,10 +208,37 @@ class MainActivity : Activity() {
                 }
             }
 
-            return "PASS import: exact Release #7 terverifikasi."
+            return if (splitMode) {
+                "PASS import split: 6 part digabung dan exact Release #7 terverifikasi."
+            } else {
+                "PASS import: exact Release #7 terverifikasi."
+            }
         } finally {
             staging.deleteRecursively()
         }
+    }
+
+    private fun copyAndVerify(uri: Uri, out: File, spec: Pair<Long, String>, name: String) {
+        val digest = MessageDigest.getInstance("SHA-256")
+        var copied = 0L
+        contentResolver.openInputStream(uri).use { input ->
+            requireNotNull(input) { "Tidak bisa membuka $name" }
+            FileOutputStream(out).use { output ->
+                val buf = ByteArray(8 * 1024 * 1024)
+                while (true) {
+                    val n = input.read(buf)
+                    if (n < 0) break
+                    if (n == 0) continue
+                    output.write(buf, 0, n)
+                    digest.update(buf, 0, n)
+                    copied += n
+                }
+                output.fd.sync()
+            }
+        }
+        require(copied == spec.first) { "Ukuran $name salah: $copied != ${spec.first}" }
+        val sha = digest.digest().joinToString("") { "%02x".format(it) }
+        require(sha == spec.second) { "SHA-256 $name tidak cocok dengan Release #7" }
     }
 
     private fun displayName(uri: Uri): String {
