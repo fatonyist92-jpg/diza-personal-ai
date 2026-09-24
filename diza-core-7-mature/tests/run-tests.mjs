@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { MatureProviderRegistry, MatureCapability } from "../provider-registry.mjs";
 import { MatureMediaRouter } from "../router.mjs";
 import { MaturePolicyError } from "../policy-engine.mjs";
+import { MaturePolicyWatcher, classifyAdultPolicy } from "../policy-watch.mjs";
+import { MaturePolicy } from "../provider-registry.mjs";
 
 const tests=[];
 const test=(name,fn)=>tests.push([name,fn]);
@@ -81,6 +83,45 @@ test("real-person sexual content requires consent confirmation",()=>{
     subjectType:"real_person",
     consentConfirmed:false
   }),e=>e instanceof MaturePolicyError&&e.code==="CONSENT_REQUIRED");
+});
+
+
+test("policy watcher recognizes unrestricted hosted policy",async()=>{
+  const registry=new MatureProviderRegistry();
+  const watcher=new MaturePolicyWatcher({
+    registry,
+    fetcher:{fetchText:async()=>(
+      "Venice Uncensored is the most unrestricted text model. "+
+      "Unrestricted image generation is available. "+
+      "Open source video models do not censor."
+    )}
+  });
+  const out=await watcher.checkProvider("venice");
+  assert.equal(out.ok,true);
+  assert.equal(out.policy,MaturePolicy.EXPLICIT_ALLOWED);
+  assert.equal(registry.get("venice").adultPolicy,MaturePolicy.EXPLICIT_ALLOWED);
+});
+
+test("policy watcher can safety-disable a hosted provider",async()=>{
+  const registry=new MatureProviderRegistry();
+  registry.patch("venice",{officialPolicyUrls:["https://policy.test"]});
+  const watcher=new MaturePolicyWatcher({
+    registry,
+    fetcher:{fetchText:async()=>(
+      "Your Content must not be obscene, lewd, lascivious or otherwise prohibited."
+    )}
+  });
+  const out=await watcher.checkProvider("venice");
+  assert.equal(out.policy,MaturePolicy.PROHIBITED);
+  assert.equal(registry.get("venice").adultPolicy,MaturePolicy.PROHIBITED);
+  assert.equal(registry.get("venice").policyDisabled,true);
+});
+
+test("unknown policy never becomes explicit by guess",()=>{
+  assert.equal(
+    classifyAdultPolicy("We provide creative image generation tools."),
+    MaturePolicy.UNKNOWN
+  );
 });
 
 let passed=0;
