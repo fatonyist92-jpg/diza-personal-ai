@@ -163,7 +163,7 @@ function authFail(e){if(e&&e.status===401){logout();return true}return false}
 
 async function uploadBinary(file){
   if(!file)throw new Error('No file selected');
-  if(file.size>10*1024*1024)throw new Error('Maximum file size is 10 MB.');
+  if(file.size>50*1024*1024)throw new Error('Maximum file size is 50 MB.');
   const allowed=['image/jpeg','image/png','image/webp','image/gif','application/pdf'];
   if(allowed.indexOf(file.type)<0)throw new Error('Supported: PDF, JPG, PNG, WebP, GIF.');
   const mint=await post('/attachments/upload',{filename:file.name,contentType:file.type,sizeBytes:file.size});
