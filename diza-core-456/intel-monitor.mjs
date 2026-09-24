@@ -212,6 +212,7 @@ export class ProviderIntelMonitor {
       }
     }
     const unique=[...new Map(seen.map(c=>[c.id,c])).values()];
+    const verified=[];
     for(const c of unique){
       this.catalog.addEvent({
         type:"new_provider_candidate",
@@ -220,8 +221,21 @@ export class ProviderIntelMonitor {
         confidence:c.confidence,
         observedSources:c.observedSources
       });
+      const check=await this.verifyCandidate(c);
+      const saved=this.catalog.patchCandidate(c.id,check)||check;
+      verified.push(saved);
+      if(saved.status==="verified_free"){
+        this.catalog.addEvent({
+          type:"provider_candidate_verified",
+          candidateId:saved.id,
+          name:saved.name,
+          officialUrl:saved.officialUrl,
+          pullable:saved.pullable,
+          facts:saved.facts
+        });
+      }
     }
-    return unique;
+    return verified;
   }
 
   async verifyCandidate(candidate){
