@@ -99,8 +99,8 @@ test('bounded retry stays bounded', async () => {
   const router = new MeshRouter({providers:[p],ledger,now:clock}), store = new InMemoryTaskStore();
   const task = store.createTask({title:'bad',instruction:'x',steps:[{botId:1,instruction:'x'}]});
   const engine = new BackgroundTaskEngine({store,router,now:clock,maxStepAttempts:2});
-  await engine.runNext(); advance(61000); await engine.runNext();
-  assert.ok([TaskStatus.WAITING,TaskStatus.FAILED].includes(store.get(task.id).status));
+  await engine.runNext(); await engine.runNext();
+  assert.equal(store.get(task.id).status,TaskStatus.FAILED);
 });
 
 let passed=0;
