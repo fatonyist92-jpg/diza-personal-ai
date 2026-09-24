@@ -231,9 +231,11 @@ test('monitored daily quota syncs into ledger with a reset calendar', async () =
   syncLedgerFromCatalog(catalog,ledger,{now:clock,providers:[provider]});
   const row=ledger.get('quota-ai','free-model');
   assert.equal(row.requestLimit,100);
-  assert.equal(row.quotaType,'day');
-  assert.equal(row.periodMs,24*60*60*1000);
-  assert.ok(row.resetAt>now);
+  const day=row.windows['requests:day'];
+  assert.ok(day);
+  assert.equal(day.limit,100);
+  assert.equal(day.periodMs,24*60*60*1000);
+  assert.ok(day.resetAt>now);
 });
 
 test('recurring quota window advances instead of disappearing after reset', async () => {
@@ -414,6 +416,23 @@ test('trial and evaluation providers require explicit opt-in plus confirmation',
   }});
   assert.equal(providers.some(p=>p.id==='cerebras'),true);
   assert.equal(providers.some(p=>p.id==='nvidia'),true);
+});
+
+
+test('explicitly enabled reserve provider remains usable after ledger policy sync', async () => {
+  const catalog=new ProviderCatalog();
+  const env={
+    CEREBRAS_API_KEY:'c',
+    CEREBRAS_FREE_TRIAL_CONFIRMED:'true',
+    DIZA_ENABLE_CEREBRAS_TRIAL:'true'
+  };
+  const providers=buildProvidersFromCatalog(catalog,{env});
+  const cerebras=providers.find(p=>p.id==='cerebras');
+  assert.ok(cerebras);
+  const ledger=makeLedger();
+  syncLedgerFromCatalog(catalog,ledger,{now:clock,providers});
+  assert.equal(ledger.get('cerebras',cerebras.modelId).disabled,false);
+  assert.equal(ledger.canUse(cerebras,{estimatedTokens:10}).ok,true);
 });
 
 let passed=0;
