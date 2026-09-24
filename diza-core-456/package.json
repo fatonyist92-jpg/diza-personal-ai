@@ -1,0 +1,6 @@
+{
+  "name": "diza-core-456",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node tests/run-tests.mjs"}
+}
