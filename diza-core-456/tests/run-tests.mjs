@@ -151,8 +151,30 @@ test('provider discovery finds unknown free provider but does not auto-enable it
   assert.equal(catalog.findByName('NewSpark AI'),null);
   const candidate=catalog.listCandidates().find(x=>x.name==='NewSpark AI');
   assert.ok(candidate);
-  assert.equal(candidate.status,'candidate');
+  assert.equal(candidate.status,'needs_manual_verification');
   assert.ok(candidate.observedSources.length>=2);
+});
+
+
+test('discovery auto-verifies recurring free provider from official link but keeps it out of live catalog', async () => {
+  const catalog=new ProviderCatalog([]);
+  const feed=['| Provider | Free |','| --- | --- |','| [Fresh AI](https://fresh.example/pricing) | free tier |'].join('\n');
+  const fetcher={fetchText:async(url)=>{
+    if(url==='https://feed.test/free')return feed;
+    if(url==='https://fresh.example/pricing')return 'Free tier. No credit card. OpenAI-compatible API. 500 requests per day.';
+    throw new Error('unexpected url');
+  }};
+  const monitor=new ProviderIntelMonitor({
+    catalog,fetcher,
+    discoveryFeeds:[{id:'free-feed',url:'https://feed.test/free'}],
+    now:clock
+  });
+  const found=await monitor.discover();
+  const fresh=found.find(x=>x.name==='Fresh AI');
+  assert.ok(fresh);
+  assert.equal(fresh.status,'verified_free');
+  assert.equal(fresh.pullable,true);
+  assert.equal(catalog.findByName('Fresh AI'),null);
 });
 
 test('maintenance daily check flips after 00:00 WIB', async () => {
