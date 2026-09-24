@@ -9,6 +9,20 @@
 
 DIZA is a phone-first Android image-to-video application targeted at Xiaomi 17T / 12 GB RAM.
 
+### Product priority: Spicy Mode first-class
+
+Spicy Mode is a primary product capability, not a late add-on. The architecture, prompt router, identity pipeline, motion system, edit modules, temporal consistency work, and benchmark coverage must all be designed so adult consensual spicy/NSFW generation can use the same highest-quality local pipeline rather than a degraded secondary path.
+
+Spicy Mode must remain fully local/offline after model packs are installed. Images, prompts and generated video are not sent to Bloks or a cloud runtime during core generation.
+
+Hard boundaries for this mode:
+
+- sexual content involving minors, or characters clearly depicted as minors, is prohibited with no bypass;
+- non-consensual sexual deepfakes of identifiable real people are prohibited;
+- unsupported or unsafe requests must not be silently reinterpreted as supported adult content.
+
+Within those boundaries, product capability choices remain owner-defined.
+
 The final core generation path must work fully offline after required model packs are present on the phone:
 
 ```
@@ -277,11 +291,14 @@ Free CI may be used for build/conversion. It must never become a required runtim
 
 ## 10. Product safety boundary
 
-Product moderation remains owner-defined rather than invented by the implementation.
+Product moderation remains owner-defined rather than invented by the implementation, except for hard boundaries that cannot be overridden.
 
-One hard rule is locked:
+Hard rules:
 
-- sexual content involving minors, or characters clearly depicted as minors, is prohibited and has no owner override/bypass.
+- sexual content involving minors, or characters clearly depicted as minors, is prohibited and has no owner override/bypass;
+- non-consensual sexual deepfakes of identifiable real people are prohibited.
+
+Spicy Mode is otherwise treated as a first-class adult capability and must receive the same quality, identity, motion, prompt-adherence, temporal and offline-runtime engineering priority as the general video path.
 
 Other capability/moderation choices remain separate from the video-quality architecture and must still comply with applicable platform and legal requirements.
 
@@ -350,8 +367,10 @@ Add identity lock/correction and benchmark identity >=92.
 ### Phase 4 — 6 Seconds
 Scale to default 6-second native 480p with stable RAM/thermal behavior.
 
-### Phase 5 — Prompt Director
+### Phase 5 — Prompt Director + Spicy Routing
 Implement Indonesian local intent parser/router and compound command decomposition.
+
+Spicy Mode must be represented as an explicit first-class intent/capability route rather than an afterthought. Adult prompts should reuse the same identity, motion, camera, appearance, scene and temporal modules while respecting the hard safety boundaries above.
 
 ### Phase 6 — Motion Reference
 Implement motion-only extraction and transfer.
@@ -367,6 +386,8 @@ Only after 6-second gate passes.
 
 ### Phase 10 — Grok-90
 Run DIZA-30, regress failures, replace/hybridize engine if needed.
+
+The benchmark set must include an adult-only Spicy subset so Spicy Mode is not allowed to pass with lower identity, motion, temporal consistency or prompt-adherence quality than the general pipeline.
 
 ### Phase 11 — Release Candidate
 APK + model packs + manifests + hashes + licenses/notices + offline verification.
