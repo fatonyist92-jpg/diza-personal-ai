@@ -38,8 +38,12 @@ jobs:
       - name: Android native toolchain
         run: |
           set -euxo pipefail
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
+          SDKROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDKROOT" -type f -name sdkmanager | head -n1)"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
+          echo "sdk.dir=$SDKROOT" > local-video-smoke/local.properties
 
       - name: Verified MNN 3.6.1 runtime
         run: |
