@@ -1,11 +1,15 @@
 package com.diza.botagent;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
 import android.webkit.SslErrorHandler;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -13,15 +17,17 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.view.Gravity;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
     private static final String ORIGIN = "https://diza-bot-agent.floot.app/";
+    private static final int FILE_CHOOSER_REQUEST = 4201;
+
     private WebView webView;
     private FrameLayout splash;
+    private ValueCallback<Uri[]> fileChooserCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,17 +47,43 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
         s.setAllowFileAccess(false);
-        s.setAllowContentAccess(false);
+        s.setAllowContentAccess(true);
         s.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         s.setTextZoom(100);
 
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(
+                    WebView webView,
+                    ValueCallback<Uri[]> filePathCallback,
+                    FileChooserParams fileChooserParams
+            ) {
+                if (fileChooserCallback != null) {
+                    fileChooserCallback.onReceiveValue(null);
+                }
+                fileChooserCallback = filePathCallback;
+
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.addCategory(Intent.CATEGORY_OPENABLE);
+                intent.setType("image/*");
+
+                try {
+                    startActivityForResult(Intent.createChooser(intent, "Choose bot avatar"), FILE_CHOOSER_REQUEST);
+                    return true;
+                } catch (Exception e) {
+                    fileChooserCallback = null;
+                    return false;
+                }
+            }
+        });
+
         webView.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String url) {
                 webView.setVisibility(View.VISIBLE);
                 splash.animate().alpha(0f).setDuration(180)
                     .withEndAction(() -> splash.setVisibility(View.GONE)).start();
             }
+
             @Override public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
                 handler.cancel();
             }
@@ -72,6 +104,19 @@ public class MainActivity extends Activity {
             err.setGravity(Gravity.CENTER);
             root.addView(err, new FrameLayout.LayoutParams(-1, -1));
         }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == FILE_CHOOSER_REQUEST) {
+            if (fileChooserCallback != null) {
+                Uri[] result = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+                fileChooserCallback.onReceiveValue(result);
+                fileChooserCallback = null;
+            }
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
     }
 
     private FrameLayout makeSplash() {
