@@ -139,7 +139,7 @@ test('official free-tier change can safety-disable a provider', async () => {
 
 test('provider discovery finds unknown free provider but does not auto-enable it', async () => {
   const catalog=new ProviderCatalog([{id:'known',name:'Known AI',aliases:[],officialDocs:[],autoEligible:true}]);
-  const feed='| Provider | Free Models | Card |\\n| --- | --- | --- |\\n| Known AI | free | no card |\\n| NewSpark AI | 4 free models | no card |';
+  const feed=['| Provider | Free Models | Card |','| --- | --- | --- |','| Known AI | free | no card |','| NewSpark AI | 4 free models | no card |'].join('\\n');
   const monitor=new ProviderIntelMonitor({
     catalog,
     fetcher:{fetchText:async()=>feed},
