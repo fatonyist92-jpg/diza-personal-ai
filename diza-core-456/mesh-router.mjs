@@ -63,8 +63,12 @@ export class MeshRouter {
     const requirements = inferRequirements(request);
     const candidates = this.ranked({ ...request, requirements });
     const attempts = [];
+    const maxProviderAttempts = Number.isFinite(request.maxProviderAttempts)
+      ? Math.max(0, Math.floor(request.maxProviderAttempts))
+      : candidates.length;
 
     for (const entry of candidates) {
+      if (attempts.length >= maxProviderAttempts) break;
       const p = entry.provider;
       const reservation = this.ledger.reserve(p, { estimatedTokens: request.estimatedTokens || 0 });
       if (!reservation.ok) continue;
