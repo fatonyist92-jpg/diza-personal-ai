@@ -145,6 +145,19 @@ jobs:
                   "checkpoint mismatch missing=%r unexpected=%r" %
                   (result.missing_keys[:20], result.unexpected_keys[:20])
               )
+
+          # WanModel.freqs is intentionally not a registered buffer, so creating the
+          # model under torch.device("meta") leaves it as a meta tensor and it is not
+          # populated by load_state_dict. Rebuild the RoPE table on real CPU memory.
+          d = cfg.dim // cfg.num_heads
+          model.freqs = torch.cat([
+              model_mod.rope_params(1024, d - 4 * (d // 6)),
+              model_mod.rope_params(1024, 2 * (d // 6)),
+              model_mod.rope_params(1024, 2 * (d // 6)),
+          ], dim=1)
+          if model.freqs.device.type != "cpu" or model.freqs.is_meta:
+              raise RuntimeError("RoPE freqs rebuild failed")
+
           model.eval().requires_grad_(False)
 
           spec = importlib.util.spec_from_file_location(
