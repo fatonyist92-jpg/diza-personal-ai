@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { QuotaLedger } from '../quota-ledger.mjs';
-import { MeshRouter } from '../mesh-router.mjs';
+import { MeshRouter, IdempotencyStore } from '../mesh-router.mjs';
 import { MockProvider, quotaFailure } from '../providers/mock-provider.mjs';
 import { ProviderError, ErrorCode } from '../errors.mjs';
 import { InMemoryTaskStore, BackgroundTaskEngine, TaskStatus } from '../task-engine.mjs';
