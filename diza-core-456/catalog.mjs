@@ -3,11 +3,19 @@ export const DISCOVERY_FEEDS = [
     id: "awesome-freellm-apis",
     url: "https://raw.githubusercontent.com/freellms/awesome-freellm-apis/main/README.md",
     trust: 0.72,
+    format: "markdown",
+  },
+  {
+    id: "free-llm-listing-json",
+    url: "https://raw.githubusercontent.com/richbrianx/free-llm-listing/main/data/providers.json",
+    trust: 0.78,
+    format: "json",
   },
   {
     id: "freellmapi-public",
     url: "https://raw.githubusercontent.com/tashfeenahmed/freellmapi/main/README.md",
     trust: 0.72,
+    format: "markdown",
   },
 ];
 
@@ -41,7 +49,10 @@ export const BUILTIN_PROVIDERS = [
     keyEnv:"OPENROUTER_API_KEY", modelEnv:"OPENROUTER_MODEL", defaultModel:"openrouter/free",
     capabilities:["text","coding"], contextWindow:200000,
     officialDocs:["https://openrouter.ai/pricing"],
-    autoEligible:true,
+    officialTerms:["https://openrouter.ai/terms"],
+    policyBlocked:true,
+    disabledReason:"terms-competitive-service",
+    autoEligible:false,
   },
   {
     id:"mistral", name:"Mistral", aliases:["mistral ai"],
