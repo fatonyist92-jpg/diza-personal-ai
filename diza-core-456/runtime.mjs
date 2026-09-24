@@ -5,22 +5,33 @@ export class DizaCoreRuntime {
     taskEngine,
     maintenanceScheduler,
     taskPollMs=5000,
-    onError=console.error
+    onMaintenance=null,
+    onError=console.error,
+    now=()=>Date.now()
   }={}){
     this.taskEngine=taskEngine;
     this.maintenanceScheduler=maintenanceScheduler;
     this.taskPollMs=taskPollMs;
+    this.onMaintenance=onMaintenance;
     this.onError=onError;
+    this.now=now;
     this.taskTimer=null;
     this.maintenanceTimer=null;
     this.started=false;
+  }
+
+  async runMaintenance(options={}){
+    if(!this.maintenanceScheduler)return null;
+    const report=await this.maintenanceScheduler.runDue(options);
+    if(this.onMaintenance)await this.onMaintenance(report);
+    return report;
   }
 
   async tick(){
     const out={maintenance:null,task:null};
     if(this.maintenanceScheduler){
       try{
-        out.maintenance=await this.maintenanceScheduler.runDue();
+        out.maintenance=await this.runMaintenance();
       }catch(e){
         this.onError(e);
       }
@@ -37,16 +48,16 @@ export class DizaCoreRuntime {
 
   async runMaintenanceNow(options={}){
     if(!this.maintenanceScheduler)return null;
-    return this.maintenanceScheduler.runDue(options);
+    return this.runMaintenance(options);
   }
 
   scheduleNextMaintenance(){
     if(!this.started||!this.maintenanceScheduler)return;
     clearTimeout(this.maintenanceTimer);
-    const wait=msUntilNextJakartaMidnight(Date.now())+1000;
+    const wait=msUntilNextJakartaMidnight(this.now())+1000;
     this.maintenanceTimer=setTimeout(async()=>{
       try{
-        await this.maintenanceScheduler.runDue();
+        await this.runMaintenance();
       }catch(e){
         this.onError(e);
       }
@@ -60,7 +71,7 @@ export class DizaCoreRuntime {
 
     if(this.maintenanceScheduler){
       try{
-        await this.maintenanceScheduler.runDue();
+        await this.runMaintenance();
       }catch(e){
         this.onError(e);
       }
