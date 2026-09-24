@@ -1,0 +1,48 @@
+name: Publish DIZA Transformer Split Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diza-transformer-split-release.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Download exact Release #7 and split weight
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p release
+          gh release download diza-phantom-mnn-smoke-7             --repo "${GITHUB_REPOSITORY}"             --dir release             --pattern transformer.mnn             --pattern transformer.mnn.weight
+
+          echo "934a20b6d46db253376dded722097f0bdd9cb052ff9836d9e73d7969c8e880ec  release/transformer.mnn" | sha256sum -c -
+          echo "724935c8cfd58e220d9c0d0309ff41718a920efbe2e33708100c6ff126b05274  release/transformer.mnn.weight" | sha256sum -c -
+
+          split -b 300000000 -d -a 2             release/transformer.mnn.weight             release/transformer.mnn.weight.part.
+
+          test "$(find release -maxdepth 1 -type f -name 'transformer.mnn.weight.part.*' | wc -l)" -eq 6
+          cat release/transformer.mnn.weight.part.* > release/rejoined.weight
+          echo "724935c8cfd58e220d9c0d0309ff41718a920efbe2e33708100c6ff126b05274  release/rejoined.weight" | sha256sum -c -
+          rm release/rejoined.weight release/transformer.mnn.weight
+
+          sha256sum release/transformer.mnn release/transformer.mnn.weight.part.* > release/SHA256SUMS.txt
+          ls -lh release
+
+      - name: Publish split download release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          TAG="diza-phantom-mnn-smoke-7-split"
+          if gh release view "$TAG" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release upload "$TAG"               --repo "${GITHUB_REPOSITORY}"               --clobber               release/transformer.mnn               release/transformer.mnn.weight.part.00               release/transformer.mnn.weight.part.01               release/transformer.mnn.weight.part.02               release/transformer.mnn.weight.part.03               release/transformer.mnn.weight.part.04               release/transformer.mnn.weight.part.05               release/SHA256SUMS.txt
+          else
+            gh release create "$TAG"               --repo "${GITHUB_REPOSITORY}"               --title "DIZA Phantom MNN smoke 7 - split download"               --notes "Same exact transformer as diza-phantom-mnn-smoke-7, split into six smaller weight parts for unreliable mobile downloads. DIZA smoke APK v0.3.0 can select transformer.mnn plus all six parts and reassemble/verify them automatically."               release/transformer.mnn               release/transformer.mnn.weight.part.00               release/transformer.mnn.weight.part.01               release/transformer.mnn.weight.part.02               release/transformer.mnn.weight.part.03               release/transformer.mnn.weight.part.04               release/transformer.mnn.weight.part.05               release/SHA256SUMS.txt
+          fi
