@@ -22,6 +22,7 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
   private static final String CONFIG_URL = "https://raw.githubusercontent.com/fatonyist92-jpg/diza-personal-ai/diza-bot-agent/diza-bot-agent/config/backend.json";
+  private static final String DEFAULT_BACKEND_URL = "https://diza-bot-agent.floot.app";
   private final ExecutorService io = Executors.newSingleThreadExecutor();
   private final Handler main = new Handler(Looper.getMainLooper());
   private WebView webView;
@@ -61,7 +62,7 @@ public class MainActivity extends Activity {
   private void resolveBackend() {
     showConnecting("Menghubungkan Diza…", "Mencari server aktif");
     io.submit(() -> {
-      String backend = "";
+      String backend = DEFAULT_BACKEND_URL;
       try {
         HttpURLConnection c = (HttpURLConnection) new URL(CONFIG_URL + "?v=" + System.currentTimeMillis()).openConnection();
         c.setConnectTimeout(12000);
@@ -74,7 +75,8 @@ public class MainActivity extends Activity {
           StringBuilder sb = new StringBuilder();
           String line;
           while ((line = br.readLine()) != null) sb.append(line);
-          backend = new JSONObject(sb.toString()).optString("backendUrl", "").trim();
+          String configured = new JSONObject(sb.toString()).optString("backendUrl", "").trim();
+          if (configured.startsWith("https://")) backend = configured;
         }
         c.disconnect();
       } catch (Exception ignored) {}
