@@ -22,7 +22,7 @@ Hard boundaries for this mode:
 - do not blanket-ban all real-person adult content: consensual adult content, self-content, fictional/synthetic adults, generic non-identifiable resemblance, and non-sexual edits must be treated as separate cases;
 - unsupported or unsafe requests must not be silently reinterpreted as supported adult content.
 
-Within those boundaries, product capability choices remain owner-defined. Ambiguous identifiable-real-person sexual requests should be routed to a consent check rather than being silently categorized as either allowed or disallowed.
+Within those boundaries, product capability choices remain owner-defined and the owner's configured moderation decision is final for the product. Ambiguous identifiable-real-person sexual requests should be routed to the owner-defined consent check rather than being silently categorized as either allowed or disallowed by a hidden secondary policy.
 
 The final core generation path must work fully offline after required model packs are present on the phone:
 
@@ -292,7 +292,9 @@ Free CI may be used for build/conversion. It must never become a required runtim
 
 ## 10. Product safety boundary
 
-Product moderation remains owner-defined rather than invented by the implementation, except for hard boundaries that cannot be overridden.
+Product moderation is owner-controlled. The owner is the final moderator for product-specific moderation decisions and policy configuration. Bloks, the Prompt Director, model runtime, and Android app must not silently add broader product restrictions on their own.
+
+This owner authority applies within the hard boundaries below and within applicable platform/legal constraints; those boundaries cannot be overridden by a product setting.
 
 Hard rules:
 
