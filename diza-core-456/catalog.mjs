@@ -76,17 +76,30 @@ export const BUILTIN_PROVIDERS = [
   {
     id:"cloudflare", name:"Cloudflare Workers AI", aliases:["workers ai","cloudflare ai"],
     adapter:"cloudflare",
-    keyEnv:"CLOUDFLARE_API_TOKEN", modelEnv:"CLOUDFLARE_MODEL",
-    capabilities:["text","coding"], contextWindow:131072,
-    officialDocs:["https://developers.cloudflare.com/workers-ai/platform/pricing/"],
-    autoEligible:false,
+    keyEnv:"CLOUDFLARE_API_TOKEN",
+    accountEnv:"CLOUDFLARE_ACCOUNT_ID",
+    freePlanConfirmEnv:"CLOUDFLARE_FREE_PLAN_CONFIRMED",
+    modelEnv:"CLOUDFLARE_MODEL",
+    defaultModel:"@cf/google/gemma-4-26b-a4b-it",
+    capabilities:["text","coding"], contextWindow:128000,
+    officialDocs:[
+      "https://developers.cloudflare.com/workers-ai/platform/pricing/",
+      "https://developers.cloudflare.com/workers-ai/platform/errors/"
+    ],
+    autoEligible:true,
   },
   {
     id:"cohere", name:"Cohere", aliases:["cohere trial"],
-    adapter:"cohere",
-    keyEnv:"COHERE_API_KEY", modelEnv:"COHERE_MODEL",
+    adapter:"cohere-trial",
+    keyEnv:"COHERE_API_KEY",
+    trialConfirmEnv:"COHERE_TRIAL_KEY_CONFIRMED",
+    modelEnv:"COHERE_MODEL",
+    defaultModel:"command-a-03-2025",
     capabilities:["text"], contextWindow:128000,
-    officialDocs:["https://docs.cohere.com/v1/docs/rate-limits"],
+    officialDocs:[
+      "https://docs.cohere.com/v1/docs/rate-limits",
+      "https://docs.cohere.com/docs/going-live"
+    ],
     autoEligible:false,
   },
   {
