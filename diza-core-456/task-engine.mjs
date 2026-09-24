@@ -92,11 +92,11 @@ export class BackgroundTaskEngine {
         t.wakeAt = null; t.error = null;
       });
     } catch (error) {
-      if (error?.code === 'NO_FREE_PROVIDER') {
+      if (error?.code === 'NO_FREE_PROVIDER' && error.nextAt) {
         this.store.mutate(fresh.id, (t) => {
           const s = t.steps.find((x) => x.id === step.id);
           s.status = StepStatus.WAITING; s.error = null; s.claimedBy = null; s.leaseUntil = null;
-          t.status = TaskStatus.WAITING; t.wakeAt = error.nextAt || (this.now() + 60_000); t.error = null;
+          t.status = TaskStatus.WAITING; t.wakeAt = error.nextAt; t.error = null;
         });
       } else if (step.attempts < this.maxStepAttempts) {
         this.store.mutate(fresh.id, (t) => {
