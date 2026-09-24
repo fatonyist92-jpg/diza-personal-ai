@@ -57,8 +57,14 @@ jobs:
           test -f "$ARM64/libMNN.so"
           test -f "$ARM64/libMNN_Express.so"
           mkdir -p local-video-smoke/app/src/main/jniLibs/arm64-v8a
-          cp "$ARM64"/*.so local-video-smoke/app/src/main/jniLibs/arm64-v8a/
+          cp "$ARM64/libMNN.so" \
+             "$ARM64/libMNN_Express.so" \
+             "$ARM64/libMNN_CL.so" \
+             "$ARM64/libMNN_Vulkan.so" \
+             "$ARM64/libc++_shared.so" \
+             local-video-smoke/app/src/main/jniLibs/arm64-v8a/
           ls -lh local-video-smoke/app/src/main/jniLibs/arm64-v8a/
+          test ! -e local-video-smoke/app/src/main/jniLibs/arm64-v8a/libMNNAudio.so
 
       - name: Exact MNN headers
         run: |
@@ -86,6 +92,16 @@ jobs:
           grep -q 'lib/arm64-v8a/libdiza_smoke.so' /tmp/apk.txt
           grep -q 'lib/arm64-v8a/libMNN.so' /tmp/apk.txt
           grep -q 'lib/arm64-v8a/libMNN_Express.so' /tmp/apk.txt
+          grep -q 'lib/arm64-v8a/libMNN_CL.so' /tmp/apk.txt
+          grep -q 'lib/arm64-v8a/libMNN_Vulkan.so' /tmp/apk.txt
+          ! grep -q 'lib/arm64-v8a/libMNNAudio.so' /tmp/apk.txt
+
+          AAPT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}/build-tools/35.0.0/aapt"
+          test -x "$AAPT"
+          "$AAPT" dump permissions "$APK" | tee /tmp/apk-permissions.txt
+          ! grep -q 'android.permission.INTERNET' /tmp/apk-permissions.txt
+          ! grep -q 'android.permission.RECORD_AUDIO' /tmp/apk-permissions.txt
+
           cp "$APK" DIZA-Local-Video-MNN-Smoke.apk
           sha256sum DIZA-Local-Video-MNN-Smoke.apk | tee DIZA-Local-Video-MNN-Smoke.apk.sha256
 
