@@ -1,0 +1,37 @@
+{
+  "schema": "diza-resource-lock-v1",
+  "generated_at": "2026-09-24",
+  "north_star": "Grok Imagine 2025 perceived-quality benchmark >=90/100",
+  "diza": {
+    "repository": "fatonyist92-jpg/diza-personal-ai",
+    "branch": "main",
+    "commit": "175f5ef715196d35b6c235617b170362be05846c"
+  },
+  "bloks": {
+    "repository": "hamedgitty/bloks",
+    "version": "2.0.0",
+    "commit": "2434fd854c77f94de2ace52c8c0ab77edabe49ca",
+    "license": "FSL-1.1-MIT",
+    "role": "development-control-plane-resource",
+    "android_runtime_dependency": false
+  },
+  "mnn": {
+    "version": "3.6.1",
+    "commit": "d407447ed56c4121a11ccbd266dc184ca1ead0c2"
+  },
+  "phantom": {
+    "role": "quality-candidate-not-final",
+    "source_commit": "bd84b602dcc949e23c89cbbf266b6f5975f2f025",
+    "huggingface_revision": "6739b2d576426a211c9fec00a476253e538ca7d5"
+  },
+  "runtime_contract": {
+    "mandatory_cloud": false,
+    "mandatory_login": false,
+    "paid_api": false,
+    "audio": false,
+    "default_seconds": 6,
+    "advanced_seconds": 10,
+    "native_target": "480p",
+    "target_ram_gb": 12
+  }
+}
