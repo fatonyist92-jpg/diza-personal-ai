@@ -54,5 +54,15 @@
       ],
       "ambiguous_identifiable_real_person_sexual_request": "consent-check"
     }
+  },
+  "moderation": {
+    "product_moderator": "owner",
+    "product_policy_authority": "owner-final",
+    "hidden_secondary_product_policy": false,
+    "exceptions": [
+      "hard safety boundaries locked in blueprint",
+      "applicable platform constraints",
+      "applicable legal constraints"
+    ]
   }
 }
