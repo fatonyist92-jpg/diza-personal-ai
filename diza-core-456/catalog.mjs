@@ -117,7 +117,7 @@ function norm(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").
 
 export class ProviderCatalog {
   constructor(seed=BUILTIN_PROVIDERS){
-    this.providers=new Map(seed.map(p=>[p.id,{...clone(p),intel:p.intel||null,enabled:p.enabled!==false}]));
+    this.providers=new Map(seed.map(p=>[p.id,{...clone(p),baseAutoEligible:p.autoEligible===true,intel:p.intel||null,enabled:p.enabled!==false}]));
     this.candidates=new Map();
     this.events=[];
   }
@@ -145,11 +145,14 @@ export class ProviderCatalog {
     const p=this.providers.get(providerId);
     if(!p) return null;
     p.intel={...clone(intel),sourceUrl,fingerprint,checkedAt};
-    if(intel.freeStatus==="not_free" || (intel.requiresCard===true && intel.freeStatus!=="recurring")){
+    const unsafe=intel.freeStatus==="not_free" || (intel.requiresCard===true && intel.zeroSpendSafe!==true);
+    if(unsafe){
+      p.safetyDisabled=true;
       p.autoEligible=false;
       p.disabledReason="free-tier-safety";
-    }
-    if(intel.freeStatus==="recurring" && intel.requiresCard!==true && p.disabledReason==="free-tier-safety"){
+    }else if(p.safetyDisabled && intel.freeStatus==="recurring"){
+      p.safetyDisabled=false;
+      p.autoEligible=p.baseAutoEligible===true;
       delete p.disabledReason;
     }
     this.providers.set(providerId,p);
@@ -180,6 +183,17 @@ export class ProviderCatalog {
     prev.confidence=Math.min(0.98,Math.max(prev.confidence,candidate.confidence||0)+(prev.observedSources.length>1?0.15:0));
     this.candidates.set(key,prev);
     return clone(prev);
+  }
+
+  patchCandidate(candidateId,patch={}){
+    for(const [key,c] of this.candidates.entries()){
+      if(c.id===candidateId){
+        const next={...c,...clone(patch),id:c.id,name:c.name};
+        this.candidates.set(key,next);
+        return clone(next);
+      }
+    }
+    return null;
   }
 
   listCandidates(){return [...this.candidates.values()].map(clone);}
