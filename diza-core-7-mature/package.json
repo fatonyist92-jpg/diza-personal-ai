@@ -1,0 +1,8 @@
+{
+  "name": "diza-core-7-mature",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/run-tests.mjs"
+  }
+}
