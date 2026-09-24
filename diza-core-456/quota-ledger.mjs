@@ -10,14 +10,16 @@ export class QuotaLedger {
     this.records = new Map();
   }
 
-  key(providerId, modelId = 'default') { return `${providerId}::${modelId}`; }
+  key(providerId, modelId = 'default') { return providerId + '::' + modelId; }
 
   upsert(providerId, modelId = 'default', patch = {}) {
     const key = this.key(providerId, modelId);
     const prev = this.records.get(key) || {
       providerId, modelId,
-      quotaType: 'unknown', requestLimit: null, requestsUsed: 0,
-      tokenLimit: null, tokensUsed: 0, creditRemaining: null,
+      quotaType: 'unknown', periodMs: null,
+      requestLimit: null, requestsUsed: 0,
+      tokenLimit: null, tokensUsed: 0,
+      creditRemaining: null,
       resetAt: null, cooldownUntil: null, disabled: false,
       billingMode: 'free_only', paidAllowed: false,
       healthScore: 1, consecutiveErrors: 0,
@@ -39,9 +41,15 @@ export class QuotaLedger {
       record.requestsUsed = 0;
       record.tokensUsed = 0;
       record.cooldownUntil = null;
-      record.resetAt = null;
       record.consecutiveErrors = 0;
       record.healthScore = Math.max(record.healthScore, 0.7);
+      if (record.periodMs && Number(record.periodMs) > 0) {
+        let next = Number(record.resetAt);
+        while (next <= now) next += Number(record.periodMs);
+        record.resetAt = next;
+      } else {
+        record.resetAt = null;
+      }
     }
     if (record.cooldownUntil && now >= Number(record.cooldownUntil)) record.cooldownUntil = null;
     return record;
@@ -93,6 +101,8 @@ export class QuotaLedger {
     if (usage.tokenLimit != null) r.tokenLimit = Number(usage.tokenLimit);
     if (usage.creditRemaining != null) r.creditRemaining = Number(usage.creditRemaining);
     if (usage.resetAt != null) r.resetAt = Number(usage.resetAt);
+    if (usage.periodMs != null) r.periodMs = Number(usage.periodMs);
+    if (usage.quotaType != null) r.quotaType = String(usage.quotaType);
     if (usage.authoritative != null) r.authoritative = Boolean(usage.authoritative);
     return r;
   }
@@ -130,4 +140,11 @@ export class QuotaLedger {
   }
 
   snapshot() { return [...this.records.values()].map((x) => ({ ...x })); }
+
+  import(snapshot = []) {
+    this.records = new Map();
+    for (const row of snapshot) {
+      this.records.set(this.key(row.providerId, row.modelId), { ...row });
+    }
+  }
 }
