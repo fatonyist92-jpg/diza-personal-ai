@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { InMemoryTaskStore } from "./task-engine.mjs";
 import { IdempotencyStore } from "./mesh-router.mjs";
+import { QuotaLedger } from "./quota-ledger.mjs";
 
 function atomicWrite(filePath,value){
   fs.mkdirSync(path.dirname(filePath),{recursive:true});
@@ -70,5 +71,39 @@ export class PersistentIdempotencyStore extends IdempotencyStore {
   set(key,value){
     super.set(key,value);
     atomicWrite(this.filePath,this.snapshot());
+  }
+}
+
+export class PersistentQuotaLedger extends QuotaLedger {
+  constructor(filePath,options={}){
+    super(options);
+    this.filePath=filePath;
+    try{
+      const snapshot=JSON.parse(fs.readFileSync(filePath,"utf8"));
+      this.import(snapshot);
+    }catch(e){
+      if(e?.code!=="ENOENT")throw e;
+    }
+  }
+  flush(){atomicWrite(this.filePath,this.snapshot());}
+  upsert(providerId,modelId="default",patch={}){
+    const r=super.upsert(providerId,modelId,patch);
+    if(this.filePath)this.flush();
+    return r;
+  }
+  reserve(provider,options={}){
+    const r=super.reserve(provider,options);
+    this.flush();
+    return r;
+  }
+  markSuccess(provider,usage={}){
+    const r=super.markSuccess(provider,usage);
+    this.flush();
+    return r;
+  }
+  markFailure(provider,error){
+    const r=super.markFailure(provider,error);
+    this.flush();
+    return r;
   }
 }
