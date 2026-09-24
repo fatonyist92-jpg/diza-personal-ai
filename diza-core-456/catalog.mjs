@@ -31,14 +31,23 @@ export const BUILTIN_PROVIDERS = [
     adapter:"openai-compatible", baseUrl:"https://api.groq.com/openai/v1",
     keyEnv:"GROQ_API_KEY", modelEnv:"GROQ_MODEL", defaultModel:"llama-3.1-8b-instant",
     capabilities:["text","coding"], contextWindow:131072,
-    officialDocs:["https://console.groq.com/docs/rate-limits"],
+    rateLimitSemantics:{requests:"day",tokens:"minute"},
+    freePlanConfirmEnv:"GROQ_FREE_PLAN_CONFIRMED",
+    officialDocs:[
+      "https://console.groq.com/docs/rate-limits",
+      "https://console.groq.com/docs/billing-faqs"
+    ],
     autoEligible:true,
   },
   {
     id:"gemini", name:"Google Gemini", aliases:["gemini","google ai"],
     adapter:"gemini", keyEnv:"GEMINI_API_KEY", modelEnv:"GEMINI_MODEL", defaultModel:"gemini-2.5-flash",
     capabilities:["text","coding","long_context"], contextWindow:1000000,
-    officialDocs:["https://ai.google.dev/gemini-api/docs/rate-limits"],
+    freePlanConfirmEnv:"GEMINI_FREE_TIER_CONFIRMED",
+    officialDocs:[
+      "https://ai.google.dev/gemini-api/docs/rate-limits",
+      "https://ai.google.dev/gemini-api/docs/billing"
+    ],
     autoEligible:true,
   },
   {
@@ -46,8 +55,13 @@ export const BUILTIN_PROVIDERS = [
     adapter:"openai-compatible", baseUrl:"https://api.cerebras.ai/v1",
     keyEnv:"CEREBRAS_API_KEY", modelEnv:"CEREBRAS_MODEL", defaultModel:"gpt-oss-120b",
     capabilities:["text","coding"], contextWindow:131072,
-    officialDocs:["https://inference-docs.cerebras.ai/support/rate-limits"],
-    autoEligible:true,
+    enableEnv:"DIZA_ENABLE_CEREBRAS_TRIAL",
+    trialConfirmEnv:"CEREBRAS_FREE_TRIAL_CONFIRMED",
+    officialDocs:[
+      "https://inference-docs.cerebras.ai/support/rate-limits",
+      "https://www.cerebras.ai/inference"
+    ],
+    autoEligible:false,
   },
   {
     id:"openrouter", name:"OpenRouter", aliases:["open router"],
@@ -65,9 +79,11 @@ export const BUILTIN_PROVIDERS = [
     adapter:"openai-compatible", baseUrl:"https://api.mistral.ai/v1",
     keyEnv:"MISTRAL_API_KEY", modelEnv:"MISTRAL_MODEL", defaultModel:"mistral-small-latest",
     capabilities:["text","coding"], contextWindow:128000,
+    freePlanConfirmEnv:"MISTRAL_FREE_MODE_CONFIRMED",
     officialDocs:[
       "https://docs.mistral.ai/admin/billing-usage/usage-limits",
-      "https://docs.mistral.ai/getting-started/quickstarts/developer/first-api-request"
+      "https://docs.mistral.ai/getting-started/quickstarts/developer/first-api-request",
+      "https://docs.mistral.ai/admin/billing-usage/subscriptions"
     ],
     autoEligible:true,
   },
@@ -76,8 +92,13 @@ export const BUILTIN_PROVIDERS = [
     adapter:"openai-compatible", baseUrl:"https://integrate.api.nvidia.com/v1",
     keyEnv:"NVIDIA_API_KEY", modelEnv:"NVIDIA_MODEL", defaultModel:"openai/gpt-oss-20b",
     capabilities:["text","coding"], contextWindow:131072,
-    officialDocs:["https://docs.api.nvidia.com/nim/docs/product"],
-    autoEligible:true,
+    enableEnv:"DIZA_ENABLE_NVIDIA_DEV",
+    trialConfirmEnv:"NVIDIA_DEVELOPER_PROGRAM_CONFIRMED",
+    officialDocs:[
+      "https://docs.api.nvidia.com/nim/docs/product",
+      "https://docs.api.nvidia.com/nim/docs/run-anywhere"
+    ],
+    autoEligible:false,
   },
   {
     id:"cloudflare", name:"Cloudflare Workers AI", aliases:["workers ai","cloudflare ai"],
@@ -99,6 +120,7 @@ export const BUILTIN_PROVIDERS = [
     adapter:"cohere-trial",
     keyEnv:"COHERE_API_KEY",
     trialConfirmEnv:"COHERE_TRIAL_KEY_CONFIRMED",
+    enableEnv:"DIZA_ENABLE_COHERE_TRIAL",
     modelEnv:"COHERE_MODEL",
     defaultModel:"command-a-03-2025",
     capabilities:["text"], contextWindow:128000,
