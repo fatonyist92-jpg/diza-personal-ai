@@ -9,6 +9,8 @@ import { ProviderIntelMonitor, extractFreeTierFacts } from '../intel-monitor.mjs
 import { MaintenanceScheduler, MemoryMaintenanceState, latestJakartaMidnight, nextJakartaMidnight } from '../maintenance-scheduler.mjs';
 import { syncLedgerFromCatalog } from '../quota-policy.mjs';
 import { PersistentTaskStore, PersistentIdempotencyStore } from '../persistence.mjs';
+import { CloudflareWorkersAIProvider } from '../providers/cloudflare.mjs';
+import { buildProvidersFromCatalog } from '../provider-factory.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -260,6 +262,71 @@ test('persistent task and idempotency state survive restart', async () => {
   }finally{
     fs.rmSync(dir,{recursive:true,force:true});
   }
+});
+
+
+test('Cloudflare paid-only model is blocked before any network request', async () => {
+  let networkCalls=0;
+  const p=new CloudflareWorkersAIProvider({
+    modelId:'@cf/zai-org/glm-5.3',
+    accountId:'acct',
+    apiToken:'token',
+    fetchImpl:async()=>{networkCalls++;throw new Error('should not run');}
+  });
+  await assert.rejects(
+    ()=>p.generate({input:'hello'}),
+    e=>e.code===ErrorCode.PAID_REQUIRED
+  );
+  assert.equal(networkCalls,0);
+});
+
+test('Cloudflare daily free allocation error becomes quota reset at next UTC midnight', async () => {
+  const localNow=Date.parse('2026-09-25T10:00:00Z');
+  const p=new CloudflareWorkersAIProvider({
+    modelId:'@cf/google/gemma-4-26b-a4b-it',
+    accountId:'acct',
+    apiToken:'token',
+    now:()=>localNow,
+    fetchImpl:async()=>({
+      ok:false,status:429,
+      json:async()=>({success:false,errors:[{code:3036,message:'daily allocation exhausted'}]})
+    })
+  });
+  await assert.rejects(
+    ()=>p.generate({input:'hello'}),
+    e=>e.code===ErrorCode.QUOTA
+      && e.resetAt===Date.parse('2026-09-26T00:00:00Z')
+  );
+});
+
+test('Cloudflare factory requires explicit Workers Free confirmation', async () => {
+  const catalog=new ProviderCatalog([{
+    id:'cloudflare',name:'Cloudflare Workers AI',aliases:[],
+    adapter:'cloudflare',
+    keyEnv:'CLOUDFLARE_API_TOKEN',
+    accountEnv:'CLOUDFLARE_ACCOUNT_ID',
+    freePlanConfirmEnv:'CLOUDFLARE_FREE_PLAN_CONFIRMED',
+    modelEnv:'CLOUDFLARE_MODEL',
+    defaultModel:'@cf/google/gemma-4-26b-a4b-it',
+    capabilities:['text'],
+    autoEligible:true,
+    enabled:true
+  }]);
+  const baseEnv={CLOUDFLARE_API_TOKEN:'token',CLOUDFLARE_ACCOUNT_ID:'acct'};
+  assert.equal(buildProvidersFromCatalog(catalog,{env:baseEnv}).length,0);
+  const providers=buildProvidersFromCatalog(catalog,{env:{...baseEnv,CLOUDFLARE_FREE_PLAN_CONFIRMED:'true'}});
+  assert.equal(providers.length,1);
+  assert.equal(providers[0].id,'cloudflare');
+  assert.equal(providers[0].paidAllowed,false);
+});
+
+test('OpenRouter is excluded from factory when policy blocked', async () => {
+  const catalog=new ProviderCatalog();
+  const entry=catalog.get('openrouter');
+  assert.equal(entry.policyBlocked,true);
+  assert.equal(entry.autoEligible,false);
+  const providers=buildProvidersFromCatalog(catalog,{env:{OPENROUTER_API_KEY:'key'}});
+  assert.equal(providers.some(p=>p.id==='openrouter'),false);
 });
 
 let passed=0;
