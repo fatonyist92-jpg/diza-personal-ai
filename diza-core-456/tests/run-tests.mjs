@@ -11,6 +11,7 @@ import { syncLedgerFromCatalog } from '../quota-policy.mjs';
 import { PersistentTaskStore, PersistentIdempotencyStore } from '../persistence.mjs';
 import { CloudflareWorkersAIProvider } from '../providers/cloudflare.mjs';
 import { buildProvidersFromCatalog } from '../provider-factory.mjs';
+import { OpenAICompatibleProvider, parseReset } from '../providers/openai-compatible.mjs';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -327,6 +328,92 @@ test('OpenRouter is excluded from factory when policy blocked', async () => {
   assert.equal(entry.autoEligible,false);
   const providers=buildProvidersFromCatalog(catalog,{env:{OPENROUTER_API_KEY:'key'}});
   assert.equal(providers.some(p=>p.id==='openrouter'),false);
+});
+
+
+test('human duration rate-limit reset headers are parsed correctly', async () => {
+  const base=Date.parse('2026-09-25T00:00:00Z');
+  assert.equal(parseReset('2m59.56s',base),base+179560);
+  assert.equal(parseReset('7.66s',base),base+7660);
+});
+
+test('OpenAI-compatible adapter returns independent request and token quota windows', async () => {
+  const base=Date.parse('2026-09-25T00:00:00Z');
+  const headers=new Map([
+    ['x-ratelimit-limit-requests','14400'],
+    ['x-ratelimit-remaining-requests','14370'],
+    ['x-ratelimit-reset-requests','2m'],
+    ['x-ratelimit-limit-tokens','18000'],
+    ['x-ratelimit-remaining-tokens','17900'],
+    ['x-ratelimit-reset-tokens','7.5s']
+  ]);
+  const provider=new OpenAICompatibleProvider({
+    id:'header-test',modelId:'model',baseUrl:'https://example.test/v1',apiKey:'k',
+    rateLimitSemantics:{requests:'day',tokens:'minute'},now:()=>base,
+    fetchImpl:async()=>({
+      ok:true,status:200,
+      headers:{get:(k)=>headers.get(k)||null},
+      json:async()=>({choices:[{message:{content:'ok'}}],usage:{total_tokens:42}})
+    })
+  });
+  const out=await provider.generate({input:'hi'});
+  const rw=out.usage.quotaWindows.find(x=>x.metric==='requests');
+  const tw=out.usage.quotaWindows.find(x=>x.metric==='tokens');
+  assert.equal(rw.limit,14400);assert.equal(rw.remaining,14370);assert.equal(rw.period,'day');
+  assert.equal(tw.limit,18000);assert.equal(tw.remaining,17900);assert.equal(tw.period,'minute');
+  assert.equal(tw.resetAt,base+7500);
+});
+
+test('multi-window ledger blocks exhausted TPM while daily request quota is healthy', async () => {
+  const ledger=makeLedger();
+  const p=new MockProvider({id:'multi',modelId:'m'});
+  ledger.upsert('multi','m',{quotaWindows:[
+    {metric:'requests',period:'day',limit:1000,remaining:900,resetAt:now+86400000,authoritative:true},
+    {metric:'tokens',period:'minute',limit:10000,remaining:500,resetAt:now+60000,authoritative:true}
+  ]});
+  const check=ledger.canUse(p,{estimatedTokens:1000});
+  assert.equal(check.ok,false);
+  assert.equal(check.reason,'tokens_reserve');
+  assert.equal(check.nextAt,now+60000);
+});
+
+test('Groq and Gemini require explicit free-tier account confirmation before routing', async () => {
+  const catalog=new ProviderCatalog();
+  const env={
+    GROQ_API_KEY:'g',
+    GEMINI_API_KEY:'x'
+  };
+  let providers=buildProvidersFromCatalog(catalog,{env});
+  assert.equal(providers.some(p=>p.id==='groq'),false);
+  assert.equal(providers.some(p=>p.id==='gemini'),false);
+  providers=buildProvidersFromCatalog(catalog,{env:{
+    ...env,
+    GROQ_FREE_PLAN_CONFIRMED:'true',
+    GEMINI_FREE_TIER_CONFIRMED:'true'
+  }});
+  assert.equal(providers.some(p=>p.id==='groq'),true);
+  assert.equal(providers.some(p=>p.id==='gemini'),true);
+});
+
+test('trial and evaluation providers require explicit opt-in plus confirmation', async () => {
+  const catalog=new ProviderCatalog();
+  let providers=buildProvidersFromCatalog(catalog,{env:{
+    CEREBRAS_API_KEY:'c',
+    NVIDIA_API_KEY:'n'
+  }});
+  assert.equal(providers.some(p=>p.id==='cerebras'),false);
+  assert.equal(providers.some(p=>p.id==='nvidia'),false);
+
+  providers=buildProvidersFromCatalog(catalog,{env:{
+    CEREBRAS_API_KEY:'c',
+    CEREBRAS_FREE_TRIAL_CONFIRMED:'true',
+    DIZA_ENABLE_CEREBRAS_TRIAL:'true',
+    NVIDIA_API_KEY:'n',
+    NVIDIA_DEVELOPER_PROGRAM_CONFIRMED:'true',
+    DIZA_ENABLE_NVIDIA_DEV:'true'
+  }});
+  assert.equal(providers.some(p=>p.id==='cerebras'),true);
+  assert.equal(providers.some(p=>p.id==='nvidia'),true);
 });
 
 let passed=0;
