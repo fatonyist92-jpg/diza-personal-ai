@@ -191,6 +191,7 @@ export class ProviderCatalog {
     prev.lastSeenAt=Date.now();
     prev.observedSources=[...new Set([...prev.observedSources,...(candidate.observedSources||[])])];
     prev.links=[...new Set([...prev.links,...(candidate.links||[])])];
+    if(candidate.declared)prev.declared={...(prev.declared||{}),...clone(candidate.declared)};
     prev.confidence=Math.min(0.98,Math.max(prev.confidence,candidate.confidence||0)+(prev.observedSources.length>1?0.15:0));
     this.candidates.set(key,prev);
     return clone(prev);
