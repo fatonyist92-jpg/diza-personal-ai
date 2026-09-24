@@ -47,11 +47,20 @@ jobs:
           git clone --depth 1 --branch 3.6.1 https://github.com/alibaba/MNN.git MNN
           git clone --depth 1 https://github.com/Phantom-video/Phantom.git Phantom
 
-      - name: Patch Phantom CPU-only import
+      - name: Patch Phantom for transformer-only CPU export
         run: |
           set -euxo pipefail
           python3 - <<'PY'
           from pathlib import Path
+
+          # Avoid importing I2V/S2V frontends (torchvision/GPU-only helpers) when
+          # this job only needs configs + WanModel for transformer export.
+          init = Path("Phantom/phantom_wan/__init__.py")
+          init.write_text("from . import configs, distributed, modules\n")
+
+          # Phantom T5 declares a CUDA default at class-definition time. The T5
+          # class is imported through modules/__init__.py even though this job does
+          # not instantiate it, so make that default CPU-safe.
           p = Path("Phantom/phantom_wan/modules/t5.py")
           s = p.read_text()
           old = "device=torch.cuda.current_device(),"
@@ -59,7 +68,7 @@ jobs:
           if old not in s:
               raise SystemExit("Expected Phantom T5 CUDA default not found")
           p.write_text(s.replace(old, new, 1))
-          print("Patched Phantom T5 default device to CPU for transformer-only export")
+          print("Patched Phantom package for transformer-only CPU export")
           PY
 
       - name: Build MNNConvert
@@ -192,6 +201,8 @@ jobs:
           mnn-build/MNNConvert             -f ONNX             --modelFile onnx/transformer.onnx             --MNNModel dist/transformer.mnn             --saveExternalData=1             --weightQuantBits=8             --weightQuantBlock=64
           rm -rf onnx
           find dist -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
+          cp Phantom/LICENSE dist/LICENSE_PHANTOM.txt
+          cp MNN/LICENSE.txt dist/LICENSE_MNN.txt
           sha256sum dist/* | tee dist/SHA256SUMS.txt
           df -h /
           free -h
