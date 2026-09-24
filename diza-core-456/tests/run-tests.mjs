@@ -4,6 +4,14 @@ import { MeshRouter } from '../mesh-router.mjs';
 import { MockProvider, quotaFailure } from '../providers/mock-provider.mjs';
 import { ProviderError, ErrorCode } from '../errors.mjs';
 import { InMemoryTaskStore, BackgroundTaskEngine, TaskStatus } from '../task-engine.mjs';
+import { ProviderCatalog } from '../catalog.mjs';
+import { ProviderIntelMonitor, extractFreeTierFacts } from '../intel-monitor.mjs';
+import { MaintenanceScheduler, MemoryMaintenanceState, latestJakartaMidnight, nextJakartaMidnight } from '../maintenance-scheduler.mjs';
+import { syncLedgerFromCatalog } from '../quota-policy.mjs';
+import { PersistentTaskStore, PersistentIdempotencyStore } from '../persistence.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 let now = Date.parse('2026-09-25T00:00:00Z');
 const clock = () => now;
@@ -101,6 +109,135 @@ test('bounded retry stays bounded', async () => {
   const engine = new BackgroundTaskEngine({store,router,now:clock,maxStepAttempts:2});
   await engine.runNext(); await engine.runNext();
   assert.equal(store.get(task.id).status,TaskStatus.FAILED);
+});
+
+
+test('free-tier parser extracts daily requests and tokens', async () => {
+  const facts=extractFreeTierFacts('Free tier. No credit card. 1,000 requests per day and 200K tokens/day. OpenAI-compatible.');
+  assert.equal(facts.freeStatus,'recurring');
+  assert.equal(facts.requiresCard,false);
+  assert.ok(facts.limits.some(x=>x.metric==='requests'&&x.value===1000&&x.period==='day'));
+  assert.ok(facts.limits.some(x=>x.metric==='tokens'&&x.value===200000&&x.period==='day'));
+  assert.equal(facts.openAICompatible,true);
+});
+
+test('official free-tier change can safety-disable a provider', async () => {
+  const catalog=new ProviderCatalog([{
+    id:'watch',name:'Watch AI',aliases:[],adapter:'custom',autoEligible:true,
+    officialDocs:['https://official.test/pricing']
+  }]);
+  let body='Free tier. No credit card. 100 requests per day.';
+  const fetcher={fetchText:async()=>body};
+  const monitor=new ProviderIntelMonitor({catalog,fetcher,now:clock});
+  await monitor.dailyCheck();
+  assert.equal(catalog.get('watch').autoEligible,true);
+  body='No free tier. Paid plans only.';
+  await monitor.dailyCheck();
+  assert.equal(catalog.get('watch').autoEligible,false);
+  assert.equal(catalog.get('watch').disabledReason,'free-tier-safety');
+});
+
+test('provider discovery finds unknown free provider but does not auto-enable it', async () => {
+  const catalog=new ProviderCatalog([{id:'known',name:'Known AI',aliases:[],officialDocs:[],autoEligible:true}]);
+  const feed='| Provider | Free Models | Card |\\n| --- | --- | --- |\\n| Known AI | free | no card |\\n| NewSpark AI | 4 free models | no card |';
+  const monitor=new ProviderIntelMonitor({
+    catalog,
+    fetcher:{fetchText:async()=>feed},
+    discoveryFeeds:[{id:'feed-a',url:'https://feed.test/a'},{id:'feed-b',url:'https://feed.test/b'}],
+    now:clock
+  });
+  const found=await monitor.discover();
+  assert.ok(found.some(x=>x.name==='NewSpark AI'));
+  assert.equal(catalog.findByName('NewSpark AI'),null);
+  const candidate=catalog.listCandidates().find(x=>x.name==='NewSpark AI');
+  assert.ok(candidate);
+  assert.equal(candidate.status,'candidate');
+  assert.ok(candidate.observedSources.length>=2);
+});
+
+test('maintenance daily check flips after 00:00 WIB', async () => {
+  let localNow=Date.parse('2026-09-24T16:59:00Z');
+  const calls={daily:0,discover:0};
+  const monitor={
+    dailyCheck:async()=>{calls.daily++;return[];},
+    discover:async()=>{calls.discover++;return[];}
+  };
+  const currentMidnight=latestJakartaMidnight(localNow);
+  const state=new MemoryMaintenanceState({
+    lastDailyCheckAt:currentMidnight+1000,
+    lastDiscoveryAt:localNow
+  });
+  const scheduler=new MaintenanceScheduler({monitor,stateStore:state,now:()=>localNow});
+  let report=await scheduler.runDue();
+  assert.equal(report.ranDaily,false);
+  localNow=nextJakartaMidnight(Date.parse('2026-09-24T16:59:00Z'))+60_000;
+  report=await scheduler.runDue();
+  assert.equal(report.ranDaily,true);
+  assert.equal(calls.daily,1);
+});
+
+test('provider discovery is due every 48 hours', async () => {
+  let localNow=Date.parse('2026-09-25T00:00:00Z');
+  const calls={daily:0,discover:0};
+  const monitor={
+    dailyCheck:async()=>{calls.daily++;return[];},
+    discover:async()=>{calls.discover++;return[];}
+  };
+  const state=new MemoryMaintenanceState({
+    lastDailyCheckAt:localNow,
+    lastDiscoveryAt:localNow
+  });
+  const scheduler=new MaintenanceScheduler({monitor,stateStore:state,now:()=>localNow});
+  await scheduler.runDue();
+  assert.equal(calls.discover,0);
+  localNow+=48*60*60*1000+1;
+  await scheduler.runDue();
+  assert.equal(calls.discover,1);
+});
+
+test('monitored daily quota syncs into ledger with a reset calendar', async () => {
+  const catalog=new ProviderCatalog([{
+    id:'quota-ai',name:'Quota AI',aliases:[],defaultModel:'free-model',
+    officialDocs:[],autoEligible:true,
+    intel:{freeStatus:'recurring',requiresCard:false,limits:[{metric:'requests',value:100,period:'day'}]}
+  }]);
+  const ledger=makeLedger();
+  const provider=new MockProvider({id:'quota-ai',modelId:'free-model'});
+  syncLedgerFromCatalog(catalog,ledger,{now:clock,providers:[provider]});
+  const row=ledger.get('quota-ai','free-model');
+  assert.equal(row.requestLimit,100);
+  assert.equal(row.quotaType,'day');
+  assert.equal(row.periodMs,24*60*60*1000);
+  assert.ok(row.resetAt>now);
+});
+
+test('recurring quota window advances instead of disappearing after reset', async () => {
+  const ledger=makeLedger(), p=new MockProvider({id:'cycle'});
+  const period=24*60*60*1000;
+  ledger.upsert('cycle','mock',{requestLimit:10,requestsUsed:9,resetAt:now+1000,periodMs:period});
+  advance(1001);
+  assert.equal(ledger.canUse(p,{estimatedTokens:1}).ok,true);
+  assert.ok(ledger.get('cycle','mock').resetAt>now);
+});
+
+test('persistent task and idempotency state survive restart', async () => {
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'diza-core-'));
+  try{
+    const taskPath=path.join(dir,'tasks.json');
+    const idemPath=path.join(dir,'idem.json');
+    const store1=new PersistentTaskStore(taskPath);
+    const task=store1.createTask({title:'persist',instruction:'x',steps:[{botId:1,instruction:'a'}]});
+    store1.mutate(task.id,t=>{t.status='running';});
+    const store2=new PersistentTaskStore(taskPath);
+    assert.equal(store2.get(task.id).status,'running');
+
+    const i1=new PersistentIdempotencyStore(idemPath);
+    i1.set('request-1',{text:'saved'});
+    const i2=new PersistentIdempotencyStore(idemPath);
+    assert.equal(i2.get('request-1').text,'saved');
+  }finally{
+    fs.rmSync(dir,{recursive:true,force:true});
+  }
 });
 
 let passed=0;
