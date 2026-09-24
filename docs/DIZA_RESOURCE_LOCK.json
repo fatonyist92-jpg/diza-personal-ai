@@ -33,5 +33,14 @@
     "advanced_seconds": 10,
     "native_target": "480p",
     "target_ram_gb": 12
+  },
+  "product_priority": {
+    "primary_capability": "Spicy Mode",
+    "first_class_pipeline": true,
+    "core_generation_local_offline": true,
+    "hard_boundaries": [
+      "no sexual content involving minors or characters clearly depicted as minors",
+      "no non-consensual sexual deepfakes of identifiable real people"
+    ]
   }
 }
