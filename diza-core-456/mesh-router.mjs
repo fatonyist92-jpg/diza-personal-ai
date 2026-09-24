@@ -11,20 +11,26 @@ export function inferRequirements(input = {}) {
 }
 
 export class IdempotencyStore {
-  constructor() { this.map = new Map(); }
+  constructor(snapshot = []) {
+    this.map = new Map(snapshot);
+  }
   get(key) { return this.map.get(key); }
   set(key, value) { this.map.set(key, value); }
+  snapshot() { return [...this.map.entries()]; }
+  import(snapshot = []) { this.map = new Map(snapshot); }
 }
 
 export class MeshRouter {
   constructor({ providers = [], ledger, idempotency = new IdempotencyStore(), now = () => Date.now() } = {}) {
-    this.providers = providers;
+    this.providers = [...providers];
     this.ledger = ledger;
     this.idempotency = idempotency;
     this.now = now;
   }
 
   register(provider) { this.providers.push(provider); return provider; }
+  setProviders(providers = []) { this.providers = [...providers]; return this.providers; }
+  listProviders() { return [...this.providers]; }
 
   score(provider, request, requirements) {
     const quota = this.ledger.canUse(provider, { estimatedTokens: request.estimatedTokens || 0 });
@@ -57,14 +63,22 @@ export class MeshRouter {
     const requirements = inferRequirements(request);
     const candidates = this.ranked({ ...request, requirements });
     const attempts = [];
+
     for (const entry of candidates) {
       const p = entry.provider;
       const reservation = this.ledger.reserve(p, { estimatedTokens: request.estimatedTokens || 0 });
       if (!reservation.ok) continue;
+
       try {
         const result = await p.generate({ ...request, requirements });
         this.ledger.markSuccess(p, result.usage || {});
-        const output = { providerId: p.id, modelId: p.modelId, text: result.text, usage: result.usage || {}, attempts: [...attempts, { providerId: p.id, ok: true }] };
+        const output = {
+          providerId: p.id,
+          modelId: p.modelId,
+          text: result.text,
+          usage: result.usage || {},
+          attempts: [...attempts, { providerId: p.id, ok: true }]
+        };
         this.idempotency.set(request.requestId, output);
         return output;
       } catch (raw) {
@@ -75,6 +89,7 @@ export class MeshRouter {
         if ([ErrorCode.QUOTA, ErrorCode.TIMEOUT, ErrorCode.SERVER, ErrorCode.NETWORK, ErrorCode.AUTH, ErrorCode.PAID_REQUIRED, ErrorCode.UNKNOWN].includes(error.code)) continue;
       }
     }
+
     const nextAt = this.ledger.nextResetAt(this.providers);
     const err = new Error('No compatible free provider is currently available');
     err.code = 'NO_FREE_PROVIDER';
