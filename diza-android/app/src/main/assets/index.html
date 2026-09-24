@@ -77,11 +77,32 @@ button{cursor:pointer}
 .assistant .bubble{padding:7px 4px;color:#e7e7ea}
 .assistant{align-items:flex-start;gap:9px}
 .typing{color:#777;font-size:13px;padding:9px 4px}
-.composerArea{flex:none;padding:10px 10px max(10px,env(safe-area-inset-bottom));background:linear-gradient(transparent,#000 24%)}
-.composer{display:flex;align-items:flex-end;gap:8px;border:1px solid #28282c;background:#0c0c0e;border-radius:22px;padding:8px 8px 8px 14px}
+.composerArea{position:relative;flex:none;padding:10px 10px max(10px,env(safe-area-inset-bottom));background:linear-gradient(transparent,#000 24%)}
+.composerRow{display:flex;gap:8px;align-items:flex-end}
+.plusBtn{flex:none;width:48px;height:48px;border:1px solid #323238;border-radius:18px;background:#101012;color:#fff;font-size:28px;line-height:1}
+.composer{flex:1;display:flex;align-items:flex-end;gap:8px;border:1px solid #28282c;background:#0c0c0e;border-radius:22px;padding:8px 8px 8px 14px}
 .composer textarea{flex:1;min-height:38px;max-height:112px;resize:none;background:transparent;border:0;outline:0;color:#fff;padding:8px 0;line-height:1.35}
 .send{width:40px;height:40px;border:0;border-radius:13px;background:#f4f4f5;color:#050505;font-weight:900;font-size:17px}
 .send:disabled{background:#202024;color:#56565d}
+.attachMenu{position:absolute;left:10px;bottom:72px;width:260px;padding:8px;border:1px solid #44444b;border-radius:22px;background:#1b1b1e;box-shadow:0 16px 40px rgba(0,0,0,.55);z-index:30}
+.attachItem{width:100%;height:54px;border:0;background:transparent;color:#f4f4f5;display:flex;align-items:center;gap:13px;padding:0 12px;border-radius:14px;text-align:left;font-size:14px}
+.attachItem:active{background:#29292d}
+.attachIcon{width:28px;text-align:center;color:#b8b8c0;font-size:20px}
+.attachSep{height:1px;background:#35353a;margin:5px 8px}
+.pending{display:flex;gap:7px;overflow:auto;padding:0 2px 8px}
+.pending:empty{display:none}
+.pendingChip{display:flex;align-items:center;gap:6px;max-width:180px;border:1px solid #28282d;background:#0c0c0e;border-radius:12px;padding:7px 9px;font-size:10px;color:#aaa}
+.pendingChip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pendingChip button{border:0;background:transparent;color:#777;font-size:14px;padding:0}
+.scopeChoice{display:flex;align-items:center;gap:12px;padding:15px;border:1px solid #25252a;border-radius:18px;background:#0a0a0c;margin-bottom:10px}
+.scopeChoice.on{border-color:#466da8;background:#0c1119}
+.scopeRadio{width:22px;height:22px;border-radius:50%;border:2px solid #777;display:grid;place-items:center;flex:none}
+.scopeChoice.on .scopeRadio{border-color:#4291ff}
+.scopeChoice.on .scopeRadio:after{content:"";width:10px;height:10px;border-radius:50%;background:#4291ff}
+.scopeCopy{flex:1}.scopeCopy b{display:block;font-size:14px}.scopeCopy span{display:block;font-size:11px;color:#777780;margin-top:4px}
+.sourceTypeRow{display:flex;gap:7px;margin-bottom:12px}
+.sourceTypeBtn{flex:1;height:40px;border:1px solid #25252a;border-radius:12px;background:#08080a;color:#85858e;font-size:11px}
+.sourceTypeBtn.on{border-color:#53535a;color:#fff;background:#151518}
 .chatTools{display:flex;gap:7px;padding:7px 10px;border-bottom:1px solid #111}
 .toolChip{height:34px;border:1px solid #202024;border-radius:11px;background:#070708;color:#aaa;font-size:11px;padding:0 11px}
 .floating{position:absolute;right:18px;bottom:24px;width:54px;height:54px;border:0;border-radius:18px;background:#f3f3f4;color:#060607;font-size:26px;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.45)}
@@ -104,7 +125,7 @@ button{cursor:pointer}
 const AV='/_cdn/static/2daabeef-aac9-4289-9026-12a342ed4eee-diza-bot-agent-icon.png';
 const API='/_api/native';
 const app=document.getElementById('app');
-const state={bots:[],currentBot:null,busy:false,taskDraft:null};
+const state={bots:[],currentBot:null,busy:false,taskDraft:null,pendingAttachments:[]};
 
 window.onerror=function(m){
   app.innerHTML='<div class="fatal"><div><h2>Diza UI error</h2><p>'+esc(String(m))+'</p><button onclick="location.reload()">Reload</button></div></div>';
@@ -139,6 +160,26 @@ async function request(path,opts){
 function get(path){return request(path,{method:'GET'})}
 function post(path,body,auth){return request(path,{method:'POST',body:body,auth:auth})}
 function authFail(e){if(e&&e.status===401){logout();return true}return false}
+
+async function uploadBinary(file){
+  if(!file)throw new Error('No file selected');
+  if(file.size>10*1024*1024)throw new Error('Maximum file size is 10 MB.');
+  const allowed=['image/jpeg','image/png','image/webp','image/gif','application/pdf'];
+  if(allowed.indexOf(file.type)<0)throw new Error('Supported: PDF, JPG, PNG, WebP, GIF.');
+  const mint=await post('/attachments/upload',{filename:file.name,contentType:file.type,sizeBytes:file.size});
+  const put=await fetch(mint.presignedUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});
+  if(!put.ok)throw new Error('File upload failed.');
+  return {storageFilename:mint.storageFilename,contentType:file.type,fileName:file.name};
+}
+function drawPending(){
+  const box=document.getElementById('pendingAttachments');if(!box)return;
+  box.innerHTML=state.pendingAttachments.map(function(a,i){
+    return '<div class="pendingChip"><span>'+esc(a.fileName||'Attachment')+'</span><button data-rm="'+i+'">×</button></div>';
+  }).join('');
+  box.querySelectorAll('[data-rm]').forEach(function(b){b.onclick=function(){
+    state.pendingAttachments.splice(Number(b.dataset.rm),1);drawPending();
+  }});
+}
 
 function renderAuth(reg){
   app.innerHTML='<div class="auth"><div class="authCard">'+
@@ -302,15 +343,48 @@ function renderChat(bot){
     '<header class="top"><button id="back" class="backBtn">‹</button><img class="smallAvatar" src="'+esc(avatarOf(bot))+'">'+
     '<div class="topTitle"><b>'+esc(bot.name)+'</b><span id="chatStatus">'+esc(bot.title||'Ready')+'</span></div>'+
     '<button id="editBot" class="iconBtn">⋮</button></header>'+
-    '<div class="chatTools"><button id="memoryBtn" class="toolChip">Memory</button><button id="newChat" class="toolChip">New chat</button></div>'+
+    '<div class="chatTools"><button id="memoryBtn" class="toolChip">Memory</button><button id="sourcesBtn" class="toolChip">Sources</button><button id="newChat" class="toolChip">New chat</button></div>'+
     '<main id="messages" class="messages"></main>'+
-    '<div class="composerArea"><div class="composer"><textarea id="box" rows="1" placeholder="Message '+esc(bot.name)+'…"></textarea><button id="send" class="send">➤</button></div></div>'+
-    '</div>';
+    '<div class="composerArea">'+
+      '<div id="attachMenu" class="attachMenu hide">'+
+        '<button id="chooseFile" class="attachItem"><span class="attachIcon">▱</span>Choose File</button>'+
+        '<button id="takePhoto" class="attachItem"><span class="attachIcon">◉</span>Take Photo</button>'+
+        '<button id="attachImage" class="attachItem"><span class="attachIcon">▧</span>Attach Image</button>'+
+        '<div class="attachSep"></div>'+
+        '<button id="addSource" class="attachItem"><span class="attachIcon">⌁</span>Add Source</button>'+
+      '</div>'+
+      '<div id="pendingAttachments" class="pending"></div>'+
+      '<div class="composerRow"><button id="plusAttach" class="plusBtn">＋</button><div class="composer"><textarea id="box" rows="1" placeholder="Message '+esc(bot.name)+'…"></textarea><button id="send" class="send">➤</button></div></div>'+
+      '<input id="pdfInput" type="file" accept="application/pdf" class="hide">'+
+      '<input id="imageInput" type="file" accept="image/*" class="hide">'+
+      '<input id="cameraInput" type="file" accept="image/*" capture="environment" class="hide">'+
+    '</div></div>';
   document.getElementById('back').onclick=renderHome;
   document.getElementById('editBot').onclick=function(){renderBotEditor(bot)};
   document.getElementById('memoryBtn').onclick=function(){renderMemories(bot)};
-  document.getElementById('newChat').onclick=function(){setConv(bot.id);showWelcome(bot)};
+  document.getElementById('sourcesBtn').onclick=function(){renderSources(bot)};
+  document.getElementById('newChat').onclick=function(){setConv(bot.id);state.pendingAttachments=[];showWelcome(bot);drawPending()};
   document.getElementById('send').onclick=sendChat;
+  document.getElementById('plusAttach').onclick=function(){
+    document.getElementById('attachMenu').classList.toggle('hide');
+  };
+  document.getElementById('chooseFile').onclick=function(){document.getElementById('attachMenu').classList.add('hide');document.getElementById('pdfInput').click()};
+  document.getElementById('attachImage').onclick=function(){document.getElementById('attachMenu').classList.add('hide');document.getElementById('imageInput').click()};
+  document.getElementById('takePhoto').onclick=function(){document.getElementById('attachMenu').classList.add('hide');document.getElementById('cameraInput').click()};
+  document.getElementById('addSource').onclick=function(){renderSourceEditor(bot)};
+  ['pdfInput','imageInput','cameraInput'].forEach(function(id){
+    document.getElementById(id).onchange=async function(){
+      const file=this.files&&this.files[0];this.value='';if(!file)return;
+      const status=document.getElementById('chatStatus');
+      try{
+        if(status)status.textContent='Uploading…';
+        const ref=await uploadBinary(file);
+        state.pendingAttachments.push(ref);drawPending();
+      }catch(e){alert(e.message)}
+      finally{if(status)status.textContent=bot.title||'Ready'}
+    };
+  });
+  drawPending();
   const box=document.getElementById('box');
   box.onkeydown=function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}};
   box.oninput=function(){box.style.height='auto';box.style.height=Math.min(box.scrollHeight,112)+'px'};
@@ -355,12 +429,16 @@ function appendBubble(bot,role,content){
 async function sendChat(){
   if(state.busy||!state.currentBot)return;
   const bot=state.currentBot,box=document.getElementById('box');
-  const text=box.value.trim();if(!text)return;
+  let text=box.value.trim();
+  if(!text&&!state.pendingAttachments.length)return;
+  if(!text)text='Please analyze the attached file.';
+  const outgoingAttachments=state.pendingAttachments.slice();
+  state.pendingAttachments=[];drawPending();
   box.value='';box.style.height='auto';appendBubble(bot,'user',text);
   state.busy=true;document.getElementById('send').disabled=true;document.getElementById('chatStatus').textContent='Working…';
   const m=document.getElementById('messages'),wait=document.createElement('div');wait.className='typing';wait.textContent=bot.name+' is working…';m.appendChild(wait);m.scrollTop=m.scrollHeight;
   try{
-    const d=await post('/chat',{conversationId:conv(bot.id),botId:bot.id,message:text});
+    const d=await post('/chat',{conversationId:conv(bot.id),botId:bot.id,message:text,attachments:outgoingAttachments});
     setConv(bot.id,d.conversationId);drawMessages(bot,d.messages||[]);
   }catch(e){
     wait.remove();if(authFail(e))return;appendBubble(bot,'assistant',e.message);
@@ -369,6 +447,95 @@ async function sendChat(){
     const s=document.getElementById('send');if(s)s.disabled=false;
     const st=document.getElementById('chatStatus');if(st)st.textContent=bot.title||'Ready';
   }
+}
+
+
+async function renderSources(bot){
+  const cid=conv(bot.id);
+  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>Sources</b><span>'+esc(bot.name)+' + main sources</span></div><button id="addSrc" class="iconBtn">＋</button></header><main class="scroll"><div id="sourceList" class="pad"><div class="muted">Loading…</div></div></main></div>';
+  document.getElementById('back').onclick=function(){renderChat(bot)};
+  document.getElementById('addSrc').onclick=function(){renderSourceEditor(bot)};
+  try{
+    const d=await get('/sources/list'+(cid?'?conversationId='+encodeURIComponent(cid):''));
+    const items=(d.sources||[]).filter(function(x){return x.scope==='main'||(cid&&x.conversationId===cid)});
+    const box=document.getElementById('sourceList');
+    if(!items.length){box.innerHTML='<div class="empty"><h3>No sources yet</h3><p>Add a source for this chat or make it available to every bot.</p></div>';return}
+    box.innerHTML=items.map(function(src){
+      const detail=src.sourceType==='url'?(src.sourceUrl||''):(src.fileName||src.content||'');
+      return '<div class="card"><div class="status '+(src.scope==='main'?'completed':'queued')+'">'+(src.scope==='main'?'MAIN SOURCE':'THIS CHAT')+'</div><h3>'+esc(src.name)+'</h3><p>'+esc(String(detail).slice(0,320))+'</p><div class="meta"><span class="pill">'+esc(src.sourceType)+'</span></div><button class="secondary deleteSource" data-id="'+src.id+'">Delete</button></div>';
+    }).join('');
+    box.querySelectorAll('.deleteSource').forEach(function(btn){btn.onclick=async function(){
+      if(!confirm('Delete this source?'))return;
+      try{await post('/sources/delete',{id:Number(btn.dataset.id)});renderSources(bot)}
+      catch(e){if(!authFail(e))alert(e.message)}
+    }});
+  }catch(e){if(!authFail(e))document.getElementById('sourceList').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+}
+
+function renderSourceEditor(bot){
+  let scope='conversation',type='text',fileRef=null;
+  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>Add Source</b><span>Choose where this source is used</span></div></header>'+
+    '<main class="scroll"><div class="pad">'+
+      '<div class="sectionTitle">SOURCE SCOPE</div>'+
+      '<div id="scopeChat" class="scopeChoice on"><div class="scopeRadio"></div><div class="scopeCopy"><b>Source for this chat</b><span>Only used in this conversation</span></div></div>'+
+      '<div id="scopeMain" class="scopeChoice"><div class="scopeRadio"></div><div class="scopeCopy"><b>Main source for all</b><span>Used across all chats and bot tasks</span></div></div>'+
+      '<div class="sectionTitle">SOURCE TYPE</div>'+
+      '<div class="sourceTypeRow"><button class="sourceTypeBtn on" data-type="text">Text</button><button class="sourceTypeBtn" data-type="url">URL</button><button class="sourceTypeBtn" data-type="file">File / Image</button></div>'+
+      '<input id="sourceName" class="field" placeholder="Source name">'+
+      '<div id="sourceFields"></div>'+
+      '<p class="hint">When group chat is enabled, the first option becomes “Source for this group”. Main sources stay available everywhere.</p>'+
+      '<div id="sourceErr" class="error"></div><button id="saveSource" class="primary">Save source</button>'+
+    '</div></main></div>';
+
+  document.getElementById('back').onclick=function(){renderChat(bot)};
+  function drawScope(){
+    document.getElementById('scopeChat').classList.toggle('on',scope==='conversation');
+    document.getElementById('scopeMain').classList.toggle('on',scope==='main');
+  }
+  document.getElementById('scopeChat').onclick=function(){scope='conversation';drawScope()};
+  document.getElementById('scopeMain').onclick=function(){scope='main';drawScope()};
+
+  function drawFields(){
+    document.querySelectorAll('.sourceTypeBtn').forEach(function(b){b.classList.toggle('on',b.dataset.type===type)});
+    const f=document.getElementById('sourceFields');
+    if(type==='text')f.innerHTML='<textarea id="sourceContent" class="textarea" style="min-height:180px" placeholder="Paste source text here"></textarea>';
+    else if(type==='url')f.innerHTML='<input id="sourceUrl" class="field" placeholder="https://...">';
+    else f.innerHTML='<label class="fileLabel" style="width:100%;height:50px">Choose PDF or image<input id="sourceFile" type="file" accept="application/pdf,image/*"></label><div id="sourceFileName" class="hint" style="margin-top:10px">No file selected.</div>';
+    const sf=document.getElementById('sourceFile');
+    if(sf)sf.onchange=async function(){
+      const file=this.files&&this.files[0];if(!file)return;
+      document.getElementById('sourceFileName').textContent='Uploading '+file.name+'…';
+      try{
+        fileRef=await uploadBinary(file);
+        document.getElementById('sourceFileName').textContent=file.name;
+        const n=document.getElementById('sourceName');if(n&&!n.value)n.value=file.name;
+      }catch(e){fileRef=null;document.getElementById('sourceFileName').textContent=e.message}
+    };
+  }
+  document.querySelectorAll('.sourceTypeBtn').forEach(function(b){b.onclick=function(){type=b.dataset.type;fileRef=null;drawFields()}});
+  drawFields();
+
+  document.getElementById('saveSource').onclick=async function(){
+    const err=document.getElementById('sourceErr'),name=document.getElementById('sourceName').value.trim();
+    if(!name){err.textContent='Source name is required.';return}
+    const payload={scope:scope,conversationId:scope==='conversation'?(conv(bot.id)||null):null,botId:scope==='conversation'?bot.id:null,groupKey:null,name:name,sourceType:type};
+    if(type==='text'){
+      const content=document.getElementById('sourceContent').value.trim();if(!content){err.textContent='Paste source text first.';return}
+      payload.content=content;
+    }else if(type==='url'){
+      const u=document.getElementById('sourceUrl').value.trim();if(!u){err.textContent='Enter a URL.';return}
+      payload.sourceUrl=u;
+    }else{
+      if(!fileRef){err.textContent='Choose and upload a file first.';return}
+      payload.sourceType=fileRef.contentType.indexOf('image/')===0?'image':'file';
+      payload.storageFilename=fileRef.storageFilename;payload.fileName=fileRef.fileName;payload.mimeType=fileRef.contentType;
+    }
+    try{
+      const r=await post('/sources/save',payload);
+      if(scope==='conversation'&&r.conversationId)setConv(bot.id,r.conversationId);
+      renderSources(bot);
+    }catch(e){if(!authFail(e))err.textContent=e.message}
+  };
 }
 
 async function renderMemories(bot){
