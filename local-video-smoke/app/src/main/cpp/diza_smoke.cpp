@@ -76,6 +76,73 @@ Java_com_diza_localvideo_smoke_DizaNative_status(JNIEnv* env, jobject, jstring d
     return jout(env, o.str());
 }
 
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_diza_localvideo_smoke_DizaNative_loadOnly(JNIEnv* env, jobject, jstring dir, jint backend) {
+    const std::string d = jstr(env, dir);
+    if (!exists(d + "/transformer.mnn") || !exists(d + "/transformer.mnn.weight"))
+        return jout(env, "{\"ok\":false,\"stage\":\"model\",\"error\":\"Import exact Release #7 model first\"}");
+
+    if (backend == 1) {
+#ifndef DIZA_HAS_OPENCL
+        return jout(env, "{\"ok\":false,\"stage\":\"backend\",\"error\":\"OpenCL library absent\"}");
+#endif
+    }
+    if (backend == 2) {
+#ifndef DIZA_HAS_VULKAN
+        return jout(env, "{\"ok\":false,\"stage\":\"backend\",\"error\":\"Vulkan library absent\"}");
+#endif
+    }
+
+    const char* backendName = backend == 1 ? "OpenCL" : (backend == 2 ? "Vulkan" : "CPU");
+    MNNForwardType type = backend == 1 ? MNN_FORWARD_OPENCL : (backend == 2 ? MNN_FORWARD_VULKAN : MNN_FORWARD_CPU);
+
+    const long rss0 = statusKb("VmRSS:");
+    const long hwm0 = statusKb("VmHWM:");
+    auto t0 = std::chrono::steady_clock::now();
+
+    {
+        ScheduleConfig sc;
+        sc.type = type;
+        sc.numThread = type == MNN_FORWARD_CPU ? 4 : 1;
+        BackendConfig bc;
+        bc.precision = BackendConfig::Precision_Normal;
+        bc.memory = BackendConfig::Memory_Low;
+        sc.backendConfig = &bc;
+
+        std::shared_ptr<Executor::RuntimeManager> runtime(
+            Executor::RuntimeManager::createRuntimeManager(sc), Executor::RuntimeManager::destroy);
+        if (!runtime) return jout(env, "{\"ok\":false,\"stage\":\"runtime\",\"error\":\"RuntimeManager failed\"}");
+        if (backend == 1) runtime->setCache((d + "/opencl.cache").c_str());
+        runtime->setExternalFile(d + "/transformer.mnn.weight");
+
+        Module::Config mc;
+        mc.shapeMutable = false;
+        std::unique_ptr<Module> module(Module::load(
+            {"hidden_states", "timestep", "encoder_hidden_states", "encoder_attention_mask"},
+            {"noise_pred"}, (d + "/transformer.mnn").c_str(), runtime, &mc));
+        if (!module) return jout(env, "{\"ok\":false,\"stage\":\"load\",\"error\":\"Module::load failed\"}");
+        module->traceOrOptimize(Interpreter::Session_Resize_Fix);
+        module.reset();
+        runtime.reset();
+    }
+
+    Executor::getGlobalExecutor()->gc(Executor::FULL);
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+    const long rss1 = statusKb("VmRSS:");
+    const long hwm1 = statusKb("VmHWM:");
+    std::ostringstream o;
+    o << "{\"ok\":true,\"stage\":\"load-only\",\"backend\":\"" << backendName << "\""
+      << ",\"elapsedMs\":" << elapsedMs(t0)
+      << ",\"rssBeforeMb\":" << mb(rss0)
+      << ",\"rssAfterUnloadMb\":" << mb(rss1)
+      << ",\"hwmBeforeMb\":" << mb(hwm0)
+      << ",\"hwmAfterMb\":" << mb(hwm1)
+      << "}";
+    return jout(env, o.str());
+}
+
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_diza_localvideo_smoke_DizaNative_smoke(JNIEnv* env, jobject, jstring dir, jint backend) {
     const std::string d = jstr(env, dir);
