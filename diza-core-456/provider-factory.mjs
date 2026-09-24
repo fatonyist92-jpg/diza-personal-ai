@@ -7,7 +7,19 @@ export function buildProvidersFromCatalog(catalog,{env=process.env,includeIds=nu
   const out=[];
   for(const entry of catalog.list()){
     if(includeIds&&!includeIds.includes(entry.id))continue;
-    if(entry.enabled===false||entry.autoEligible===false)continue;
+    const explicitEnable=entry.enableEnv
+      ? String(env[entry.enableEnv]||"").toLowerCase()==="true"
+      : false;
+    if(entry.enabled===false||entry.policyBlocked===true)continue;
+    if(entry.autoEligible===false&&!explicitEnable)continue;
+
+    const freeConfirmed=entry.freePlanConfirmEnv
+      ? String(env[entry.freePlanConfirmEnv]||"").toLowerCase()==="true"
+      : true;
+    const trialConfirmed=entry.trialConfirmEnv
+      ? String(env[entry.trialConfirmEnv]||"").toLowerCase()==="true"
+      : true;
+    if(!freeConfirmed||!trialConfirmed)continue;
 
     const key=entry.keyEnv?env[entry.keyEnv]:null;
     if(!key)continue;
@@ -24,6 +36,7 @@ export function buildProvidersFromCatalog(catalog,{env=process.env,includeIds=nu
         billingMode:"free_only",
         paidAllowed:false,
         contextWindow:entry.contextWindow||128000,
+        rateLimitSemantics:entry.rateLimitSemantics||{},
       }));
     }else if(entry.adapter==="gemini"){
       out.push(new GeminiProvider({
@@ -35,10 +48,7 @@ export function buildProvidersFromCatalog(catalog,{env=process.env,includeIds=nu
       }));
     }else if(entry.adapter==="cloudflare"){
       const accountId=entry.accountEnv?env[entry.accountEnv]:null;
-      const freeConfirmed=entry.freePlanConfirmEnv
-        ? String(env[entry.freePlanConfirmEnv]||"").toLowerCase()==="true"
-        : false;
-      if(!accountId||!freeConfirmed)continue;
+      if(!accountId)continue;
       out.push(new CloudflareWorkersAIProvider({
         id:entry.id,
         modelId,
@@ -48,10 +58,6 @@ export function buildProvidersFromCatalog(catalog,{env=process.env,includeIds=nu
         contextWindow:entry.contextWindow||128000,
       }));
     }else if(entry.adapter==="cohere-trial"){
-      const trialConfirmed=entry.trialConfirmEnv
-        ? String(env[entry.trialConfirmEnv]||"").toLowerCase()==="true"
-        : false;
-      if(!trialConfirmed)continue;
       out.push(new CohereTrialProvider({
         id:entry.id,
         modelId,
