@@ -1,0 +1,193 @@
+name: DIZA Video Phantom MNN Smoke Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diza-video-transformer.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-transformer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      HF_HUB_ENABLE_HF_TRANSFER: "0"
+      PYTHONUNBUFFERED: "1"
+      PIP_NO_CACHE_DIR: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Free disk and show resources
+        run: |
+          set -euxo pipefail
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          sudo apt-get clean
+          df -h /
+          free -h
+
+      - name: Install build tools
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends git git-lfs cmake ninja-build build-essential ca-certificates
+          git lfs install
+          python3 -m pip install --upgrade pip
+          python3 -m pip install torch==2.4.1 --index-url https://download.pytorch.org/whl/cpu
+          python3 -m pip install diffusers==0.35.1 easydict safetensors huggingface_hub hf_xet onnx==1.17.0
+
+      - name: Clone MNN and Phantom
+        run: |
+          set -euxo pipefail
+          git clone --depth 1 --branch 3.6.1 https://github.com/alibaba/MNN.git MNN
+          git clone --depth 1 https://github.com/Phantom-video/Phantom.git Phantom
+
+      - name: Build MNNConvert
+        run: |
+          set -euxo pipefail
+          cmake -S MNN -B mnn-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DMNN_BUILD_CONVERTER=ON -DMNN_BUILD_TEST=OFF -DMNN_BUILD_BENCHMARK=OFF -DMNN_BUILD_TOOLS=OFF
+          cmake --build mnn-build --target MNNConvert -j2
+          test -x mnn-build/MNNConvert
+
+      - name: Download Phantom 1.3B checkpoint
+        run: |
+          set -euxo pipefail
+          mkdir -p checkpoints
+          python3 - <<'PY'
+          from huggingface_hub import hf_hub_download
+          p = hf_hub_download(
+              repo_id="bytedance-research/Phantom",
+              filename="Phantom-Wan-1.3B.pth",
+              local_dir="checkpoints",
+          )
+          print(p)
+          PY
+          test -s checkpoints/Phantom-Wan-1.3B.pth
+          du -h checkpoints/Phantom-Wan-1.3B.pth
+          df -h /
+
+      - name: Disk guard
+        run: |
+          set -euxo pipefail
+          FREE_BYTES=$(df --output=avail -B1 / | tail -1 | tr -d ' ')
+          echo "Free bytes: $FREE_BYTES"
+          test "$FREE_BYTES" -ge 13000000000
+
+      - name: Export Phantom transformer ONNX
+        run: |
+          set -euxo pipefail
+          cat > /tmp/export_phantom.py <<'PY'
+          import gc
+          import importlib.util
+          import sys
+          from pathlib import Path
+          import torch
+
+          phantom_repo = Path("Phantom").resolve()
+          mnn_repo = Path("MNN").resolve()
+          checkpoint = Path("checkpoints/Phantom-Wan-1.3B.pth").resolve()
+          output = Path("onnx/transformer.onnx").resolve()
+          output.parent.mkdir(parents=True, exist_ok=True)
+
+          sys.path.insert(0, str(phantom_repo))
+          import phantom_wan.configs as phantom_configs
+          import phantom_wan.modules.model as phantom_model_mod
+          import phantom_wan.modules.attention as phantom_attention_mod
+
+          cfg = phantom_configs.WAN_CONFIGS["s2v-1.3B"]
+
+          with torch.device("meta"):
+              model = phantom_model_mod.WanModel(
+                  dim=cfg.dim,
+                  ffn_dim=cfg.ffn_dim,
+                  freq_dim=cfg.freq_dim,
+                  num_heads=cfg.num_heads,
+                  num_layers=cfg.num_layers,
+                  window_size=cfg.window_size,
+                  qk_norm=cfg.qk_norm,
+                  cross_attn_norm=cfg.cross_attn_norm,
+                  eps=cfg.eps,
+              )
+
+          state = torch.load(str(checkpoint), map_location="cpu", mmap=True, weights_only=True)
+          result = model.load_state_dict(state, strict=False, assign=True)
+          if result.missing_keys or result.unexpected_keys:
+              raise RuntimeError(
+                  "checkpoint mismatch missing=%r unexpected=%r" %
+                  (result.missing_keys[:20], result.unexpected_keys[:20])
+              )
+          model.eval().requires_grad_(False)
+
+          spec = importlib.util.spec_from_file_location(
+              "diza_mnn_wan_export",
+              str(mnn_repo / "transformers/diffusion/export/wan/wan_onnx_export.py"),
+          )
+          mnn_export = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(mnn_export)
+
+          mnn_export.patch_official_wan_for_export(
+              torch,
+              phantom_model_mod,
+              model,
+              use_cpu_attention=True,
+              attention_mod=phantom_attention_mod,
+          )
+
+          wrapped = mnn_export.make_torch_module(
+              torch,
+              mnn_export.TransformerWrapper(torch, model),
+          )
+
+          hidden = torch.randn(1, 16, 4, 32, 32, dtype=torch.float32)
+          timestep = torch.tensor([500.0], dtype=torch.float32)
+          text = torch.randn(1, 512, 4096, dtype=torch.float32)
+          mask = torch.ones(1, 512, dtype=torch.int32)
+
+          with torch.no_grad():
+              mnn_export.onnx_export(
+                  torch,
+                  wrapped,
+                  (hidden, timestep, text, mask),
+                  output,
+                  ["hidden_states", "timestep", "encoder_hidden_states", "encoder_attention_mask"],
+                  ["noise_pred"],
+                  17,
+              )
+
+          print("ONNX main:", output, output.stat().st_size)
+          for p in sorted(output.parent.iterdir()):
+              print(p.name, p.stat().st_size)
+          del wrapped, model, state
+          gc.collect()
+          PY
+          python3 /tmp/export_phantom.py
+          rm -f checkpoints/Phantom-Wan-1.3B.pth
+          du -h onnx/* || true
+          df -h /
+
+      - name: Convert transformer to MNN INT8
+        run: |
+          set -euxo pipefail
+          mkdir -p dist
+          mnn-build/MNNConvert             -f ONNX             --modelFile onnx/transformer.onnx             --MNNModel dist/transformer.mnn             --saveExternalData=1             --weightQuantBits=8             --weightQuantBlock=64
+          rm -rf onnx
+          find dist -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
+          sha256sum dist/* | tee dist/SHA256SUMS.txt
+          df -h /
+          free -h
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## DIZA Phantom MNN smoke build" >> "$GITHUB_STEP_SUMMARY"
+          if [ -d dist ]; then
+            echo '### dist files' >> "$GITHUB_STEP_SUMMARY"
+            find dist -maxdepth 1 -type f -printf '%f %s bytes\n' | sort >> "$GITHUB_STEP_SUMMARY"
+          fi
+          df -h / >> "$GITHUB_STEP_SUMMARY"
+          free -h >> "$GITHUB_STEP_SUMMARY"
