@@ -87,6 +87,14 @@ Until Fatony explicitly requests it:
 - group-chat implementation beyond reserved source scope
 - unrelated Floot configuration
 
+## Storage policy — LOCKED
+- Maximum upload size: 50 MB per file.
+- No artificial total-storage cap is imposed by Diza Bot Agent at this stage.
+- Files are stored separately from bot memory; memory/source records keep references and metadata instead of embedding the whole file.
+- Large files should be indexed/retrieved selectively so the full file is not pushed into model context on every chat turn.
+- Actual cloud storage capacity/quotas depend on the storage provider and must be checked separately.
+- If cloud storage becomes constrained later, storage backend migration/archival may be added without changing bot memory semantics.
+
 ## Current technical state
 - Backend database tables exist for bots, memories, tasks, task steps, and sources.
 - Custom-bot chat path exists.
