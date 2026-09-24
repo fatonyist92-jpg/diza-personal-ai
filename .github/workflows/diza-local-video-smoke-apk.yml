@@ -1,0 +1,106 @@
+name: Build DIZA Local Video Smoke APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "local-video-smoke/**"
+      - ".github/workflows/diza-local-video-smoke-apk.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      MNN_COMMIT: d407447ed56c4121a11ccbd266dc184ca1ead0c2
+      MNN_ZIP: mnn_3.6.1_android_armv7_armv8_cpu_opencl_vulkan.zip
+      MNN_SHA256: 46dc7e86d45b8d4e957db81d2603e0b7f6c9ce9b84092ffdcee1b843cbfc9d71
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - name: Java 17
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
+        with:
+          gradle-version: "8.9"
+
+      - name: Android native toolchain
+        run: |
+          set -euxo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
+
+      - name: Verified MNN 3.6.1 runtime
+        run: |
+          set -euxo pipefail
+          curl -L --fail --retry 3 -o "/tmp/${MNN_ZIP}" "https://github.com/alibaba/MNN/releases/download/3.6.1/${MNN_ZIP}"
+          echo "${MNN_SHA256}  /tmp/${MNN_ZIP}" | sha256sum -c -
+          rm -rf /tmp/mnnpkg && mkdir -p /tmp/mnnpkg
+          unzip -q "/tmp/${MNN_ZIP}" -d /tmp/mnnpkg
+          ARM64="$(find /tmp/mnnpkg -type d -name arm64-v8a | head -n1)"
+          test -n "$ARM64"
+          test -f "$ARM64/libMNN.so"
+          test -f "$ARM64/libMNN_Express.so"
+          mkdir -p local-video-smoke/app/src/main/jniLibs/arm64-v8a
+          cp "$ARM64"/*.so local-video-smoke/app/src/main/jniLibs/arm64-v8a/
+          ls -lh local-video-smoke/app/src/main/jniLibs/arm64-v8a/
+
+      - name: Exact MNN headers
+        run: |
+          set -euxo pipefail
+          rm -rf /tmp/MNN-src
+          git init /tmp/MNN-src
+          git -C /tmp/MNN-src remote add origin https://github.com/alibaba/MNN.git
+          git -C /tmp/MNN-src fetch --depth 1 origin "$MNN_COMMIT"
+          git -C /tmp/MNN-src checkout --detach FETCH_HEAD
+          test "$(git -C /tmp/MNN-src rev-parse HEAD)" = "$MNN_COMMIT"
+          mkdir -p local-video-smoke/app/src/main/cpp/mnn_include
+          cp -R /tmp/MNN-src/include/MNN local-video-smoke/app/src/main/cpp/mnn_include/
+
+      - name: Build real native APK
+        run: |
+          set -euxo pipefail
+          gradle -p local-video-smoke :app:assembleDebug --stacktrace
+
+      - name: QC APK
+        run: |
+          set -euxo pipefail
+          APK=local-video-smoke/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          unzip -l "$APK" | tee /tmp/apk.txt
+          grep -q 'lib/arm64-v8a/libdiza_smoke.so' /tmp/apk.txt
+          grep -q 'lib/arm64-v8a/libMNN.so' /tmp/apk.txt
+          grep -q 'lib/arm64-v8a/libMNN_Express.so' /tmp/apk.txt
+          cp "$APK" DIZA-Local-Video-MNN-Smoke.apk
+          sha256sum DIZA-Local-Video-MNN-Smoke.apk | tee DIZA-Local-Video-MNN-Smoke.apk.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: DIZA-Local-Video-MNN-Smoke
+          path: |
+            DIZA-Local-Video-MNN-Smoke.apk
+            DIZA-Local-Video-MNN-Smoke.apk.sha256
+          retention-days: 14
+
+      - name: Publish APK release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          TAG="diza-local-video-mnn-smoke-apk-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG" \
+            --title "DIZA Local Video MNN Smoke APK ${GITHUB_RUN_NUMBER}" \
+            --notes "Phase-1 Android proof-of-life APK. No INTERNET permission. Import the exact transformer.mnn + transformer.mnn.weight from release diza-phantom-mnn-smoke-7, then run CPU first and OpenCL second. Full video generation is not implemented yet." \
+            DIZA-Local-Video-MNN-Smoke.apk DIZA-Local-Video-MNN-Smoke.apk.sha256
