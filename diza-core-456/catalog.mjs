@@ -1,8 +1,8 @@
 export const DISCOVERY_FEEDS = [
   {
-    id: "awesome-freellm-apis",
-    url: "https://raw.githubusercontent.com/freellms/awesome-freellm-apis/main/README.md",
-    trust: 0.72,
+    id: "open-free-llm-api-current",
+    url: "https://raw.githubusercontent.com/open-free-llm-api/awesome-freellm-apis/main/README.md",
+    trust: 0.82,
     format: "markdown",
   },
   {
@@ -12,9 +12,15 @@ export const DISCOVERY_FEEDS = [
     format: "json",
   },
   {
+    id: "free-llm-api-hub-openai-compatible",
+    url: "https://raw.githubusercontent.com/pacocartones/free-llm-api-hub/main/collections/openai-compatible.md",
+    trust: 0.80,
+    format: "markdown",
+  },
+  {
     id: "freellmapi-public",
     url: "https://raw.githubusercontent.com/tashfeenahmed/freellmapi/main/README.md",
-    trust: 0.72,
+    trust: 0.68,
     format: "markdown",
   },
 ];
