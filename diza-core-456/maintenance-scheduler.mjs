@@ -19,7 +19,7 @@ export function msUntilNextJakartaMidnight(ms){
 
 export class MemoryMaintenanceState {
   constructor(snapshot={}){
-    this.state={lastDailyCheckAt:null,lastDiscoveryAt:null,...snapshot};
+    this.state={lastDailyCheckAt:null,lastDiscoveryAt:null,catalogSnapshot:null,...snapshot};
   }
   async load(){return {...this.state};}
   async save(next){this.state={...next};}
@@ -31,9 +31,18 @@ export class MaintenanceScheduler {
     this.stateStore=stateStore;
     this.catalog=catalog;
     this.now=now;
+    this.restored=false;
+  }
+
+  async restore(){
+    if(this.restored)return;
+    const state=await this.stateStore.load();
+    if(state.catalogSnapshot&&this.catalog)this.catalog.import(state.catalogSnapshot);
+    this.restored=true;
   }
 
   async runDue({forceDaily=false,forceDiscovery=false}={}){
+    await this.restore();
     const state=await this.stateStore.load();
     const now=this.now();
     const latestMidnight=latestJakartaMidnight(now);
@@ -51,6 +60,8 @@ export class MaintenanceScheduler {
       state.lastDiscoveryAt=now;
       report.ranDiscovery=true;
     }
+
+    if(this.catalog)state.catalogSnapshot=this.catalog.snapshot();
     await this.stateStore.save(state);
     return report;
   }
