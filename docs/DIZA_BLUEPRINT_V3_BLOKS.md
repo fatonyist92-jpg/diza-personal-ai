@@ -18,10 +18,11 @@ Spicy Mode must remain fully local/offline after model packs are installed. Imag
 Hard boundaries for this mode:
 
 - sexual content involving minors, or characters clearly depicted as minors, is prohibited with no bypass;
-- non-consensual sexual deepfakes of identifiable real people are prohibited;
+- for an identifiable real adult person, sexual generation must not proceed when consent is absent or cannot be established;
+- do not blanket-ban all real-person adult content: consensual adult content, self-content, fictional/synthetic adults, generic non-identifiable resemblance, and non-sexual edits must be treated as separate cases;
 - unsupported or unsafe requests must not be silently reinterpreted as supported adult content.
 
-Within those boundaries, product capability choices remain owner-defined.
+Within those boundaries, product capability choices remain owner-defined. Ambiguous identifiable-real-person sexual requests should be routed to a consent check rather than being silently categorized as either allowed or disallowed.
 
 The final core generation path must work fully offline after required model packs are present on the phone:
 
@@ -296,7 +297,9 @@ Product moderation remains owner-defined rather than invented by the implementat
 Hard rules:
 
 - sexual content involving minors, or characters clearly depicted as minors, is prohibited and has no owner override/bypass;
-- non-consensual sexual deepfakes of identifiable real people are prohibited.
+- identifiable-real-person sexual generation requires consent; lack of consent, or inability to establish consent, blocks that request.
+
+This rule must not be implemented as a blanket "real person = blocked" classifier. The moderation router should distinguish consensual adult content, self-content, fictional/synthetic adults, generic non-identifiable resemblance, and non-sexual edits from non-consensual sexual deepfakes.
 
 Spicy Mode is otherwise treated as a first-class adult capability and must receive the same quality, identity, motion, prompt-adherence, temporal and offline-runtime engineering priority as the general video path.
 
