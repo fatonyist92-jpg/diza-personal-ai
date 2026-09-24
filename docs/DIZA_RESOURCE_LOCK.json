@@ -5,7 +5,11 @@
   "diza": {
     "repository": "fatonyist92-jpg/diza-personal-ai",
     "branch": "main",
-    "commit": "175f5ef715196d35b6c235617b170362be05846c"
+    "commit": "175f5ef715196d35b6c235617b170362be05846c",
+    "runtime_smoke_commit": "809eeb688d70990fe989a08c5cfffaa0b127869c",
+    "runtime_smoke_version": "0.2.0",
+    "runtime_smoke_release": "diza-local-video-mnn-smoke-apk-8",
+    "transformer_release": "diza-phantom-mnn-smoke-7"
   },
   "bloks": {
     "repository": "hamedgitty/bloks",
