@@ -435,6 +435,81 @@ test('explicitly enabled reserve provider remains usable after ledger policy syn
   assert.equal(ledger.canUse(cerebras,{estimatedTokens:10}).ok,true);
 });
 
+
+test('task provider-call budget counts actual failover attempts', async () => {
+  const ledger=makeLedger();
+  const a=new MockProvider({id:'attempt-a',quality:1,behavior:async()=>{throw new ProviderError(ErrorCode.SERVER,'down')}});
+  const b=new MockProvider({id:'attempt-b',quality:0.5,behavior:async()=>({text:'fallback-ok',usage:{}})});
+  ledger.upsert('attempt-a','mock',{});ledger.upsert('attempt-b','mock',{});
+  const router=new MeshRouter({providers:[a,b],ledger,now:clock});
+  const store=new InMemoryTaskStore();
+  const task=store.createTask({title:'attempts',instruction:'x',maxProviderCalls:4,steps:[{botId:1,instruction:'x'}]});
+  const engine=new BackgroundTaskEngine({store,router,now:clock});
+  await engine.runNext();
+  assert.equal(store.get(task.id).status,TaskStatus.COMPLETED);
+  assert.equal(store.get(task.id).providerCalls,2);
+});
+
+test('task maxProviderCalls limits router failover attempts exactly', async () => {
+  const ledger=makeLedger();
+  const reset=now+60000;
+  const a=new MockProvider({id:'budget-a',quality:1,behavior:async()=>quotaFailure({resetAt:reset})});
+  const b=new MockProvider({id:'budget-b',quality:0.5,behavior:async()=>({text:'should-not-run',usage:{}})});
+  ledger.upsert('budget-a','mock',{});ledger.upsert('budget-b','mock',{});
+  const router=new MeshRouter({providers:[a,b],ledger,now:clock});
+  const store=new InMemoryTaskStore();
+  const task=store.createTask({title:'budget',instruction:'x',maxProviderCalls:1,steps:[{botId:1,instruction:'x'}]});
+  const engine=new BackgroundTaskEngine({store,router,now:clock});
+  await engine.runNext();
+  assert.equal(store.get(task.id).providerCalls,1);
+  assert.equal(b.calls.length,0);
+});
+
+test('stable task-step idempotency completes after simulated crash without second provider call', async () => {
+  const ledger=makeLedger();
+  const p=new MockProvider({id:'crash-safe'});
+  ledger.upsert('crash-safe','mock',{});
+  const idem=new IdempotencyStore();
+  idem.set('task:1:step:1',{
+    providerId:'crash-safe',modelId:'mock',text:'already-finished',usage:{},
+    attempts:[{providerId:'crash-safe',ok:true}]
+  });
+  const router=new MeshRouter({providers:[p],ledger,idempotency:idem,now:clock});
+  const store=new InMemoryTaskStore();
+  const task=store.createTask({title:'recover',instruction:'x',steps:[{botId:1,instruction:'x'}]});
+  assert.equal(task.id,1);
+  const engine=new BackgroundTaskEngine({store,router,now:clock});
+  await engine.runNext();
+  assert.equal(store.get(task.id).status,TaskStatus.COMPLETED);
+  assert.equal(store.get(task.id).steps[0].output,'already-finished');
+  assert.equal(p.calls.length,0);
+  assert.equal(store.get(task.id).providerCalls,0);
+});
+
+test('user cancellation prevents queued bot work', async () => {
+  const ledger=makeLedger(),p=new MockProvider({id:'cancel'});
+  ledger.upsert('cancel','mock',{});
+  const router=new MeshRouter({providers:[p],ledger,now:clock}),store=new InMemoryTaskStore();
+  const task=store.createTask({title:'cancel',instruction:'x',steps:[{botId:1,instruction:'x'},{botId:2,instruction:'y'}]});
+  const engine=new BackgroundTaskEngine({store,router,now:clock});
+  engine.cancelTask(task.id);
+  assert.equal(store.get(task.id).status,TaskStatus.CANCELLED);
+  assert.equal(await engine.runNext(),null);
+  assert.equal(p.calls.length,0);
+});
+
+test('active runtime budget is enforced after a slow provider call', async () => {
+  const ledger=makeLedger();
+  const p=new MockProvider({id:'slow',behavior:async()=>{advance(2000);return {text:'late',usage:{}}}});
+  ledger.upsert('slow','mock',{});
+  const router=new MeshRouter({providers:[p],ledger,now:clock}),store=new InMemoryTaskStore();
+  const task=store.createTask({title:'runtime',instruction:'x',maxRuntimeMs:1000,steps:[{botId:1,instruction:'x'}]});
+  const engine=new BackgroundTaskEngine({store,router,now:clock});
+  await engine.runNext();
+  assert.equal(store.get(task.id).status,TaskStatus.FAILED);
+  assert.match(store.get(task.id).error,/runtime budget/i);
+});
+
 let passed=0;
 for (const [name,fn] of tests) { try { await fn(); console.log(`✓ ${name}`); passed++; } catch (e) { console.error(`✗ ${name}`); console.error(e); process.exitCode=1; } }
 console.log(`\n${passed}/${tests.length} tests passed`);
