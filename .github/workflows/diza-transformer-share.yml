@@ -1,0 +1,36 @@
+name: Package DIZA Transformer Share
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/diza-transformer-share.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Download exact transformer Release #7
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          mkdir -p share
+          gh release download diza-phantom-mnn-smoke-7             --repo "${GITHUB_REPOSITORY}"             --dir share             --pattern transformer.mnn             --pattern transformer.mnn.weight
+          echo "934a20b6d46db253376dded722097f0bdd9cb052ff9836d9e73d7969c8e880ec  share/transformer.mnn" | sha256sum -c -
+          echo "724935c8cfd58e220d9c0d0309ff41718a920efbe2e33708100c6ff126b05274  share/transformer.mnn.weight" | sha256sum -c -
+          ls -lh share
+
+      - name: Upload exact transformer files
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: DIZA-Transformer-Exact-Release-7
+          path: |
+            share/transformer.mnn
+            share/transformer.mnn.weight
+          compression-level: 0
+          retention-days: 2
