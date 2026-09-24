@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-transformer:
@@ -46,6 +46,21 @@ jobs:
           set -euxo pipefail
           git clone --depth 1 --branch 3.6.1 https://github.com/alibaba/MNN.git MNN
           git clone --depth 1 https://github.com/Phantom-video/Phantom.git Phantom
+
+      - name: Patch Phantom CPU-only import
+        run: |
+          set -euxo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("Phantom/phantom_wan/modules/t5.py")
+          s = p.read_text()
+          old = "device=torch.cuda.current_device(),"
+          new = "device='cpu',"
+          if old not in s:
+              raise SystemExit("Expected Phantom T5 CUDA default not found")
+          p.write_text(s.replace(old, new, 1))
+          print("Patched Phantom T5 default device to CPU for transformer-only export")
+          PY
 
       - name: Build MNNConvert
         run: |
@@ -180,6 +195,15 @@ jobs:
           sha256sum dist/* | tee dist/SHA256SUMS.txt
           df -h /
           free -h
+
+      - name: Create GitHub release
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          TAG="diza-phantom-mnn-smoke-${GITHUB_RUN_NUMBER}"
+          gh release create "$TAG"             --title "DIZA Phantom MNN smoke ${GITHUB_RUN_NUMBER}"             --notes "INT8 block64, batch1 fixed 256x256 / 9-frame proof-of-life transformer. Not final QC."             dist/*
 
       - name: Build summary
         if: always()
