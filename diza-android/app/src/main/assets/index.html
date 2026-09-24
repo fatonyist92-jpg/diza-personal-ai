@@ -5,10 +5,97 @@
 <meta name="theme-color" content="#000000">
 <title>Diza Bot Agent</title>
 <style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:#000;color:#f5f5f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;height:100%;overflow:hidden}button,input,textarea{font:inherit}.hide{display:none!important}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:#000;color:#f5f5f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;height:100%;overflow:hidden}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.hide{display:none!important}
 #app{height:100dvh;background:#000}
-.auth{height:100%;overflow:auto;display:flex;align-items:center;justify-content:center;padding:28px 22px}.authCard{width:100%;max-width:420px;padding:18px 0 40px}.avatar{width:82px;height:82px;border-radius:24px;object-fit:cover;border:1px solid #2b2b2f;display:block;margin-bottom:20px}.eyebrow{font-size:11px;letter-spacing:.14em;color:#8d8d94;font-weight:700}.auth h1{font-size:32px;letter-spacing:-.045em;margin:26px 0 8px}.muted{color:#7e7e85;font-size:14px;line-height:1.5;margin:0 0 24px}.field{width:100%;height:54px;margin:0 0 12px;padding:0 15px;border:1px solid #26262a;border-radius:16px;background:#0b0b0d;color:#fff;outline:none}.field:focus{border-color:#55505e;box-shadow:0 0 0 3px rgba(155,134,255,.08)}.primary{width:100%;height:52px;border:0;border-radius:16px;background:#f4f4f5;color:#050505;font-weight:800;margin-top:4px}.secondary{width:100%;height:48px;border:0;background:transparent;color:#a99cff;font-weight:600}.error{min-height:20px;color:#ff7777;font-size:12px;margin:4px 2px 8px}
-.chatPage{height:100%;display:flex;flex-direction:column}.top{height:64px;flex:none;display:flex;align-items:center;padding:8px 12px 8px 14px;border-bottom:1px solid #171719;background:#000}.brandAvatar{width:40px;height:40px;border-radius:13px;object-fit:cover;border:1px solid #29292c}.brandText{min-width:0;flex:1;padding-left:10px}.brandText b{font-size:14px;display:block}.online{font-size:10px;color:#49df9b;margin-top:2px}.topBtn{width:40px;height:40px;border:1px solid transparent;border-radius:12px;background:transparent;color:#aaa;font-size:21px}.agentBar{height:54px;flex:none;padding:8px 9px;display:flex;gap:7px;border-bottom:1px solid #111}.agent{flex:1;border:1px solid #1d1d20;border-radius:14px;background:#060607;color:#73737a;font-size:12px}.agent.on{background:#131315;color:#fff;border-color:#333338;font-weight:700}.messages{flex:1;overflow:auto;padding:16px 13px 24px}.welcome{max-width:520px;margin:15vh auto 0;text-align:center}.welcomeIcon{width:62px;height:62px;border-radius:19px;object-fit:cover;border:1px solid #2a2a2d}.welcome h2{font-size:27px;letter-spacing:-.04em;margin:18px 0 9px}.welcome p{font-size:14px;color:#75757c;line-height:1.55;margin:0 auto 22px;max-width:400px}.chips{display:flex;gap:7px;justify-content:center;flex-wrap:wrap}.chip{border:1px solid #242428;background:#09090b;color:#9b9ba1;border-radius:999px;padding:9px 13px;font-size:12px}.row{display:flex;margin:13px 0}.row.user{justify-content:flex-end}.bubble{max-width:84%;font-size:14px;line-height:1.58;white-space:pre-wrap;word-break:break-word}.user .bubble{background:#18181b;border:1px solid #29292d;padding:10px 13px;border-radius:18px 18px 5px 18px}.assistant .bubble{padding:8px 4px;color:#e7e7ea}.assistant{align-items:flex-start;gap:9px}.miniAv{width:29px;height:29px;border-radius:9px;object-fit:cover;border:1px solid #222}.typing{color:#777;font-size:13px;padding:9px 4px}.composerArea{flex:none;padding:12px 10px max(10px,env(safe-area-inset-bottom));background:linear-gradient(transparent,#000 28%)}.composer{display:flex;align-items:flex-end;gap:8px;border:1px solid #28282c;background:#0c0c0e;border-radius:22px;padding:8px 8px 8px 14px}.composer textarea{flex:1;min-height:38px;max-height:112px;resize:none;background:transparent;border:0;outline:0;color:#fff;padding:8px 0;line-height:1.35}.send{width:40px;height:40px;border:0;border-radius:13px;background:#f4f4f5;color:#050505;font-weight:900;font-size:17px}.send:disabled{background:#202024;color:#56565d}.fine{font-size:9px;color:#45454a;text-align:center;margin-top:7px}.fatal{height:100%;display:grid;place-items:center;text-align:center;padding:30px}.fatal button{margin-top:16px;padding:11px 16px;border:0;border-radius:13px}
+.screen{height:100%;display:flex;flex-direction:column;background:#000}
+.top{height:66px;flex:none;display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #171719;background:#000}
+.topTitle{flex:1;min-width:0}
+.topTitle b{display:block;font-size:18px;letter-spacing:-.02em}
+.topTitle span{display:block;color:#777780;font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconBtn{width:42px;height:42px;border:1px solid #202024;border-radius:14px;background:#08080a;color:#d7d7dc;font-size:20px}
+.backBtn{width:40px;height:40px;border:0;background:transparent;color:#d7d7dc;font-size:26px;padding:0}
+.avatar{width:50px;height:50px;border-radius:16px;object-fit:cover;border:1px solid #29292d;background:#101012}
+.smallAvatar{width:42px;height:42px;border-radius:14px;object-fit:cover;border:1px solid #29292d;background:#101012}
+.miniAvatar{width:29px;height:29px;border-radius:9px;object-fit:cover;border:1px solid #222;background:#101012}
+.scroll{flex:1;overflow:auto}
+.pad{padding:14px}
+.auth{height:100%;overflow:auto;display:flex;align-items:center;justify-content:center;padding:28px 22px}
+.authCard{width:100%;max-width:420px;padding:18px 0 40px}
+.authLogo{width:82px;height:82px;border-radius:24px;object-fit:cover;border:1px solid #2b2b2f;display:block;margin-bottom:20px}
+.eyebrow{font-size:11px;letter-spacing:.14em;color:#8d8d94;font-weight:700}
+.auth h1{font-size:32px;letter-spacing:-.045em;margin:26px 0 8px}
+.muted{color:#7e7e85;font-size:14px;line-height:1.5;margin:0 0 24px}
+.field,.textarea,.select{width:100%;border:1px solid #26262a;border-radius:16px;background:#0b0b0d;color:#fff;outline:none}
+.field{height:52px;padding:0 15px;margin:0 0 11px}
+.textarea{min-height:104px;padding:13px 15px;resize:vertical;line-height:1.45;margin:0 0 11px}
+.select{height:48px;padding:0 12px;margin:0 0 10px}
+.field:focus,.textarea:focus,.select:focus{border-color:#55505e;box-shadow:0 0 0 3px rgba(155,134,255,.08)}
+.primary{width:100%;height:50px;border:0;border-radius:16px;background:#f4f4f5;color:#050505;font-weight:800}
+.secondary{width:100%;height:46px;border:0;background:transparent;color:#a99cff;font-weight:650}
+.danger{width:100%;height:46px;border:1px solid #422328;background:#13090b;color:#ff878d;border-radius:15px;font-weight:700}
+.error{min-height:20px;color:#ff7777;font-size:12px;margin:4px 2px 8px}
+.searchWrap{padding:10px 12px;border-bottom:1px solid #101012}
+.search{width:100%;height:42px;border:1px solid #1d1d20;border-radius:14px;background:#09090b;color:#fff;padding:0 14px;outline:0}
+.list{padding:2px 0 90px}
+.botRow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #101012;background:#000}
+.botRow:active{background:#08080a}
+.botMain{flex:1;min-width:0}
+.botNameLine{display:flex;align-items:center;gap:7px}
+.botName{font-size:15px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{font-size:9px;color:#b8acff;border:1px solid #373047;background:#120f18;padding:3px 6px;border-radius:999px}
+.preview{font-size:12px;color:#777780;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rowBtn{width:38px;height:38px;border:0;background:transparent;color:#666670;font-size:18px}
+.empty{padding:72px 24px;text-align:center;color:#777780}
+.empty h3{color:#e9e9ed;margin:0 0 8px}
+.sectionTitle{font-size:11px;font-weight:800;letter-spacing:.12em;color:#777780;margin:18px 2px 9px}
+.card{border:1px solid #1d1d21;background:#08080a;border-radius:18px;padding:14px;margin-bottom:10px}
+.card h3{margin:0 0 5px;font-size:15px}
+.card p{margin:0;color:#8c8c94;font-size:12px;line-height:1.5;white-space:pre-wrap}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.pill{font-size:9px;border:1px solid #2b2b31;border-radius:999px;padding:4px 7px;color:#8d8d95}
+.avatarEditor{display:flex;align-items:center;gap:14px;margin:6px 0 20px}
+.avatarEditor .avatar{width:72px;height:72px;border-radius:22px}
+.fileLabel{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 13px;border:1px solid #29292e;border-radius:13px;background:#0b0b0d;color:#d8d8dd;font-size:12px;font-weight:700}
+.fileLabel input{display:none}
+.hint{font-size:11px;color:#66666e;line-height:1.45;margin:-2px 2px 12px}
+.switchLine{display:flex;align-items:center;justify-content:space-between;border:1px solid #1d1d21;background:#08080a;border-radius:15px;padding:12px 13px;margin-bottom:10px}
+.switchLine span{font-size:13px}
+.switchLine input{width:20px;height:20px}
+.messages{flex:1;overflow:auto;padding:16px 13px 24px}
+.welcome{max-width:520px;margin:13vh auto 0;text-align:center;padding:0 16px}
+.welcome .avatar{width:66px;height:66px;border-radius:21px;margin:auto}
+.welcome h2{font-size:25px;letter-spacing:-.04em;margin:17px 0 8px}
+.welcome p{font-size:13px;color:#75757c;line-height:1.55;margin:0 auto}
+.msgRow{display:flex;margin:13px 0}
+.msgRow.user{justify-content:flex-end}
+.bubble{max-width:84%;font-size:14px;line-height:1.58;white-space:pre-wrap;word-break:break-word}
+.user .bubble{background:#18181b;border:1px solid #29292d;padding:10px 13px;border-radius:18px 18px 5px 18px}
+.assistant .bubble{padding:7px 4px;color:#e7e7ea}
+.assistant{align-items:flex-start;gap:9px}
+.typing{color:#777;font-size:13px;padding:9px 4px}
+.composerArea{flex:none;padding:10px 10px max(10px,env(safe-area-inset-bottom));background:linear-gradient(transparent,#000 24%)}
+.composer{display:flex;align-items:flex-end;gap:8px;border:1px solid #28282c;background:#0c0c0e;border-radius:22px;padding:8px 8px 8px 14px}
+.composer textarea{flex:1;min-height:38px;max-height:112px;resize:none;background:transparent;border:0;outline:0;color:#fff;padding:8px 0;line-height:1.35}
+.send{width:40px;height:40px;border:0;border-radius:13px;background:#f4f4f5;color:#050505;font-weight:900;font-size:17px}
+.send:disabled{background:#202024;color:#56565d}
+.chatTools{display:flex;gap:7px;padding:7px 10px;border-bottom:1px solid #111}
+.toolChip{height:34px;border:1px solid #202024;border-radius:11px;background:#070708;color:#aaa;font-size:11px;padding:0 11px}
+.floating{position:absolute;right:18px;bottom:24px;width:54px;height:54px;border:0;border-radius:18px;background:#f3f3f4;color:#060607;font-size:26px;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+.relative{position:relative}
+.taskStep{border:1px solid #1e1e22;border-radius:16px;padding:11px;background:#070708;margin-bottom:10px}
+.taskStepTop{display:flex;gap:8px;align-items:center}
+.taskStepTop .select{margin:0;flex:1}
+.removeStep{width:42px;height:42px;border:1px solid #3b2025;background:#12090a;color:#ff858c;border-radius:13px}
+.status{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.status.completed{color:#55dda2}.status.running{color:#d8bc67}.status.failed{color:#ff757d}.status.queued{color:#81818a}
+.output{margin-top:10px;padding-top:10px;border-top:1px solid #1a1a1e;font-size:12px;line-height:1.55;color:#cfcfd4;white-space:pre-wrap}
+.dual{display:flex;gap:9px}.dual>*{flex:1}
+.fatal{height:100%;display:grid;place-items:center;text-align:center;padding:30px}
+.fatal button{margin-top:16px;padding:11px 16px;border:0;border-radius:13px}
 </style>
 </head>
 <body>
@@ -16,94 +103,397 @@
 <script>
 const AV='/_cdn/static/2daabeef-aac9-4289-9026-12a342ed4eee-diza-bot-agent-icon.png';
 const API='/_api/native';
-let mode='login',agent='chief',busy=false;
 const app=document.getElementById('app');
+const state={bots:[],currentBot:null,busy:false,taskDraft:null};
 
-window.onerror=(m)=>{app.innerHTML='<div class="fatal"><div><h2>Diza UI error</h2><p>'+esc(String(m))+'</p><button onclick="location.reload()">Reload</button></div></div>'};
+window.onerror=function(m){
+  app.innerHTML='<div class="fatal"><div><h2>Diza UI error</h2><p>'+esc(String(m))+'</p><button onclick="location.reload()">Reload</button></div></div>';
+};
 
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function token(){return localStorage.getItem('diza_native_token')||''}
 function setToken(t){localStorage.setItem('diza_native_token',t)}
-function logout(){localStorage.removeItem('diza_native_token');Object.keys(localStorage).filter(k=>k.startsWith('conv_')).forEach(k=>localStorage.removeItem(k));renderAuth()}
-function convKey(){return 'conv_'+agent}
-function conv(){return Number(localStorage.getItem(convKey())||0)||undefined}
-function setConv(v){if(v)localStorage.setItem(convKey(),String(v));else localStorage.removeItem(convKey())}
+function logout(){
+  localStorage.removeItem('diza_native_token');
+  Object.keys(localStorage).filter(function(k){return k.indexOf('conv_bot_')===0}).forEach(function(k){localStorage.removeItem(k)});
+  state.bots=[];state.currentBot=null;renderAuth(false);
+}
+function avatarOf(bot){return bot&&bot.avatarData?bot.avatarData:AV}
+function convKey(botId){return 'conv_bot_'+botId}
+function conv(botId){return Number(localStorage.getItem(convKey(botId))||0)||undefined}
+function setConv(botId,v){if(v)localStorage.setItem(convKey(botId),String(v));else localStorage.removeItem(convKey(botId))}
 
-async function post(path,body,auth=true){
- const h={'content-type':'application/json'};
- if(auth&&token())h.authorization='Bearer '+token();
- const r=await fetch(API+path,{method:'POST',headers:h,body:JSON.stringify(body)});
- let d={};try{d=await r.json()}catch{}
- if(!r.ok){const e=new Error(d.error||d.message||'Request failed');e.status=r.status;throw e}
- return d
+async function request(path,opts){
+  opts=opts||{};
+  const headers=opts.headers||{};
+  if(opts.body!==undefined)headers['content-type']='application/json';
+  if(opts.auth!==false&&token())headers.authorization='Bearer '+token();
+  const res=await fetch(API+path,{method:opts.method||'GET',headers:headers,body:opts.body!==undefined?JSON.stringify(opts.body):undefined});
+  let data={};try{data=await res.json()}catch(e){}
+  if(!res.ok){
+    const err=new Error(data.error||data.message||'Request failed');
+    err.status=res.status;err.code=data.code;throw err;
+  }
+  return data;
+}
+function get(path){return request(path,{method:'GET'})}
+function post(path,body,auth){return request(path,{method:'POST',body:body,auth:auth})}
+function authFail(e){if(e&&e.status===401){logout();return true}return false}
+
+function renderAuth(reg){
+  app.innerHTML='<div class="auth"><div class="authCard">'+
+    '<img class="authLogo" src="'+AV+'"><div class="eyebrow">DIZA BOT AGENT</div>'+
+    '<h1>'+(reg?'Create account':'Welcome back')+'</h1>'+
+    '<p class="muted">'+(reg?'Create your private AI workspace.':'Sign in to continue to your bot workspace.')+'</p>'+
+    (reg?'<input id="name" class="field" placeholder="Display name" autocomplete="name">':'')+
+    '<input id="email" class="field" placeholder="Email" type="email" autocomplete="email">'+
+    '<input id="pass" class="field" placeholder="Password" type="password" autocomplete="'+(reg?'new-password':'current-password')+'">'+
+    '<div id="err" class="error"></div>'+
+    '<button id="go" class="primary">'+(reg?'Create account':'Sign in')+'</button>'+
+    '<button id="swap" class="secondary">'+(reg?'Already have an account? Sign in':'New here? Create account')+'</button>'+
+    '</div></div>';
+  document.getElementById('swap').onclick=function(){renderAuth(!reg)};
+  document.getElementById('go').onclick=async function(){
+    const btn=document.getElementById('go'),err=document.getElementById('err');
+    const email=document.getElementById('email').value.trim();
+    const password=document.getElementById('pass').value;
+    const displayName=reg?document.getElementById('name').value.trim():'';
+    if(!email||password.length<8||(reg&&!displayName)){err.textContent='Check your email, name, and password.';return}
+    btn.disabled=true;err.textContent='';
+    try{
+      const d=await post(reg?'/register':'/login',{email:email,password:password,...(reg?{displayName:displayName}:{})},false);
+      setToken(d.token);await boot();
+    }catch(e){err.textContent=e.message}
+    finally{btn.disabled=false}
+  };
 }
 
-function renderAuth(reg=false){
- mode=reg?'register':'login';
- app.innerHTML='<div class="auth"><div class="authCard">'+
- '<img class="avatar" src="'+AV+'"><div class="eyebrow">DIZA BOT AGENT</div>'+
- '<h1>'+(reg?'Create account':'Welcome back')+'</h1>'+
- '<p class="muted">'+(reg?'Create your private AI workspace.':'Sign in to continue to your agent workspace.')+'</p>'+
- (reg?'<input id="name" class="field" placeholder="Display name" autocomplete="name">':'')+
- '<input id="email" class="field" placeholder="Email" type="email" autocomplete="email">'+
- '<input id="pass" class="field" placeholder="Password" type="password" autocomplete="'+(reg?'new-password':'current-password')+'">'+
- '<div id="err" class="error"></div>'+
- '<button id="go" class="primary">'+(reg?'Create account':'Sign in')+'</button>'+
- '<button id="swap" class="secondary">'+(reg?'Already have an account? Sign in':'New here? Create account')+'</button>'+
- '</div></div>';
- document.getElementById('swap').onclick=()=>renderAuth(!reg);
- document.getElementById('go').onclick=async()=>{
-  const b=document.getElementById('go'),err=document.getElementById('err');
-  const email=document.getElementById('email').value.trim(),password=document.getElementById('pass').value;
-  const displayName=reg?document.getElementById('name').value.trim():'';
-  if(!email||password.length<8||(reg&&!displayName)){err.textContent='Check your email, name, and password.';return}
-  b.disabled=true;b.textContent=reg?'Creating...':'Signing in...';err.textContent='';
+async function boot(){
   try{
-   const d=await post(reg?'/register':'/login',{email,password,...(reg?{displayName}:{})},false);
-   setToken(d.token);renderChat();
-  }catch(e){err.textContent=e.message}finally{b.disabled=false;b.textContent=reg?'Create account':'Sign in'}
- }
+    const d=await get('/bots/list');
+    state.bots=d.bots||[];
+    renderHome();
+  }catch(e){
+    if(authFail(e))return;
+    app.innerHTML='<div class="fatal"><div><h2>Could not load workspace</h2><p>'+esc(e.message)+'</p><button onclick="boot()">Retry</button></div></div>';
+  }
 }
 
-function agentName(){return agent==='researcher'?'Researcher':agent==='operator'?'Operator':'Chief'}
-function renderChat(){
- app.innerHTML='<div class="chatPage">'+
- '<header class="top"><img class="brandAvatar" src="'+AV+'"><div class="brandText"><b>Diza Bot Agent</b><div id="status" class="online">● Online</div></div>'+
- '<button id="fresh" class="topBtn">＋</button><button id="out" class="topBtn">↪</button></header>'+
- '<div class="agentBar"><button class="agent '+(agent==='chief'?'on':'')+'" data-a="chief">Chief</button><button class="agent '+(agent==='researcher'?'on':'')+'" data-a="researcher">Research</button><button class="agent '+(agent==='operator'?'on':'')+'" data-a="operator">Operator</button></div>'+
- '<main id="messages" class="messages"></main>'+
- '<div class="composerArea"><div class="composer"><textarea id="box" rows="1" placeholder="Message Diza '+agentName()+'…"></textarea><button id="send" class="send">➤</button></div><div class="fine">Diza can make mistakes. Check important information.</div></div></div>';
- document.querySelectorAll('.agent').forEach(b=>b.onclick=()=>{agent=b.dataset.a;renderChat()});
- document.getElementById('fresh').onclick=()=>{setConv();renderChat()};
- document.getElementById('out').onclick=logout;
- document.getElementById('send').onclick=send;
- const box=document.getElementById('box');
- box.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}};
- box.oninput=()=>{box.style.height='auto';box.style.height=Math.min(box.scrollHeight,112)+'px'};
- welcome();
+function renderHome(){
+  state.currentBot=null;
+  app.innerHTML='<div class="screen relative">'+
+    '<header class="top"><div class="topTitle"><b>DIZA</b><span>Bot workspace</span></div>'+
+    '<button id="tasksBtn" class="iconBtn" title="Tasks">✓</button>'+
+    '<button id="addBot" class="iconBtn" title="New bot">＋</button></header>'+
+    '<div class="searchWrap"><input id="search" class="search" placeholder="Search bots"></div>'+
+    '<main class="scroll"><div id="botList" class="list"></div></main>'+
+    '</div>';
+  document.getElementById('addBot').onclick=function(){renderBotEditor(null)};
+  document.getElementById('tasksBtn').onclick=renderTasks;
+  document.getElementById('search').oninput=function(){drawBotList(this.value)};
+  drawBotList('');
 }
-function welcome(){
- document.getElementById('messages').innerHTML='<section class="welcome"><img class="welcomeIcon" src="'+AV+'"><h2>What should Diza work on?</h2><p>Ask, research, plan, or hand off a task.</p><div class="chips"><button class="chip">Plan a project</button><button class="chip">Research something</button><button class="chip">Break down a task</button></div></section>';
- document.querySelectorAll('.chip').forEach(x=>x.onclick=()=>{document.getElementById('box').value=x.textContent;document.getElementById('box').focus()})
+
+function drawBotList(query){
+  const box=document.getElementById('botList');if(!box)return;
+  const q=String(query||'').toLowerCase();
+  const bots=state.bots.filter(function(b){return !q||b.name.toLowerCase().includes(q)||(b.title||'').toLowerCase().includes(q)});
+  if(!bots.length){
+    box.innerHTML='<div class="empty"><h3>No bots yet</h3><p>Tap + to create your first custom bot.</p></div>';return;
+  }
+  box.innerHTML=bots.map(function(b){
+    const preview=b.title||((b.instructions||'').slice(0,90))||'Tap to chat';
+    return '<div class="botRow" data-id="'+b.id+'">'+
+      '<img class="avatar" src="'+esc(avatarOf(b))+'">'+
+      '<div class="botMain"><div class="botNameLine"><div class="botName">'+esc(b.name)+'</div>'+(b.isDefault?'<span class="badge">DEFAULT</span>':'')+'</div>'+
+      '<div class="preview">'+esc(preview)+'</div></div>'+
+      '<button class="rowBtn settings" data-edit="'+b.id+'">⋮</button></div>';
+  }).join('');
+  box.querySelectorAll('.botRow').forEach(function(row){
+    row.onclick=function(e){
+      if(e.target.closest('.settings'))return;
+      const bot=state.bots.find(function(x){return x.id===Number(row.dataset.id)});
+      if(bot)renderChat(bot);
+    };
+  });
+  box.querySelectorAll('.settings').forEach(function(btn){
+    btn.onclick=function(e){e.stopPropagation();const bot=state.bots.find(function(x){return x.id===Number(btn.dataset.edit)});if(bot)renderBotEditor(bot)};
+  });
 }
-function bubble(role,content){
- const m=document.getElementById('messages');
- if(m.querySelector('.welcome'))m.innerHTML='';
- const row=document.createElement('div');row.className='row '+role;
- if(role==='assistant'){const im=document.createElement('img');im.src=AV;im.className='miniAv';row.appendChild(im)}
- const b=document.createElement('div');b.className='bubble';b.textContent=content;row.appendChild(b);m.appendChild(row);m.scrollTop=m.scrollHeight
+
+function compressAvatar(file){
+  return new Promise(function(resolve,reject){
+    const reader=new FileReader();
+    reader.onerror=function(){reject(new Error('Could not read image'))};
+    reader.onload=function(){
+      const img=new Image();
+      img.onerror=function(){reject(new Error('Invalid image'))};
+      img.onload=function(){
+        const max=512,scale=Math.min(1,max/Math.max(img.width,img.height));
+        const w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
+        const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',0.82));
+      };
+      img.src=reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
-async function send(){
- if(busy)return;const box=document.getElementById('box');const text=box.value.trim();if(!text)return;
- box.value='';box.style.height='auto';bubble('user',text);busy=true;document.getElementById('send').disabled=true;document.getElementById('status').textContent='● Thinking';
- const m=document.getElementById('messages'),wait=document.createElement('div');wait.className='typing';wait.textContent='Diza is working…';m.appendChild(wait);m.scrollTop=m.scrollHeight;
- try{
-  const d=await post('/chat',{conversationId:conv(),agentKey:agent,message:text});
-  setConv(d.conversationId);m.innerHTML='';(d.messages||[]).forEach(x=>bubble(x.role,x.content));
- }catch(e){wait.remove();if(e.status===401){logout();return}bubble('assistant',e.message)}
- finally{busy=false;const s=document.getElementById('send');if(s)s.disabled=false;const st=document.getElementById('status');if(st)st.textContent='● Online'}
+
+function renderBotEditor(bot){
+  let avatarData=bot?bot.avatarData:null;
+  app.innerHTML='<div class="screen">'+
+    '<header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>'+(bot?'Edit bot':'New bot')+'</b><span>Identity & personality</span></div></header>'+
+    '<main class="scroll"><div class="pad">'+
+    '<div class="avatarEditor"><img id="avatarPreview" class="avatar" src="'+esc(avatarOf(bot))+'">'+
+    '<label class="fileLabel">Choose photo<input id="avatarFile" type="file" accept="image/*"></label></div>'+
+    '<div class="sectionTitle">IDENTITY</div>'+
+    '<input id="botName" class="field" placeholder="Bot name" value="'+esc(bot?bot.name:'')+'">'+
+    '<input id="botTitle" class="field" placeholder="Title, e.g. Coding Assistant" value="'+esc(bot?bot.title:'')+'">'+
+    '<div class="sectionTitle">INSTRUCTIONS</div>'+
+    '<textarea id="botInstructions" class="textarea" placeholder="What is this bot, what should it do, and what rules should it follow?">'+esc(bot?bot.instructions:'')+'</textarea>'+
+    '<textarea id="botStyle" class="textarea" placeholder="Response style, personality, tone...">'+esc(bot?bot.style:'')+'</textarea>'+
+    '<input id="botSkills" class="field" placeholder="Skills, comma separated" value="'+esc(bot&&Array.isArray(bot.skills)?bot.skills.join(', '):'')+'">'+
+    '<p class="hint">Each bot keeps its own identity and memory. Shared workspace memory is only read from items you explicitly mark as shared.</p>'+
+    '<div id="editorErr" class="error"></div>'+
+    '<button id="saveBot" class="primary">Save bot</button>'+
+    (bot&&!bot.isDefault?'<div style="height:10px"></div><button id="deleteBot" class="danger">Delete bot</button>':'')+
+    '</div></main></div>';
+
+  document.getElementById('back').onclick=renderHome;
+  document.getElementById('avatarFile').onchange=async function(){
+    const file=this.files&&this.files[0];if(!file)return;
+    try{avatarData=await compressAvatar(file);document.getElementById('avatarPreview').src=avatarData}
+    catch(e){document.getElementById('editorErr').textContent=e.message}
+  };
+  document.getElementById('saveBot').onclick=async function(){
+    const err=document.getElementById('editorErr'),btn=this;
+    const name=document.getElementById('botName').value.trim();
+    if(!name){err.textContent='Bot name is required.';return}
+    const payload={
+      ...(bot?{id:bot.id}:{}),
+      name:name,
+      title:document.getElementById('botTitle').value.trim(),
+      avatarData:avatarData||null,
+      instructions:document.getElementById('botInstructions').value,
+      style:document.getElementById('botStyle').value,
+      skills:document.getElementById('botSkills').value.split(',').map(function(x){return x.trim()}).filter(Boolean),
+      permissions:bot&&bot.permissions?bot.permissions:{}
+    };
+    btn.disabled=true;err.textContent='';
+    try{
+      await post('/bots/save',payload);
+      const d=await get('/bots/list');state.bots=d.bots||[];renderHome();
+    }catch(e){if(!authFail(e))err.textContent=e.message}
+    finally{btn.disabled=false}
+  };
+  const del=document.getElementById('deleteBot');
+  if(del)del.onclick=async function(){
+    if(!confirm('Delete '+bot.name+'? Its private memory will also be removed.'))return;
+    try{await post('/bots/delete',{id:bot.id});const d=await get('/bots/list');state.bots=d.bots||[];renderHome()}
+    catch(e){if(!authFail(e))document.getElementById('editorErr').textContent=e.message}
+  };
 }
-token()?renderChat():renderAuth(false);
+
+function renderChat(bot){
+  state.currentBot=bot;
+  app.innerHTML='<div class="screen">'+
+    '<header class="top"><button id="back" class="backBtn">‹</button><img class="smallAvatar" src="'+esc(avatarOf(bot))+'">'+
+    '<div class="topTitle"><b>'+esc(bot.name)+'</b><span id="chatStatus">'+esc(bot.title||'Ready')+'</span></div>'+
+    '<button id="editBot" class="iconBtn">⋮</button></header>'+
+    '<div class="chatTools"><button id="memoryBtn" class="toolChip">Memory</button><button id="newChat" class="toolChip">New chat</button></div>'+
+    '<main id="messages" class="messages"></main>'+
+    '<div class="composerArea"><div class="composer"><textarea id="box" rows="1" placeholder="Message '+esc(bot.name)+'…"></textarea><button id="send" class="send">➤</button></div></div>'+
+    '</div>';
+  document.getElementById('back').onclick=renderHome;
+  document.getElementById('editBot').onclick=function(){renderBotEditor(bot)};
+  document.getElementById('memoryBtn').onclick=function(){renderMemories(bot)};
+  document.getElementById('newChat').onclick=function(){setConv(bot.id);showWelcome(bot)};
+  document.getElementById('send').onclick=sendChat;
+  const box=document.getElementById('box');
+  box.onkeydown=function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}};
+  box.oninput=function(){box.style.height='auto';box.style.height=Math.min(box.scrollHeight,112)+'px'};
+  loadConversation(bot);
+}
+
+function showWelcome(bot){
+  const m=document.getElementById('messages');if(!m)return;
+  m.innerHTML='<section class="welcome"><img class="avatar" src="'+esc(avatarOf(bot))+'"><h2>'+esc(bot.name)+'</h2>'+
+    '<p>'+esc(bot.instructions?bot.instructions.slice(0,220):'Start a conversation with this bot.')+'</p></section>';
+}
+
+async function loadConversation(bot){
+  const id=conv(bot.id);
+  if(!id){showWelcome(bot);return}
+  try{
+    const d=await get('/conversations/get?id='+encodeURIComponent(id));
+    drawMessages(bot,d.messages||[]);
+  }catch(e){
+    if(e.status===404){setConv(bot.id);showWelcome(bot);return}
+    if(!authFail(e)){showWelcome(bot)}
+  }
+}
+
+function drawMessages(bot,messages){
+  const m=document.getElementById('messages');if(!m)return;
+  m.innerHTML='';
+  (messages||[]).forEach(function(x){appendBubble(bot,x.role,x.content)});
+  if(!messages||!messages.length)showWelcome(bot);
+}
+
+function appendBubble(bot,role,content){
+  const m=document.getElementById('messages');if(!m)return;
+  const w=m.querySelector('.welcome');if(w)w.remove();
+  const row=document.createElement('div');row.className='msgRow '+role;
+  if(role==='assistant'){
+    const im=document.createElement('img');im.src=avatarOf(bot);im.className='miniAvatar';row.appendChild(im);
+  }
+  const b=document.createElement('div');b.className='bubble';b.textContent=content;row.appendChild(b);m.appendChild(row);m.scrollTop=m.scrollHeight;
+}
+
+async function sendChat(){
+  if(state.busy||!state.currentBot)return;
+  const bot=state.currentBot,box=document.getElementById('box');
+  const text=box.value.trim();if(!text)return;
+  box.value='';box.style.height='auto';appendBubble(bot,'user',text);
+  state.busy=true;document.getElementById('send').disabled=true;document.getElementById('chatStatus').textContent='Working…';
+  const m=document.getElementById('messages'),wait=document.createElement('div');wait.className='typing';wait.textContent=bot.name+' is working…';m.appendChild(wait);m.scrollTop=m.scrollHeight;
+  try{
+    const d=await post('/chat',{conversationId:conv(bot.id),botId:bot.id,message:text});
+    setConv(bot.id,d.conversationId);drawMessages(bot,d.messages||[]);
+  }catch(e){
+    wait.remove();if(authFail(e))return;appendBubble(bot,'assistant',e.message);
+  }finally{
+    state.busy=false;
+    const s=document.getElementById('send');if(s)s.disabled=false;
+    const st=document.getElementById('chatStatus');if(st)st.textContent=bot.title||'Ready';
+  }
+}
+
+async function renderMemories(bot){
+  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>'+esc(bot.name)+' Memory</b><span>Private bot memory + shared workspace</span></div><button id="addMem" class="iconBtn">＋</button></header><main class="scroll"><div id="memoryList" class="pad"><div class="muted">Loading…</div></div></main></div>';
+  document.getElementById('back').onclick=function(){renderChat(bot)};
+  document.getElementById('addMem').onclick=function(){renderMemoryEditor(bot)};
+  try{
+    const d=await get('/memories/list?botId='+encodeURIComponent(bot.id));
+    const box=document.getElementById('memoryList'),items=d.memories||[];
+    if(!items.length){box.innerHTML='<div class="empty"><h3>No memory yet</h3><p>Add something this bot should remember.</p></div>';return}
+    box.innerHTML=items.map(function(m){
+      return '<div class="card"><h3>'+esc(m.title||'Memory')+'</h3><p>'+esc(m.content)+'</p><div class="meta">'+
+        '<span class="pill">'+esc(m.scope)+'</span><span class="pill">'+esc(m.kind)+'</span>'+(m.pinned?'<span class="pill">pinned</span>':'')+
+        '</div><button class="secondary deleteMem" data-id="'+m.id+'">Delete</button></div>';
+    }).join('');
+    box.querySelectorAll('.deleteMem').forEach(function(btn){
+      btn.onclick=async function(){if(!confirm('Delete this memory?'))return;try{await post('/memories/delete',{id:Number(btn.dataset.id)});renderMemories(bot)}catch(e){if(!authFail(e))alert(e.message)}};
+    });
+  }catch(e){if(!authFail(e))document.getElementById('memoryList').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+}
+
+function renderMemoryEditor(bot){
+  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>Add memory</b><span>'+esc(bot.name)+'</span></div></header>'+
+    '<main class="scroll"><div class="pad">'+
+    '<div class="sectionTitle">SCOPE</div><select id="memScope" class="select"><option value="bot">Private to '+esc(bot.name)+'</option><option value="workspace">Shared workspace</option></select>'+
+    '<select id="memKind" class="select"><option value="long_term">Long-term memory</option><option value="task">Task memory</option></select>'+
+    '<input id="memTitle" class="field" placeholder="Title">'+
+    '<textarea id="memContent" class="textarea" style="min-height:180px" placeholder="What should be remembered?"></textarea>'+
+    '<label class="switchLine"><span>Pin this memory</span><input id="memPin" type="checkbox"></label>'+
+    '<p class="hint">Shared workspace memory can be read by bots during tasks. Private memory stays attached to this bot.</p>'+
+    '<div id="memErr" class="error"></div><button id="saveMem" class="primary">Save memory</button>'+
+    '</div></main></div>';
+  document.getElementById('back').onclick=function(){renderMemories(bot)};
+  document.getElementById('saveMem').onclick=async function(){
+    const scope=document.getElementById('memScope').value,content=document.getElementById('memContent').value.trim();
+    if(!content){document.getElementById('memErr').textContent='Memory content is required.';return}
+    try{
+      await post('/memories/save',{
+        botId:scope==='bot'?bot.id:null,scope:scope,kind:document.getElementById('memKind').value,
+        title:document.getElementById('memTitle').value.trim(),content:content,pinned:document.getElementById('memPin').checked
+      });
+      renderMemories(bot);
+    }catch(e){if(!authFail(e))document.getElementById('memErr').textContent=e.message}
+  };
+}
+
+async function renderTasks(){
+  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>Tasks</b><span>Bot collaboration only when you assign it</span></div><button id="newTask" class="iconBtn">＋</button></header><main class="scroll"><div id="taskList" class="pad"><div class="muted">Loading…</div></div></main></div>';
+  document.getElementById('back').onclick=renderHome;
+  document.getElementById('newTask').onclick=renderTaskEditor;
+  try{
+    const d=await get('/tasks/list'),box=document.getElementById('taskList'),items=d.tasks||[];
+    if(!items.length){box.innerHTML='<div class="empty"><h3>No tasks yet</h3><p>Create a task and choose exactly which bots should work on it.</p></div>';return}
+    box.innerHTML=items.map(function(t){
+      return '<div class="card taskCard" data-id="'+t.id+'"><div class="status '+esc(t.status)+'">'+esc(t.status)+'</div><h3>'+esc(t.title)+'</h3><p>'+esc(t.instruction)+'</p><div class="meta"><span class="pill">'+t.stepCount+' steps</span></div></div>';
+    }).join('');
+    box.querySelectorAll('.taskCard').forEach(function(card){card.onclick=function(){renderTaskDetail(Number(card.dataset.id))}});
+  }catch(e){if(!authFail(e))document.getElementById('taskList').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+}
+
+function renderTaskEditor(){
+  if(!state.bots.length){renderHome();return}
+  state.taskDraft={title:'',instruction:'',steps:[{botId:state.bots[0].id,instruction:''}]};
+  drawTaskEditor();
+}
+
+function drawTaskEditor(){
+  const d=state.taskDraft;
+  const options=state.bots.map(function(b){return '<option value="'+b.id+'">'+esc(b.name)+'</option>'}).join('');
+  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>New task</b><span>You control every participant and step</span></div></header>'+
+    '<main class="scroll"><div class="pad">'+
+    '<input id="taskTitle" class="field" placeholder="Task title" value="'+esc(d.title)+'">'+
+    '<textarea id="taskInstruction" class="textarea" placeholder="Overall task instruction">'+esc(d.instruction)+'</textarea>'+
+    '<div class="sectionTitle">BOT STEPS</div><div id="steps">'+d.steps.map(function(s,i){
+      return '<div class="taskStep"><div class="taskStepTop"><select class="select stepBot" data-i="'+i+'">'+options+'</select><button class="removeStep" data-i="'+i+'">×</button></div>'+
+        '<textarea class="textarea stepInstruction" data-i="'+i+'" placeholder="What should this bot do?">'+esc(s.instruction)+'</textarea></div>';
+    }).join('')+'</div>'+
+    '<button id="addStep" class="secondary">＋ Add bot step</button>'+
+    '<p class="hint">Bots execute only these user-defined steps. A later bot receives outputs from earlier steps, but bots cannot create their own extra collaboration.</p>'+
+    '<div id="taskErr" class="error"></div><button id="createTask" class="primary">Create task</button>'+
+    '</div></main></div>';
+  document.getElementById('back').onclick=renderTasks;
+  d.steps.forEach(function(s,i){const sel=document.querySelector('.stepBot[data-i="'+i+'"]');if(sel)sel.value=String(s.botId)});
+  function sync(){
+    d.title=document.getElementById('taskTitle').value;
+    d.instruction=document.getElementById('taskInstruction').value;
+    document.querySelectorAll('.stepBot').forEach(function(x){d.steps[Number(x.dataset.i)].botId=Number(x.value)});
+    document.querySelectorAll('.stepInstruction').forEach(function(x){d.steps[Number(x.dataset.i)].instruction=x.value});
+  }
+  document.getElementById('addStep').onclick=function(){sync();d.steps.push({botId:state.bots[0].id,instruction:''});drawTaskEditor()};
+  document.querySelectorAll('.removeStep').forEach(function(x){x.onclick=function(){sync();if(d.steps.length>1){d.steps.splice(Number(x.dataset.i),1);drawTaskEditor()}}});
+  document.getElementById('createTask').onclick=async function(){
+    sync();
+    if(!d.title.trim()||!d.instruction.trim()||d.steps.some(function(s){return !s.instruction.trim()})){document.getElementById('taskErr').textContent='Fill the title, overall instruction, and every bot step.';return}
+    try{
+      const r=await post('/tasks/create',{title:d.title.trim(),instruction:d.instruction.trim(),steps:d.steps.map(function(s){return {botId:s.botId,instruction:s.instruction.trim()}})});
+      renderTaskDetail(r.taskId);
+    }catch(e){if(!authFail(e))document.getElementById('taskErr').textContent=e.message}
+  };
+}
+
+async function renderTaskDetail(id){
+  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>Task</b><span>Loading…</span></div></header><main class="scroll"><div id="taskDetail" class="pad"><div class="muted">Loading…</div></div></main></div>';
+  document.getElementById('back').onclick=renderTasks;
+  try{
+    const d=await get('/tasks/get?id='+encodeURIComponent(id)),t=d.task,box=document.getElementById('taskDetail');
+    document.querySelector('.topTitle span').textContent=t.status;
+    box.innerHTML='<div class="card"><div class="status '+esc(t.status)+'">'+esc(t.status)+'</div><h3>'+esc(t.title)+'</h3><p>'+esc(t.instruction)+'</p></div>'+
+      '<div class="sectionTitle">EXECUTION ORDER</div>'+
+      t.steps.map(function(s){
+        return '<div class="card"><div class="status '+esc(s.status)+'">STEP '+s.stepIndex+' • '+esc(s.status)+'</div><h3>'+esc(s.botName)+'</h3><p>'+esc(s.instruction)+'</p>'+
+          (s.output?'<div class="output">'+esc(s.output)+'</div>':'')+(s.error?'<div class="error">'+esc(s.error)+'</div>':'')+'</div>';
+      }).join('')+
+      (t.status!=='running'&&t.status!=='cancelled'?'<button id="runTask" class="primary">'+(t.status==='completed'?'Run again':'Run task')+'</button>':'')+
+      (t.error?'<div class="error">'+esc(t.error)+'</div>':'');
+    const run=document.getElementById('runTask');
+    if(run)run.onclick=async function(){
+      run.disabled=true;run.textContent='Bots are working…';
+      try{await post('/tasks/run',{taskId:id});renderTaskDetail(id)}
+      catch(e){if(authFail(e))return;alert(e.message);renderTaskDetail(id)}
+    };
+  }catch(e){if(!authFail(e))document.getElementById('taskDetail').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+}
+
+token()?boot():renderAuth(false);
 </script>
 </body>
 </html>
