@@ -6,10 +6,24 @@ const PERIOD_MS = {
   month: 30 * 24 * 60 * 60_000,
 };
 
-function pickLimit(limits, metric) {
-  const rows = (limits || []).filter((x) => x.metric === metric);
-  if (!rows.length) return null;
-  return rows.sort((a, b) => PERIOD_MS[a.period] - PERIOD_MS[b.period])[0];
+function toWindow(limit,current,now){
+  const periodMs=PERIOD_MS[limit.period]||null;
+  const key=String(limit.metric)+":"+String(limit.period);
+  const prev=current?.windows?.[key]||null;
+  let resetAt=prev?.resetAt||null;
+  if(periodMs&&(!resetAt||Number(resetAt)<=now())){
+    resetAt=now()+periodMs;
+  }
+  return {
+    metric:limit.metric,
+    period:limit.period,
+    limit:Number(limit.value),
+    used:prev?.used||0,
+    remaining:prev?.remaining??null,
+    resetAt,
+    periodMs,
+    authoritative:false,
+  };
 }
 
 export function syncLedgerFromCatalog(catalog, ledger, { now = () => Date.now(), providers = [] } = {}) {
@@ -20,28 +34,27 @@ export function syncLedgerFromCatalog(catalog, ledger, { now = () => Date.now(),
     const provider = byId.get(entry.id);
     const modelId = provider?.modelId || entry.defaultModel || "default";
     const intel = entry.intel;
-    if (!intel) continue;
-
-    const request = pickLimit(intel.limits, "requests");
-    const token = pickLimit(intel.limits, "tokens");
-    const chosen = request || token;
-    const periodMs = chosen ? PERIOD_MS[chosen.period] || null : null;
     const current = ledger.get(entry.id, modelId);
+    const limits=Array.isArray(intel?.limits)?intel.limits:[];
+    const quotaWindows=limits
+      .filter(x=>["requests","tokens"].includes(x.metric)&&PERIOD_MS[x.period])
+      .map(x=>toWindow(x,current,now));
+
     const patch = {
       paidAllowed: false,
       billingMode: "free_only",
-      disabled: entry.enabled === false || entry.autoEligible === false,
+      disabled:
+        entry.enabled === false
+        || entry.policyBlocked === true
+        || entry.safetyDisabled === true
+        || (!provider && entry.autoEligible === false),
+      ...(quotaWindows.length?{quotaWindows}:{}),
     };
 
-    if (request) patch.requestLimit = request.value;
-    if (token) patch.tokenLimit = token.value;
-    if (chosen) patch.quotaType = chosen.period;
-    if (periodMs) {
-      patch.periodMs = periodMs;
-      if (!current.resetAt || Number(current.resetAt) <= now()) {
-        patch.resetAt = now() + periodMs;
-      }
-    }
+    const request=limits.find(x=>x.metric==="requests");
+    const token=limits.find(x=>x.metric==="tokens");
+    if(request)patch.requestLimit=Number(request.value);
+    if(token)patch.tokenLimit=Number(token.value);
 
     ledger.upsert(entry.id, modelId, patch);
     updated.push({ providerId: entry.id, modelId, patch });
