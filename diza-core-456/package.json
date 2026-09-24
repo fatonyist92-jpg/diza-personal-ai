@@ -2,5 +2,11 @@
   "name": "diza-core-456",
   "private": true,
   "type": "module",
-  "scripts": {"test": "node tests/run-tests.mjs"}
+  "scripts": {
+    "test": "node --check worker.mjs && node --check maintenance-cli.mjs && node --check status-cli.mjs && node tests/run-tests.mjs",
+    "worker": "node worker.mjs",
+    "maintenance": "node maintenance-cli.mjs",
+    "maintenance:force": "node maintenance-cli.mjs --force",
+    "status": "node status-cli.mjs"
+  }
 }
