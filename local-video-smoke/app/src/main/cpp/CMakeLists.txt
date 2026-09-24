@@ -1,0 +1,38 @@
+cmake_minimum_required(VERSION 3.22.1)
+project(diza_smoke)
+
+add_library(diza_smoke SHARED diza_smoke.cpp)
+find_library(log-lib log)
+find_library(android-lib android)
+find_library(dl-lib dl)
+
+set(MNN_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}")
+set(MNN_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/mnn_include")
+
+if(NOT EXISTS "${MNN_LIB_DIR}/libMNN.so" OR NOT EXISTS "${MNN_LIB_DIR}/libMNN_Express.so")
+    message(FATAL_ERROR "DIZA smoke requires real MNN runtime; stub build forbidden")
+endif()
+if(NOT EXISTS "${MNN_INCLUDE_DIR}/MNN/expr/Module.hpp")
+    message(FATAL_ERROR "DIZA smoke requires exact MNN headers")
+endif()
+
+add_library(MNN SHARED IMPORTED)
+set_target_properties(MNN PROPERTIES IMPORTED_LOCATION "${MNN_LIB_DIR}/libMNN.so")
+add_library(MNN_Express SHARED IMPORTED)
+set_target_properties(MNN_Express PROPERTIES IMPORTED_LOCATION "${MNN_LIB_DIR}/libMNN_Express.so")
+
+target_include_directories(diza_smoke PRIVATE "${MNN_INCLUDE_DIR}")
+target_link_libraries(diza_smoke MNN MNN_Express ${log-lib} ${android-lib} ${dl-lib})
+
+if(EXISTS "${MNN_LIB_DIR}/libMNN_CL.so")
+    add_library(MNN_CL SHARED IMPORTED)
+    set_target_properties(MNN_CL PROPERTIES IMPORTED_LOCATION "${MNN_LIB_DIR}/libMNN_CL.so")
+    target_link_libraries(diza_smoke MNN_CL)
+    target_compile_definitions(diza_smoke PRIVATE DIZA_HAS_OPENCL=1)
+endif()
+if(EXISTS "${MNN_LIB_DIR}/libMNN_Vulkan.so")
+    add_library(MNN_Vulkan SHARED IMPORTED)
+    set_target_properties(MNN_Vulkan PROPERTIES IMPORTED_LOCATION "${MNN_LIB_DIR}/libMNN_Vulkan.so")
+    target_link_libraries(diza_smoke MNN_Vulkan)
+    target_compile_definitions(diza_smoke PRIVATE DIZA_HAS_VULKAN=1)
+endif()
