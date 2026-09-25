@@ -14,18 +14,20 @@ for(const [i,script] of scripts.entries()){
   }
 }
 
+assert.ok(html.includes("const API='/_api/native'"),"Missing native API base prefix");
+
 const requiredEndpoints=[
-  "/native/bots/list",
-  "/native/bots/save",
-  "/native/bots/delete",
-  "/native/memories/list",
-  "/native/memories/save",
-  "/native/memories/delete",
-  "/native/tasks/create",
-  "/native/tasks/list",
-  "/native/tasks/get",
-  "/native/tasks/run",
-  "/native/conversations/get"
+  "/bots/list",
+  "/bots/save",
+  "/bots/delete",
+  "/memories/list",
+  "/memories/save",
+  "/memories/delete",
+  "/tasks/create",
+  "/tasks/list",
+  "/tasks/get",
+  "/tasks/run",
+  "/conversations/get"
 ];
 
 for(const endpoint of requiredEndpoints){
@@ -33,7 +35,7 @@ for(const endpoint of requiredEndpoints){
 }
 
 const requiredUiTerms=[
-  "New Bot",
+  "New bot",
   "Memory",
   "Tasks"
 ];
