@@ -1,666 +1,537 @@
 <!doctype html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#000000">
 <title>Diza Bot Agent</title>
 <style>
+:root{
+  --bg:#020407;--panel:#0b0e13;--panel2:#11151c;--panel3:#171b23;--line:#242a34;
+  --text:#f7f8fb;--muted:#8d95a3;--muted2:#626a77;--purple:#7b3cff;--purple2:#a95cff;
+  --blue:#376dff;--red:#ff3b43;--green:#48d76f;--radius:18px;--safe-bottom:max(14px,env(safe-area-inset-bottom));
+}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:#000;color:#f5f5f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;height:100%;overflow:hidden}
-button,input,textarea,select{font:inherit;color:inherit}
-button{cursor:pointer}
-.hide{display:none!important}
-#app{height:100dvh;background:#000}
-.screen{height:100%;display:flex;flex-direction:column;background:#000}
-.top{height:66px;flex:none;display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #171719;background:#000}
-.topTitle{flex:1;min-width:0}
-.topTitle b{display:block;font-size:18px;letter-spacing:-.02em}
-.topTitle span{display:block;color:#777780;font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.iconBtn{width:42px;height:42px;border:1px solid #202024;border-radius:14px;background:#08080a;color:#d7d7dc;font-size:20px}
-.backBtn{width:40px;height:40px;border:0;background:transparent;color:#d7d7dc;font-size:26px;padding:0}
-.avatar{width:50px;height:50px;border-radius:16px;object-fit:cover;border:1px solid #29292d;background:#101012}
-.smallAvatar{width:42px;height:42px;border-radius:14px;object-fit:cover;border:1px solid #29292d;background:#101012}
-.miniAvatar{width:29px;height:29px;border-radius:9px;object-fit:cover;border:1px solid #222;background:#101012}
-.scroll{flex:1;overflow:auto}
-.pad{padding:14px}
-.auth{height:100%;overflow:auto;display:flex;align-items:center;justify-content:center;padding:28px 22px}
-.authCard{width:100%;max-width:420px;padding:18px 0 40px}
-.authLogo{width:82px;height:82px;border-radius:24px;object-fit:cover;border:1px solid #2b2b2f;display:block;margin-bottom:20px}
-.eyebrow{font-size:11px;letter-spacing:.14em;color:#8d8d94;font-weight:700}
-.auth h1{font-size:32px;letter-spacing:-.045em;margin:26px 0 8px}
-.muted{color:#7e7e85;font-size:14px;line-height:1.5;margin:0 0 24px}
-.field,.textarea,.select{width:100%;border:1px solid #26262a;border-radius:16px;background:#0b0b0d;color:#fff;outline:none}
-.field{height:52px;padding:0 15px;margin:0 0 11px}
-.textarea{min-height:104px;padding:13px 15px;resize:vertical;line-height:1.45;margin:0 0 11px}
-.select{height:48px;padding:0 12px;margin:0 0 10px}
-.field:focus,.textarea:focus,.select:focus{border-color:#55505e;box-shadow:0 0 0 3px rgba(155,134,255,.08)}
-.primary{width:100%;height:50px;border:0;border-radius:16px;background:#f4f4f5;color:#050505;font-weight:800}
-.secondary{width:100%;height:46px;border:0;background:transparent;color:#a99cff;font-weight:650}
-.danger{width:100%;height:46px;border:1px solid #422328;background:#13090b;color:#ff878d;border-radius:15px;font-weight:700}
-.error{min-height:20px;color:#ff7777;font-size:12px;margin:4px 2px 8px}
-.searchWrap{padding:10px 12px;border-bottom:1px solid #101012}
-.search{width:100%;height:42px;border:1px solid #1d1d20;border-radius:14px;background:#09090b;color:#fff;padding:0 14px;outline:0}
-.list{padding:2px 0 90px}
-.botRow{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #101012;background:#000}
-.botRow:active{background:#08080a}
-.botMain{flex:1;min-width:0}
-.botNameLine{display:flex;align-items:center;gap:7px}
-.botName{font-size:15px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.badge{font-size:9px;color:#b8acff;border:1px solid #373047;background:#120f18;padding:3px 6px;border-radius:999px}
-.preview{font-size:12px;color:#777780;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rowBtn{width:38px;height:38px;border:0;background:transparent;color:#666670;font-size:18px}
-.empty{padding:72px 24px;text-align:center;color:#777780}
-.empty h3{color:#e9e9ed;margin:0 0 8px}
-.sectionTitle{font-size:11px;font-weight:800;letter-spacing:.12em;color:#777780;margin:18px 2px 9px}
-.card{border:1px solid #1d1d21;background:#08080a;border-radius:18px;padding:14px;margin-bottom:10px}
-.card h3{margin:0 0 5px;font-size:15px}
-.card p{margin:0;color:#8c8c94;font-size:12px;line-height:1.5;white-space:pre-wrap}
-.meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-.pill{font-size:9px;border:1px solid #2b2b31;border-radius:999px;padding:4px 7px;color:#8d8d95}
-.avatarEditor{display:flex;align-items:center;gap:14px;margin:6px 0 20px}
-.avatarEditor .avatar{width:72px;height:72px;border-radius:22px}
-.fileLabel{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 13px;border:1px solid #29292e;border-radius:13px;background:#0b0b0d;color:#d8d8dd;font-size:12px;font-weight:700}
-.fileLabel input{display:none}
-.hint{font-size:11px;color:#66666e;line-height:1.45;margin:-2px 2px 12px}
-.switchLine{display:flex;align-items:center;justify-content:space-between;border:1px solid #1d1d21;background:#08080a;border-radius:15px;padding:12px 13px;margin-bottom:10px}
-.switchLine span{font-size:13px}
-.switchLine input{width:20px;height:20px}
-.messages{flex:1;overflow:auto;padding:16px 13px 24px}
-.welcome{max-width:520px;margin:13vh auto 0;text-align:center;padding:0 16px}
-.welcome .avatar{width:66px;height:66px;border-radius:21px;margin:auto}
-.welcome h2{font-size:25px;letter-spacing:-.04em;margin:17px 0 8px}
-.welcome p{font-size:13px;color:#75757c;line-height:1.55;margin:0 auto}
-.msgRow{display:flex;margin:13px 0}
-.msgRow.user{justify-content:flex-end}
-.bubble{max-width:84%;font-size:14px;line-height:1.58;white-space:pre-wrap;word-break:break-word}
-.user .bubble{background:#18181b;border:1px solid #29292d;padding:10px 13px;border-radius:18px 18px 5px 18px}
-.assistant .bubble{padding:7px 4px;color:#e7e7ea}
-.assistant{align-items:flex-start;gap:9px}
-.typing{color:#777;font-size:13px;padding:9px 4px}
-.composerArea{position:relative;flex:none;padding:10px 10px max(10px,env(safe-area-inset-bottom));background:linear-gradient(transparent,#000 24%)}
-.composerRow{display:flex;gap:8px;align-items:flex-end}
-.plusBtn{flex:none;width:48px;height:48px;border:1px solid #323238;border-radius:18px;background:#101012;color:#fff;font-size:28px;line-height:1}
-.composer{flex:1;display:flex;align-items:flex-end;gap:8px;border:1px solid #28282c;background:#0c0c0e;border-radius:22px;padding:8px 8px 8px 14px}
-.composer textarea{flex:1;min-height:38px;max-height:112px;resize:none;background:transparent;border:0;outline:0;color:#fff;padding:8px 0;line-height:1.35}
-.send{width:40px;height:40px;border:0;border-radius:13px;background:#f4f4f5;color:#050505;font-weight:900;font-size:17px}
-.send:disabled{background:#202024;color:#56565d}
-.attachMenu{position:absolute;left:10px;bottom:72px;width:260px;padding:8px;border:1px solid #44444b;border-radius:22px;background:#1b1b1e;box-shadow:0 16px 40px rgba(0,0,0,.55);z-index:30}
-.attachItem{width:100%;height:54px;border:0;background:transparent;color:#f4f4f5;display:flex;align-items:center;gap:13px;padding:0 12px;border-radius:14px;text-align:left;font-size:14px}
-.attachItem:active{background:#29292d}
-.attachIcon{width:28px;text-align:center;color:#b8b8c0;font-size:20px}
-.attachSep{height:1px;background:#35353a;margin:5px 8px}
-.pending{display:flex;gap:7px;overflow:auto;padding:0 2px 8px}
-.pending:empty{display:none}
-.pendingChip{display:flex;align-items:center;gap:6px;max-width:180px;border:1px solid #28282d;background:#0c0c0e;border-radius:12px;padding:7px 9px;font-size:10px;color:#aaa}
-.pendingChip span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pendingChip button{border:0;background:transparent;color:#777;font-size:14px;padding:0}
-.scopeChoice{display:flex;align-items:center;gap:12px;padding:15px;border:1px solid #25252a;border-radius:18px;background:#0a0a0c;margin-bottom:10px}
-.scopeChoice.on{border-color:#466da8;background:#0c1119}
-.scopeRadio{width:22px;height:22px;border-radius:50%;border:2px solid #777;display:grid;place-items:center;flex:none}
-.scopeChoice.on .scopeRadio{border-color:#4291ff}
-.scopeChoice.on .scopeRadio:after{content:"";width:10px;height:10px;border-radius:50%;background:#4291ff}
-.scopeCopy{flex:1}.scopeCopy b{display:block;font-size:14px}.scopeCopy span{display:block;font-size:11px;color:#777780;margin-top:4px}
-.sourceTypeRow{display:flex;gap:7px;margin-bottom:12px}
-.sourceTypeBtn{flex:1;height:40px;border:1px solid #25252a;border-radius:12px;background:#08080a;color:#85858e;font-size:11px}
-.sourceTypeBtn.on{border-color:#53535a;color:#fff;background:#151518}
-.chatTools{display:flex;gap:7px;padding:7px 10px;border-bottom:1px solid #111}
-.toolChip{height:34px;border:1px solid #202024;border-radius:11px;background:#070708;color:#aaa;font-size:11px;padding:0 11px}
-.floating{position:absolute;right:18px;bottom:24px;width:54px;height:54px;border:0;border-radius:18px;background:#f3f3f4;color:#060607;font-size:26px;font-weight:800;box-shadow:0 10px 30px rgba(0,0,0,.45)}
-.relative{position:relative}
-.taskStep{border:1px solid #1e1e22;border-radius:16px;padding:11px;background:#070708;margin-bottom:10px}
-.taskStepTop{display:flex;gap:8px;align-items:center}
-.taskStepTop .select{margin:0;flex:1}
-.removeStep{width:42px;height:42px;border:1px solid #3b2025;background:#12090a;color:#ff858c;border-radius:13px}
-.status{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
-.status.completed{color:#55dda2}.status.running{color:#d8bc67}.status.failed{color:#ff757d}.status.queued{color:#81818a}
-.output{margin-top:10px;padding-top:10px;border-top:1px solid #1a1a1e;font-size:12px;line-height:1.55;color:#cfcfd4;white-space:pre-wrap}
-.dual{display:flex;gap:9px}.dual>*{flex:1}
-.fatal{height:100%;display:grid;place-items:center;text-align:center;padding:30px}
-.fatal button{margin-top:16px;padding:11px 16px;border:0;border-radius:13px}
+html,body{margin:0;background:#000;color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;height:100%;overflow:hidden}
+button,input,textarea{font:inherit}
+button{color:inherit}
+#app{height:100%;background:radial-gradient(circle at 60% -15%,rgba(99,45,255,.13),transparent 33%),linear-gradient(#020406,#030508 72%,#000);overflow:hidden}
+.screen{height:100%;display:flex;flex-direction:column;min-height:0}
+.content{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 16px 18px}
+.content::-webkit-scrollbar{display:none}
+.top{height:66px;display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.025);flex:none}
+.brand{font-size:32px;font-weight:500;letter-spacing:4px;background:linear-gradient(90deg,#a85fff,#7e4dff 50%,#d7c9ff);-webkit-background-clip:text;color:transparent;margin-right:auto}
+.topTitle{font-size:18px;font-weight:650;flex:1;text-align:center}
+.iconBtn,.circleBtn{border:1px solid var(--line);background:#0a0d12;display:grid;place-items:center;cursor:pointer}
+.iconBtn{width:42px;height:42px;border-radius:14px;font-size:21px}
+.circleBtn{width:38px;height:38px;border-radius:50%;font-size:19px}
+.circleBtn.primary{background:linear-gradient(135deg,#5c36ff,#8e42ff);border-color:#8f64ff;box-shadow:0 0 18px rgba(111,54,255,.25)}
+.back{border:0;background:transparent;font-size:30px;line-height:1;padding:2px 10px 2px 0;cursor:pointer}
+.card{background:linear-gradient(180deg,#151922,#10141a);border:1px solid #202630;border-radius:16px}
+.fieldLabel{color:#9da4af;font-size:14px;margin:17px 0 7px}
+.input,.textarea{width:100%;background:#151922;border:1px solid #272d38;color:#fff;border-radius:12px;padding:13px 14px;outline:none}
+.input:focus,.textarea:focus{border-color:#6543cc;box-shadow:0 0 0 2px rgba(123,60,255,.12)}
+.textarea{min-height:160px;resize:vertical;line-height:1.45}
+.mini{font-size:12px;color:var(--muted)}
+.sub{color:var(--muted);font-size:14px}
+.section{margin-top:18px}
+.row{display:flex;align-items:center;gap:12px}
+.grow{flex:1;min-width:0}
+.avatar{width:52px;height:52px;border-radius:50%;object-fit:cover;background:#151922;border:1px solid #333844;flex:none}
+.avatar.sm{width:40px;height:40px}.avatar.lg{width:112px;height:112px}
+.botRow{display:flex;align-items:center;gap:12px;padding:12px 2px;border-bottom:1px solid rgba(255,255,255,.045);cursor:pointer}
+.botRow:last-child{border-bottom:0}
+.botName{font-size:17px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.previewText{color:#9aa1ad;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+.time{color:#737b88;font-size:12px;align-self:flex-start;margin-top:4px}
+.dot{width:9px;height:9px;border-radius:50%;background:#146dff;box-shadow:0 0 10px rgba(20,109,255,.6)}
+.bottomNav{height:74px;padding:6px 10px var(--safe-bottom);border-top:1px solid #141820;background:rgba(3,5,8,.96);display:grid;grid-template-columns:repeat(4,1fr);flex:none}
+.navBtn{border:0;background:transparent;color:#737a87;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;cursor:pointer;border-radius:16px}
+.navBtn .ni{font-size:22px}.navBtn.active{color:#9a64ff;background:#10131a}
+.fabMenu{position:absolute;top:68px;right:18px;width:186px;background:#151821;border:1px solid #272d39;border-radius:14px;padding:6px;z-index:20;box-shadow:0 18px 50px #000}
+.fabMenu button{width:100%;border:0;background:transparent;text-align:left;padding:12px;border-radius:10px;font-size:14px}.fabMenu button:active{background:#242936}
+.searchBar{display:flex;gap:8px;margin:4px 0 8px}.searchBar.hidden{display:none}
+.empty{text-align:center;color:#8a929f;padding:48px 20px}.emptyIcon{font-size:42px;opacity:.7;margin-bottom:10px}
+.agentGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding-top:10px}
+.agentCard{padding:14px;text-align:center;cursor:pointer}.agentCard .avatar{width:76px;height:76px;margin:auto}.agentCard .botName{margin-top:9px}
+.addCard{min-height:150px;display:grid;place-items:center;border:1px dashed #3a2b5f;background:rgba(123,60,255,.04);cursor:pointer}
+.sectionBtn{width:100%;display:flex;align-items:center;gap:12px;padding:15px 14px;border:1px solid #1d222b;background:#0e1117;border-radius:13px;margin:8px 0;text-align:left;cursor:pointer}
+.sectionIcon{width:34px;height:34px;border-radius:10px;background:#171c24;display:grid;place-items:center;font-size:17px}
+.chev{font-size:22px;color:#666f7b}
+.avatarPicker{text-align:center;padding:10px 0 0}.avatarWrap{position:relative;width:116px;margin:auto}.avatarEdit{position:absolute;right:0;bottom:2px;width:34px;height:34px;border-radius:50%;background:#7b3cff;border:3px solid #040609;display:grid;place-items:center}
+.hiddenInput{position:absolute;left:-9999px}
+.markShapes,.markColors{display:flex;gap:15px;align-items:center;flex-wrap:wrap;padding:8px 0}
+.mark{width:28px;height:28px;background:#313641;cursor:pointer;opacity:.75;position:relative}.mark.selected{outline:2px solid #975cff;outline-offset:4px;opacity:1}
+.mark.circle{border-radius:50%}.mark.square{border-radius:5px}.mark.triangle{clip-path:polygon(50% 0,100% 100%,0 100%)}.mark.hex{clip-path:polygon(25% 7%,75% 7%,100% 50%,75% 93%,25% 93%,0 50%)}.mark.cloud{border-radius:45% 55% 48% 52%}.mark.drop{border-radius:55% 45% 55% 45%;transform:rotate(45deg)}
+.colorDot{width:24px;height:24px;border-radius:50%;cursor:pointer}.colorDot.selected{outline:2px solid #fff;outline-offset:3px}
+.counter{text-align:right;color:#6f7783;font-size:12px;margin-top:4px}
+.quickRow{display:flex;gap:8px;margin:8px 0}.quickRow .input{padding:11px 12px}.trash{width:38px;border:1px solid #252a34;background:#10131a;border-radius:10px;color:#9da3ae}
+.addWide{width:100%;border:0;background:#1a1724;color:#9b65ff;border-radius:11px;padding:12px;margin-top:10px}
+.choice{display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid #252a32}.choice:last-child{border-bottom:0}.radio{width:20px;height:20px;border-radius:50%;border:2px solid #303640;margin-left:auto}.choice.selected .radio{border-color:#8554ff;box-shadow:inset 0 0 0 5px #0f1218;background:#8b55ff}
+.switch{width:46px;height:25px;border-radius:16px;background:#303641;position:relative;margin-left:auto;cursor:pointer;flex:none}.switch:after{content:"";position:absolute;width:21px;height:21px;border-radius:50%;background:#fff;top:2px;left:2px;transition:.18s}.switch.on{background:linear-gradient(90deg,#7031ee,#9c4dff)}.switch.on:after{left:23px}
+.settingRow{display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid #222731}.settingRow:last-child{border-bottom:0}
+.dangerBtn{width:100%;background:#2a1114;border:1px solid #4a171b;color:#ff646a;border-radius:12px;padding:12px}
+.previewProfile{text-align:center;padding:14px 0 6px}.previewBubble{padding:14px;margin:16px 0;display:flex;gap:10px;text-align:left}
+.badgeAI{font-size:10px;background:#633cff;border-radius:5px;padding:2px 5px;color:#fff}
+.chatHead{height:64px;display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #171b23;flex:none}
+.chatHead .avatar{width:42px;height:42px}.chatHead .botName{font-size:16px}
+.chatTools{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid #11151c;overflow:auto;flex:none}.toolChip{border:1px solid #242a34;background:#0d1015;color:#b0b6c0;border-radius:999px;padding:8px 11px;white-space:nowrap}
+.messages{flex:1;min-height:0;overflow-y:auto;padding:14px 12px 20px}.msg{max-width:84%;padding:11px 13px;border-radius:15px;margin:7px 0;line-height:1.4;white-space:pre-wrap;font-size:15px}.msg.user{margin-left:auto;background:#5c35df;border-bottom-right-radius:5px}.msg.assistant{background:#151922;border:1px solid #232936;border-bottom-left-radius:5px}
+.composer{padding:8px 10px var(--safe-bottom);border-top:1px solid #171b23;background:#030508;flex:none}.composeRow{display:flex;align-items:flex-end;gap:8px}.composeInput{flex:1;min-height:44px;max-height:120px;background:#12161d;border:1px solid #272d37;border-radius:15px;color:#fff;padding:11px 13px;resize:none}.sendBtn{width:44px;height:44px;border:0;border-radius:14px;background:linear-gradient(135deg,#6336ee,#8c4cff);font-size:20px}.plusBtn{width:42px;height:42px;border:1px solid #272c35;border-radius:13px;background:#10131a;font-size:22px}
+.attachMenu{position:absolute;bottom:78px;left:12px;background:#151922;border:1px solid #272d38;border-radius:14px;padding:6px;width:190px;z-index:10}.attachMenu button{width:100%;border:0;background:transparent;text-align:left;padding:11px;border-radius:9px}.attachMenu hr{border:0;border-top:1px solid #292e37}
+.pending{display:flex;gap:7px;overflow-x:auto;padding:0 0 7px}.fileTag{font-size:12px;background:#171b23;border:1px solid #252b36;border-radius:9px;padding:7px 9px;white-space:nowrap}
+.taskRow{padding:13px 14px;margin:9px 0;cursor:pointer}.status{font-size:11px;border-radius:999px;padding:4px 8px;background:#202632;color:#bbc2cc}
+.status.completed{background:#12321d;color:#65e38a}.status.failed{background:#36171a;color:#ff767c}.status.running{background:#241c47;color:#a98cff}
+.groupStack{width:54px;height:54px;position:relative;flex:none}.groupStack img{position:absolute;width:36px;height:36px;border-radius:12px;border:2px solid #05070a;object-fit:cover}.groupStack img:nth-child(1){left:0;top:0}.groupStack img:nth-child(2){right:0;bottom:0}.groupStack img:nth-child(3){right:0;top:0;width:27px;height:27px}
+.memberPick{display:flex;align-items:center;gap:11px;padding:11px;border-bottom:1px solid #232832}.check{width:22px;height:22px;border-radius:7px;border:1px solid #3a414d;margin-left:auto;display:grid;place-items:center}.memberPick.selected .check{background:#7541f6;border-color:#8d60ff}
+.notice{padding:11px 13px;border:1px solid #2a2440;background:#100c1b;border-radius:12px;color:#bba8e8;font-size:12px;line-height:1.45}
+.loginWrap{height:100%;display:grid;place-items:center;padding:24px}.loginCard{width:min(420px,100%);padding:24px}.loginLogo{font-size:40px;letter-spacing:5px;background:linear-gradient(90deg,#a85fff,#735cff,#d5c9ff);-webkit-background-clip:text;color:transparent;text-align:center;margin-bottom:28px}.primaryBtn{width:100%;border:0;border-radius:12px;padding:13px;background:linear-gradient(135deg,#6336ee,#8f4cff);font-weight:650;margin-top:14px}.linkBtn{border:0;background:transparent;color:#a775ff;padding:10px;width:100%}
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#1b2029;border:1px solid #303744;color:#fff;border-radius:12px;padding:10px 14px;z-index:99;max-width:90%;font-size:13px}
+@media(min-width:700px){#app{max-width:440px;margin:auto;border-left:1px solid #151923;border-right:1px solid #151923}.agentGrid{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<input id="avatarFile" class="hiddenInput" type="file" accept="image/*">
+<input id="attachFile" class="hiddenInput" type="file" accept="application/pdf">
+<input id="attachImage" class="hiddenInput" type="file" accept="image/*">
+<input id="cameraFile" class="hiddenInput" type="file" accept="image/*" capture="environment">
 <script>
-const AV='/_cdn/static/2daabeef-aac9-4289-9026-12a342ed4eee-diza-bot-agent-icon.png';
 const API='/_api/native';
+const AV='/_cdn/static/2daabeef-aac9-4289-9026-12a342ed4eee-diza-bot-agent-icon.png';
 const app=document.getElementById('app');
-const state={bots:[],currentBot:null,busy:false,taskDraft:null,pendingAttachments:[]};
-
-window.onerror=function(m){
-  app.innerHTML='<div class="fatal"><div><h2>Diza UI error</h2><p>'+esc(String(m))+'</p><button onclick="location.reload()">Reload</button></div></div>';
+const state={
+  bots:[],tab:'chats',currentBot:null,currentGroup:null,botDraft:null,botDraftSource:null,
+  pendingAttachments:[],attachOpen:false,plusOpen:false,searchOpen:false,busy:false
 };
-
-function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+const MODEL_OPTIONS=[
+  {id:'auto',name:'Auto · Diza Mesh',desc:'Router memilih model gratis terbaik'},
+  {id:'fast',name:'Fast',desc:'Prioritas respons cepat'},
+  {id:'balanced',name:'Balanced',desc:'Seimbang kualitas dan kecepatan'},
+  {id:'deep',name:'Deep',desc:'Prioritas reasoning untuk tugas berat'},
+  {id:'coding',name:'Coding',desc:'Prioritas model untuk coding dan GitHub'}
+];
+const TOOL_OPTIONS=[
+  {id:'webSearch',name:'Web Search',desc:'Cari informasi real-time',icon:'◎'},
+  {id:'fileAnalysis',name:'File Analysis',desc:'Baca dan analisis file',icon:'▧'},
+  {id:'imageGeneration',name:'Image Generation',desc:'Generate images',icon:'▣'},
+  {id:'github',name:'GitHub',desc:'Akses repository dan code',icon:'◆'}
+];
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function clone(v){return JSON.parse(JSON.stringify(v))}
 function token(){return localStorage.getItem('diza_native_token')||''}
-function setToken(t){localStorage.setItem('diza_native_token',t)}
-function logout(){
-  localStorage.removeItem('diza_native_token');
-  Object.keys(localStorage).filter(function(k){return k.indexOf('conv_bot_')===0}).forEach(function(k){localStorage.removeItem(k)});
-  state.bots=[];state.currentBot=null;renderAuth(false);
-}
-function avatarOf(bot){return bot&&bot.avatarData?bot.avatarData:AV}
-function convKey(botId){return 'conv_bot_'+botId}
-function conv(botId){return Number(localStorage.getItem(convKey(botId))||0)||undefined}
-function setConv(botId,v){if(v)localStorage.setItem(convKey(botId),String(v));else localStorage.removeItem(convKey(botId))}
-
+function setToken(v){if(v)localStorage.setItem('diza_native_token',v);else localStorage.removeItem('diza_native_token')}
+function toast(msg){var d=document.createElement('div');d.className='toast';d.textContent=msg;document.body.appendChild(d);setTimeout(function(){d.remove()},2200)}
 async function request(path,opts){
-  opts=opts||{};
-  const headers=opts.headers||{};
-  if(opts.body!==undefined)headers['content-type']='application/json';
-  if(opts.auth!==false&&token())headers.authorization='Bearer '+token();
-  const res=await fetch(API+path,{method:opts.method||'GET',headers:headers,body:opts.body!==undefined?JSON.stringify(opts.body):undefined});
-  let data={};try{data=await res.json()}catch(e){}
-  if(!res.ok){
-    const err=new Error(data.error||data.message||'Request failed');
-    err.status=res.status;err.code=data.code;throw err;
-  }
-  return data;
+  opts=opts||{};var h=opts.headers||{};
+  if(opts.body!==undefined)h['content-type']='application/json';
+  if(opts.auth!==false&&token())h.authorization='Bearer '+token();
+  var res=await fetch(API+path,{method:opts.method||'GET',headers:h,body:opts.body!==undefined?JSON.stringify(opts.body):undefined});
+  var data={};try{data=await res.json()}catch(e){}
+  if(!res.ok){var er=new Error(data.error||data.message||'Request failed');er.status=res.status;er.code=data.code;throw er}
+  return data
 }
 function get(path){return request(path,{method:'GET'})}
 function post(path,body,auth){return request(path,{method:'POST',body:body,auth:auth})}
 function authFail(e){if(e&&e.status===401){logout();return true}return false}
-
-async function uploadBinary(file){
-  if(!file)throw new Error('No file selected');
-  if(file.size>50*1024*1024)throw new Error('Maximum file size is 50 MB.');
-  const allowed=['image/jpeg','image/png','image/webp','image/gif','application/pdf'];
-  if(allowed.indexOf(file.type)<0)throw new Error('Supported: PDF, JPG, PNG, WebP, GIF.');
-  const mint=await post('/attachments/upload',{filename:file.name,contentType:file.type,sizeBytes:file.size});
-  const put=await fetch(mint.presignedUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});
-  if(!put.ok)throw new Error('File upload failed.');
-  return {storageFilename:mint.storageFilename,contentType:file.type,fileName:file.name};
+function botConfig(bot){
+  var c=bot&&bot.config&&typeof bot.config==='object'?clone(bot.config):{};
+  if(!c.model)c.model='auto';
+  if(!c.tools)c.tools={webSearch:true,fileAnalysis:true,imageGeneration:false,github:false};
+  if(!c.memory)c.memory={longTerm:true,savePreferences:true,projectContext:true};
+  if(!Array.isArray(c.quickPrompts))c.quickPrompts=[];
+  if(!Array.isArray(c.routines))c.routines=[];
+  if(!c.mark)c.mark={shape:'circle',color:'#7b3cff'};
+  return c
 }
-function drawPending(){
-  const box=document.getElementById('pendingAttachments');if(!box)return;
-  box.innerHTML=state.pendingAttachments.map(function(a,i){
-    return '<div class="pendingChip"><span>'+esc(a.fileName||'Attachment')+'</span><button data-rm="'+i+'">×</button></div>';
-  }).join('');
-  box.querySelectorAll('[data-rm]').forEach(function(b){b.onclick=function(){
-    state.pendingAttachments.splice(Number(b.dataset.rm),1);drawPending();
-  }});
+function avatar(bot){return bot&&bot.avatarData?bot.avatarData:AV}
+function groups(){try{return JSON.parse(localStorage.getItem('diza_groups')||'[]')}catch(e){return[]}}
+function saveGroups(v){localStorage.setItem('diza_groups',JSON.stringify(v))}
+function groupHistory(id){try{return JSON.parse(localStorage.getItem('diza_group_history_'+id)||'[]')}catch(e){return[]}}
+function saveGroupHistory(id,v){localStorage.setItem('diza_group_history_'+id,JSON.stringify(v.slice(-120)))}
+function convKey(id){return 'diza_conv_'+id}
+function conv(id){var n=Number(localStorage.getItem(convKey(id))||0);return n||null}
+function setConv(id,v){if(v)localStorage.setItem(convKey(id),String(v));else localStorage.removeItem(convKey(id))}
+function previewKey(id){return 'diza_preview_'+id}
+function lastPreview(id){try{return JSON.parse(localStorage.getItem(previewKey(id))||'null')}catch(e){return null}}
+function savePreview(id,text){localStorage.setItem(previewKey(id),JSON.stringify({text:text,time:Date.now()}))}
+function fmtTime(ms){if(!ms)return '';var d=new Date(ms),n=new Date();if(d.toDateString()===n.toDateString())return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});return d.toLocaleDateString([],{weekday:'short'})}
+function navIcon(id){return id==='chats'?'◉':id==='agents'?'♙':id==='groups'?'♧':'⚙'}
+function shapeHtml(mark){mark=mark||{shape:'circle',color:'#7b3cff'};return '<span class="mark '+esc(mark.shape||'circle')+'" style="background:'+esc(mark.color||'#7b3cff')+';width:18px;height:18px"></span>'}
+function bottomNav(){
+  return '<nav class="bottomNav">'+['chats','agents','groups','settings'].map(function(id){
+    return '<button class="navBtn '+(state.tab===id?'active':'')+'" data-tab="'+id+'"><span class="ni">'+navIcon(id)+'</span><span>'+id.charAt(0).toUpperCase()+id.slice(1)+'</span></button>'
+  }).join('')+'</nav>'
 }
-
-function renderAuth(reg){
-  app.innerHTML='<div class="auth"><div class="authCard">'+
-    '<img class="authLogo" src="'+AV+'"><div class="eyebrow">DIZA BOT AGENT</div>'+
-    '<h1>'+(reg?'Create account':'Welcome back')+'</h1>'+
-    '<p class="muted">'+(reg?'Create your private AI workspace.':'Sign in to continue to your bot workspace.')+'</p>'+
-    (reg?'<input id="name" class="field" placeholder="Display name" autocomplete="name">':'')+
-    '<input id="email" class="field" placeholder="Email" type="email" autocomplete="email">'+
-    '<input id="pass" class="field" placeholder="Password" type="password" autocomplete="'+(reg?'new-password':'current-password')+'">'+
-    '<div id="err" class="error"></div>'+
-    '<button id="go" class="primary">'+(reg?'Create account':'Sign in')+'</button>'+
-    '<button id="swap" class="secondary">'+(reg?'Already have an account? Sign in':'New here? Create account')+'</button>'+
-    '</div></div>';
-  document.getElementById('swap').onclick=function(){renderAuth(!reg)};
-  document.getElementById('go').onclick=async function(){
-    const btn=document.getElementById('go'),err=document.getElementById('err');
-    const email=document.getElementById('email').value.trim();
-    const password=document.getElementById('pass').value;
-    const displayName=reg?document.getElementById('name').value.trim():'';
-    if(!email||password.length<8||(reg&&!displayName)){err.textContent='Check your email, name, and password.';return}
-    btn.disabled=true;err.textContent='';
-    try{
-      const d=await post(reg?'/register':'/login',{email:email,password:password,...(reg?{displayName:displayName}:{})},false);
-      setToken(d.token);await boot();
-    }catch(e){err.textContent=e.message}
-    finally{btn.disabled=false}
-  };
+function wireNav(){document.querySelectorAll('[data-tab]').forEach(function(b){b.onclick=function(){state.tab=b.dataset.tab;state.plusOpen=false;renderHome()}})}
+function topHome(){
+  return '<header class="top"><div class="brand">DIZA</div><button class="iconBtn" id="searchBtn">⌕</button><button class="circleBtn" id="plusTop">＋</button></header>'+
+    (state.searchOpen?'<div class="searchBar" style="padding:0 16px"><input id="homeSearch" class="input" placeholder="Search bots and groups"></div>':'')+
+    (state.plusOpen?'<div class="fabMenu"><button id="newBot">🤖 &nbsp; New Bot</button><button id="newGroup">♣ &nbsp; New Group Chat</button></div>':'')
 }
-
+function bindTop(){
+  var s=document.getElementById('searchBtn'),p=document.getElementById('plusTop');
+  if(s)s.onclick=function(){state.searchOpen=!state.searchOpen;renderHome()};
+  if(p)p.onclick=function(){state.plusOpen=!state.plusOpen;renderHome()};
+  var nb=document.getElementById('newBot'),ng=document.getElementById('newGroup');
+  if(nb)nb.onclick=function(){beginBot(null)};
+  if(ng)ng.onclick=renderGroupEditor;
+  var hs=document.getElementById('homeSearch');if(hs){hs.focus();hs.oninput=filterHome}
+}
+function filterHome(){
+  var q=(document.getElementById('homeSearch').value||'').toLowerCase();
+  document.querySelectorAll('[data-search]').forEach(function(x){x.style.display=x.dataset.search.toLowerCase().includes(q)?'flex':'none'})
+}
 async function boot(){
-  try{
-    const d=await get('/bots/list');
-    state.bots=d.bots||[];
-    renderHome();
-  }catch(e){
-    if(authFail(e))return;
-    app.innerHTML='<div class="fatal"><div><h2>Could not load workspace</h2><p>'+esc(e.message)+'</p><button onclick="boot()">Retry</button></div></div>';
+  if(!token()){renderAuth('login');return}
+  try{var d=await get('/bots/list');state.bots=d.bots||[];renderHome()}
+  catch(e){if(authFail(e))return;renderFatal(e.message)}
+}
+function renderFatal(m){app.innerHTML='<div class="loginWrap"><div class="card loginCard"><h2>Diza error</h2><p class="sub">'+esc(m)+'</p><button class="primaryBtn" onclick="boot()">Retry</button></div></div>'}
+function renderAuth(mode){
+  var reg=mode==='register';
+  app.innerHTML='<div class="loginWrap"><div class="card loginCard"><div class="loginLogo">DIZA</div>'+
+    '<div class="fieldLabel">Email</div><input class="input" id="authEmail" type="email" autocomplete="email">'+
+    (reg?'<div class="fieldLabel">Display name</div><input class="input" id="authName" autocomplete="name">':'')+
+    '<div class="fieldLabel">Password</div><input class="input" id="authPass" type="password" autocomplete="'+(reg?'new-password':'current-password')+'">'+
+    '<div id="authErr" class="mini" style="color:#ff7378;margin-top:10px"></div>'+
+    '<button class="primaryBtn" id="authGo">'+(reg?'Create account':'Sign in')+'</button>'+
+    '<button class="linkBtn" id="authSwitch">'+(reg?'Already have an account? Sign in':'New here? Create account')+'</button></div></div>';
+  document.getElementById('authSwitch').onclick=function(){renderAuth(reg?'login':'register')};
+  document.getElementById('authGo').onclick=async function(){
+    var btn=this;btn.disabled=true;var err=document.getElementById('authErr');err.textContent='';
+    try{
+      var body={email:document.getElementById('authEmail').value.trim(),password:document.getElementById('authPass').value};
+      if(reg)body.displayName=document.getElementById('authName').value.trim();
+      var d=await post(reg?'/register':'/login',body,false);setToken(d.token);await boot()
+    }catch(e){err.textContent=e.message}finally{btn.disabled=false}
   }
 }
-
+function logout(){setToken('');state.bots=[];renderAuth('login')}
 function renderHome(){
-  state.currentBot=null;
-  app.innerHTML='<div class="screen relative">'+
-    '<header class="top"><div class="topTitle"><b>DIZA</b><span>Bot workspace</span></div>'+
-    '<button id="tasksBtn" class="iconBtn" title="Tasks">✓</button>'+
-    '<button id="addBot" class="iconBtn" title="New bot">＋</button></header>'+
-    '<div class="searchWrap"><input id="search" class="search" placeholder="Search bots"></div>'+
-    '<main class="scroll"><div id="botList" class="list"></div></main>'+
-    '</div>';
-  document.getElementById('addBot').onclick=function(){renderBotEditor(null)};
-  document.getElementById('tasksBtn').onclick=renderTasks;
-  document.getElementById('search').oninput=function(){drawBotList(this.value)};
-  drawBotList('');
+  state.currentBot=null;state.currentGroup=null;
+  app.innerHTML='<div class="screen">'+topHome()+'<main class="content" id="homeBody"></main>'+bottomNav()+'</div>';
+  bindTop();wireNav();
+  if(state.tab==='chats')renderChats();
+  if(state.tab==='agents')renderAgents();
+  if(state.tab==='groups')renderGroups();
+  if(state.tab==='settings')renderSettings();
 }
-
-function drawBotList(query){
-  const box=document.getElementById('botList');if(!box)return;
-  const q=String(query||'').toLowerCase();
-  const bots=state.bots.filter(function(b){return !q||b.name.toLowerCase().includes(q)||(b.title||'').toLowerCase().includes(q)});
-  if(!bots.length){
-    box.innerHTML='<div class="empty"><h3>No bots yet</h3><p>Tap + to create your first custom bot.</p></div>';return;
-  }
-  box.innerHTML=bots.map(function(b){
-    const preview=b.title||((b.instructions||'').slice(0,90))||'Tap to chat';
-    return '<div class="botRow" data-id="'+b.id+'">'+
-      '<img class="avatar" src="'+esc(avatarOf(b))+'">'+
-      '<div class="botMain"><div class="botNameLine"><div class="botName">'+esc(b.name)+'</div>'+(b.isDefault?'<span class="badge">DEFAULT</span>':'')+'</div>'+
-      '<div class="preview">'+esc(preview)+'</div></div>'+
-      '<button class="rowBtn settings" data-edit="'+b.id+'">⋮</button></div>';
+function renderChats(){
+  var body=document.getElementById('homeBody'),g=groups(),rows=[];
+  state.bots.forEach(function(b){
+    var p=lastPreview(b.id)||{},text=p.text||(b.isDefault?'APK siap ngobrol…':'Tap untuk mulai chat');
+    rows.push('<div class="botRow" data-bot="'+b.id+'" data-search="'+esc(b.name+' '+b.title+' '+text)+'"><img class="avatar" src="'+esc(avatar(b))+'"><div class="grow"><div class="botName">'+esc(b.name)+'</div><div class="previewText">'+esc(text)+'</div></div><div class="time">'+esc(fmtTime(p.time))+'</div></div>')
+  });
+  g.forEach(function(x){
+    var h=groupHistory(x.id),last=h[h.length-1],names=(x.botIds||[]).map(function(id){var b=state.bots.find(function(z){return z.id===id});return b?b.name:''}).filter(Boolean);
+    rows.push('<div class="botRow" data-group="'+x.id+'" data-search="'+esc(x.name+' '+names.join(' '))+'">'+groupStackHtml(x)+'<div class="grow"><div class="botName">'+esc(x.name)+'</div><div class="previewText">'+esc(last?last.text:names.join(', '))+'</div></div><div class="time">'+esc(last?fmtTime(last.time):'')+'</div></div>')
+  });
+  body.innerHTML=rows.length?rows.join(''):'<div class="empty"><div class="emptyIcon">◌</div><div>No chats yet</div><p class="sub">Create a bot or group to start.</p></div>';
+  body.querySelectorAll('[data-bot]').forEach(function(x){x.onclick=function(){openChat(Number(x.dataset.bot))}});
+  body.querySelectorAll('[data-group]').forEach(function(x){x.onclick=function(){openGroupChat(x.dataset.group)}});
+  if(state.searchOpen)filterHome()
+}
+function renderAgents(){
+  var body=document.getElementById('homeBody');
+  var cards=state.bots.map(function(b){
+    return '<div class="card agentCard" data-agent="'+b.id+'"><img class="avatar" src="'+esc(avatar(b))+'"><div class="botName">'+esc(b.name)+'</div><div class="sub">'+esc(b.title||'Personal AI')+'</div><div style="display:flex;justify-content:center;margin-top:10px">'+shapeHtml(botConfig(b).mark)+'</div></div>'
   }).join('');
-  box.querySelectorAll('.botRow').forEach(function(row){
-    row.onclick=function(e){
-      if(e.target.closest('.settings'))return;
-      const bot=state.bots.find(function(x){return x.id===Number(row.dataset.id)});
-      if(bot)renderChat(bot);
-    };
-  });
-  box.querySelectorAll('.settings').forEach(function(btn){
-    btn.onclick=function(e){e.stopPropagation();const bot=state.bots.find(function(x){return x.id===Number(btn.dataset.edit)});if(bot)renderBotEditor(bot)};
-  });
+  body.innerHTML='<div class="agentGrid">'+cards+'<div class="card addCard" id="addAgent"><div style="text-align:center"><div style="font-size:34px;color:#9b66ff">＋</div><div>New Bot</div></div></div></div>';
+  body.querySelectorAll('[data-agent]').forEach(function(x){x.onclick=function(){beginBot(Number(x.dataset.agent))}});
+  document.getElementById('addAgent').onclick=function(){beginBot(null)}
 }
-
-function compressAvatar(file){
-  return new Promise(function(resolve,reject){
-    const reader=new FileReader();
-    reader.onerror=function(){reject(new Error('Could not read image'))};
-    reader.onload=function(){
-      const img=new Image();
-      img.onerror=function(){reject(new Error('Invalid image'))};
-      img.onload=function(){
-        const max=512,scale=Math.min(1,max/Math.max(img.width,img.height));
-        const w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
-        const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
-        canvas.getContext('2d').drawImage(img,0,0,w,h);
-        resolve(canvas.toDataURL('image/jpeg',0.82));
-      };
-      img.src=reader.result;
-    };
-    reader.readAsDataURL(file);
+function groupStackHtml(g){
+  var bs=(g.botIds||[]).map(function(id){return state.bots.find(function(b){return b.id===id})}).filter(Boolean).slice(0,3);
+  if(!bs.length)return '<div class="groupStack"><div class="avatar" style="width:54px;height:54px;display:grid;place-items:center">♣</div></div>';
+  return '<div class="groupStack">'+bs.map(function(b){return '<img src="'+esc(avatar(b))+'">'}).join('')+'</div>'
+}
+function renderGroups(){
+  var body=document.getElementById('homeBody'),g=groups();
+  body.innerHTML=(g.length?g.map(function(x){
+    var names=(x.botIds||[]).map(function(id){var b=state.bots.find(function(z){return z.id===id});return b?b.name:''}).filter(Boolean);
+    return '<div class="botRow" data-g="'+x.id+'">'+groupStackHtml(x)+'<div class="grow"><div class="botName">'+esc(x.name)+'</div><div class="previewText">'+esc(names.join(' · '))+'</div></div><span class="chev">›</span></div>'
+  }).join(''):'<div class="empty"><div class="emptyIcon">♣</div><div>No groups yet</div><p class="sub">Make a group of bots for user-assigned collaboration.</p></div>')+
+  '<button class="primaryBtn" id="groupAdd">＋ New Group Chat</button>';
+  body.querySelectorAll('[data-g]').forEach(function(x){x.onclick=function(){openGroupChat(x.dataset.g)}});
+  document.getElementById('groupAdd').onclick=renderGroupEditor
+}
+function renderSettings(){
+  var body=document.getElementById('homeBody');
+  body.innerHTML='<div class="section"><div class="card">'+
+    '<div class="settingRow"><div class="sectionIcon">◫</div><div class="grow"><div>Diza Bot Agent</div><div class="mini">Development build · UI reference implementation</div></div></div>'+
+    '<div class="settingRow"><div class="sectionIcon">⌁</div><div class="grow"><div>Backend</div><div class="mini">Native API · authenticated</div></div></div>'+
+    '<div class="settingRow"><div class="sectionIcon">▦</div><div class="grow"><div>Storage</div><div class="mini">Target 50 MB per file</div></div></div>'+
+    '</div></div><div class="section"><button class="dangerBtn" id="signout">Sign out</button></div>';
+  document.getElementById('signout').onclick=logout
+}
+function blankDraft(){
+  return {id:null,name:'',title:'',avatarData:null,instructions:'',style:'Warm, concise, natural.',skills:[],permissions:{},config:botConfig(null),isDefault:false}
+}
+function beginBot(id){
+  var b=id?state.bots.find(function(x){return x.id===id}):null;
+  state.botDraft=b?clone(b):blankDraft();state.botDraft.config=botConfig(state.botDraft);state.botDraftSource=b?clone(b):null;renderBotProfile()
+}
+function topSub(title,onBack,onDone){
+  app.innerHTML='<div class="screen"><header class="top"><button class="back" id="back">‹</button><div class="topTitle">'+esc(title)+'</div><button class="circleBtn primary" id="done">✓</button></header><main class="content" id="subBody"></main></div>';
+  document.getElementById('back').onclick=onBack;document.getElementById('done').onclick=onDone
+}
+function renderBotProfile(){
+  topSub(state.botDraft.id?'Edit Bot':'Create New Bot',function(){state.tab='agents';renderHome()},renderBotPreview);
+  var b=state.botDraft,c=b.config,m=c.mark;
+  document.getElementById('subBody').innerHTML=
+    '<div class="avatarPicker"><div class="avatarWrap"><img class="avatar lg" id="draftAvatar" src="'+esc(avatar(b))+'"><button class="avatarEdit" id="pickAvatar">＋</button></div><div class="sub" style="margin-top:9px">Add Avatar</div></div>'+
+    '<div class="fieldLabel">Name</div><input class="input" id="botName" placeholder="e.g. Agista" value="'+esc(b.name)+'">'+
+    '<div class="fieldLabel">Title (optional)</div><input class="input" id="botTitle" placeholder="e.g. Coding Assistant" value="'+esc(b.title||'')+'">'+
+    '<div class="fieldLabel">Bot Mark</div><div class="markShapes">'+['circle','square','triangle','hex','cloud','drop'].map(function(s){return '<span class="mark '+s+' '+(m.shape===s?'selected':'')+'" data-shape="'+s+'"></span>'}).join('')+'</div>'+
+    '<div class="markColors">'+['#e9edf4','#7447ff','#ff2538','#ff9a24','#65db2f','#278cff','#ff3a93'].map(function(x){return '<span class="colorDot '+(m.color===x?'selected':'')+'" data-color="'+x+'" style="background:'+x+'"></span>'}).join('')+'</div>'+
+    '<div class="section">'+
+    sectionButton('instructions','▤','Instructions','Set personality, role, behavior…')+
+    sectionButton('model','◉','Model',modelName(c.model))+
+    sectionButton('tools','⌘','Tools',enabledTools(c).length+' enabled')+
+    sectionButton('memory','♙','Memory',c.memory.longTerm?'Long-term memory on':'Long-term memory off')+
+    sectionButton('routines','▣','Routines',(c.routines||[]).length?(c.routines.length+' configured'):'No routines yet')+
+    '</div>';
+  document.getElementById('botName').oninput=function(){b.name=this.value};
+  document.getElementById('botTitle').oninput=function(){b.title=this.value};
+  document.getElementById('pickAvatar').onclick=function(){document.getElementById('avatarFile').click()};
+  document.querySelectorAll('[data-shape]').forEach(function(x){x.onclick=function(){b.config.mark.shape=x.dataset.shape;renderBotProfile()}});
+  document.querySelectorAll('[data-color]').forEach(function(x){x.onclick=function(){b.config.mark.color=x.dataset.color;renderBotProfile()}});
+  document.querySelectorAll('[data-section]').forEach(function(x){x.onclick=function(){openBotSection(x.dataset.section)}})
+}
+function sectionButton(id,icon,title,desc){return '<button class="sectionBtn" data-section="'+id+'"><span class="sectionIcon">'+icon+'</span><span class="grow"><b>'+esc(title)+'</b><span class="sub" style="display:block;margin-top:2px">'+esc(desc)+'</span></span><span class="chev">›</span></button>'}
+function modelName(id){var m=MODEL_OPTIONS.find(function(x){return x.id===id});return m?m.name:'Auto · Diza Mesh'}
+function enabledTools(c){return TOOL_OPTIONS.filter(function(x){return !!c.tools[x.id]})}
+function openBotSection(id){
+  if(id==='instructions')renderInstructions();
+  if(id==='model')renderModel();
+  if(id==='tools')renderTools();
+  if(id==='memory')renderMemorySettings();
+  if(id==='routines')renderRoutines()
+}
+function renderInstructions(){
+  var b=state.botDraft,c=b.config;
+  topSub('Instructions',renderBotProfile,renderBotProfile);
+  var body=document.getElementById('subBody');
+  body.innerHTML='<div class="fieldLabel">System Instructions</div><textarea class="textarea" id="inst" maxlength="20000">'+esc(b.instructions||'')+'</textarea><div class="counter" id="instCount">'+(b.instructions||'').length+'/20000</div>'+
+    '<div class="fieldLabel">Response Style</div><textarea class="textarea" id="style" style="min-height:90px" maxlength="4000">'+esc(b.style||'')+'</textarea>'+
+    '<div class="fieldLabel">Quick Prompts (optional)</div><div id="quickList"></div><button class="addWide" id="addQuick">＋ Add Quick Prompt</button>';
+  function drawQuick(){
+    document.getElementById('quickList').innerHTML=c.quickPrompts.map(function(q,i){return '<div class="quickRow"><input class="input" data-qi="'+i+'" value="'+esc(q)+'" placeholder="Quick prompt"><button class="trash" data-qd="'+i+'">⌫</button></div>'}).join('');
+    document.querySelectorAll('[data-qi]').forEach(function(x){x.oninput=function(){c.quickPrompts[Number(x.dataset.qi)]=x.value}});
+    document.querySelectorAll('[data-qd]').forEach(function(x){x.onclick=function(){c.quickPrompts.splice(Number(x.dataset.qd),1);drawQuick()}})
+  }
+  drawQuick();
+  document.getElementById('inst').oninput=function(){b.instructions=this.value;document.getElementById('instCount').textContent=this.value.length+'/20000'};
+  document.getElementById('style').oninput=function(){b.style=this.value};
+  document.getElementById('addQuick').onclick=function(){if(c.quickPrompts.length<8){c.quickPrompts.push('');drawQuick()}}
+}
+function renderModel(){
+  var c=state.botDraft.config;topSub('Model',renderBotProfile,renderBotProfile);
+  document.getElementById('subBody').innerHTML='<div class="section card">'+MODEL_OPTIONS.map(function(m){
+    return '<div class="choice '+(c.model===m.id?'selected':'')+'" data-model="'+m.id+'"><div class="sectionIcon">◉</div><div class="grow"><div>'+esc(m.name)+'</div><div class="mini">'+esc(m.desc)+'</div></div><div class="radio"></div></div>'
+  }).join('')+'</div><div class="notice section">Model ini adalah preferensi bot. Saat Free AI Mesh production terhubung, router tetap menjaga Rp0 lock dan dapat memilih provider yang kompatibel.</div>';
+  document.querySelectorAll('[data-model]').forEach(function(x){x.onclick=function(){c.model=x.dataset.model;renderModel()}})
+}
+function renderTools(){
+  var c=state.botDraft.config;topSub('Tools',renderBotProfile,renderBotProfile);
+  document.getElementById('subBody').innerHTML='<div class="section card">'+TOOL_OPTIONS.map(function(t){
+    return '<div class="settingRow"><div class="sectionIcon">'+t.icon+'</div><div class="grow"><div>'+esc(t.name)+'</div><div class="mini">'+esc(t.desc)+'</div></div><div class="switch '+(c.tools[t.id]?'on':'')+'" data-tool="'+t.id+'"></div></div>'
+  }).join('')+'</div>';
+  document.querySelectorAll('[data-tool]').forEach(function(x){x.onclick=function(){c.tools[x.dataset.tool]=!c.tools[x.dataset.tool];renderTools()}})
+}
+async function renderMemorySettings(){
+  var c=state.botDraft.config;topSub('Memory',renderBotProfile,renderBotProfile);
+  document.getElementById('subBody').innerHTML='<div class="section card">'+
+    memToggle('longTerm','♧','Use Long-term Memory','Remember important information across conversations',c.memory.longTerm)+
+    memToggle('savePreferences','▧','Save Preferences','Allow preference memory for this bot',c.memory.savePreferences)+
+    memToggle('projectContext','▣','Project Context','Use shared workspace/project memory',c.memory.projectContext)+
+    '</div>'+(state.botDraft.id?'<div class="section"><button class="dangerBtn" id="clearMemory">⌫ Clear Memory</button></div>':'');
+  document.querySelectorAll('[data-mem]').forEach(function(x){x.onclick=function(){c.memory[x.dataset.mem]=!c.memory[x.dataset.mem];renderMemorySettings()}});
+  var clr=document.getElementById('clearMemory');if(clr)clr.onclick=clearBotMemory
+}
+function memToggle(id,icon,title,desc,on){return '<div class="settingRow"><div class="sectionIcon">'+icon+'</div><div class="grow"><div>'+esc(title)+'</div><div class="mini">'+esc(desc)+'</div></div><div class="switch '+(on?'on':'')+'" data-mem="'+id+'"></div></div>'}
+async function clearBotMemory(){
+  if(!state.botDraft.id)return;
+  if(!confirm('Clear private memory for '+state.botDraft.name+'?'))return;
+  try{
+    var d=await get('/memories/list?botId='+encodeURIComponent(state.botDraft.id));
+    var own=(d.memories||[]).filter(function(m){return m.scope==='bot'&&m.botId===state.botDraft.id});
+    for(var i=0;i<own.length;i++)await post('/memories/delete',{id:own[i].id});
+    toast('Private memory cleared')
+  }catch(e){if(!authFail(e))toast(e.message)}
+}
+function renderRoutines(){
+  var c=state.botDraft.config;topSub('Routines',renderBotProfile,renderBotProfile);
+  var body=document.getElementById('subBody');
+  body.innerHTML=(c.routines.length?'<div class="section card">'+c.routines.map(function(r,i){
+    return '<div class="settingRow"><div class="sectionIcon">◷</div><div class="grow"><div>'+esc(r.title||'Routine')+'</div><div class="mini">'+esc(r.schedule||'Manual')+' · '+esc(r.instruction||'')+'</div></div><button class="trash" data-rdel="'+i+'">⌫</button></div>'
+  }).join('')+'</div>':'<div class="empty"><div class="emptyIcon">◷</div><div>No routines yet</div><p class="sub">Create automated tasks or recurring actions for this bot.</p></div>')+
+  '<button class="primaryBtn" id="addRoutine">＋ Add Routine</button><div class="notice section">Routine definition disimpan di profil bot. Eksekusi background akan memakai Item 6 worker saat production integration diaktifkan.</div>';
+  document.getElementById('addRoutine').onclick=renderRoutineEditor;
+  document.querySelectorAll('[data-rdel]').forEach(function(x){x.onclick=function(){c.routines.splice(Number(x.dataset.rdel),1);renderRoutines()}})
+}
+function renderRoutineEditor(){
+  topSub('Add Routine',renderRoutines,function(){
+    var t=document.getElementById('rt').value.trim(),s=document.getElementById('rs').value.trim(),i=document.getElementById('ri').value.trim();
+    if(!t||!i){toast('Title and instruction required');return}
+    state.botDraft.config.routines.push({title:t,schedule:s||'Manual',instruction:i,enabled:true});renderRoutines()
   });
+  document.getElementById('subBody').innerHTML='<div class="fieldLabel">Routine name</div><input id="rt" class="input" placeholder="Morning report">'+
+    '<div class="fieldLabel">Schedule</div><input id="rs" class="input" placeholder="Every day 08:00">'+
+    '<div class="fieldLabel">Instruction</div><textarea id="ri" class="textarea" placeholder="What should this bot do?"></textarea>'
 }
-
-function renderBotEditor(bot){
-  let avatarData=bot?bot.avatarData:null;
-  app.innerHTML='<div class="screen">'+
-    '<header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>'+(bot?'Edit bot':'New bot')+'</b><span>Identity & personality</span></div></header>'+
-    '<main class="scroll"><div class="pad">'+
-    '<div class="avatarEditor"><img id="avatarPreview" class="avatar" src="'+esc(avatarOf(bot))+'">'+
-    '<label class="fileLabel">Choose photo<input id="avatarFile" type="file" accept="image/*"></label></div>'+
-    '<div class="sectionTitle">IDENTITY</div>'+
-    '<input id="botName" class="field" placeholder="Bot name" value="'+esc(bot?bot.name:'')+'">'+
-    '<input id="botTitle" class="field" placeholder="Title, e.g. Coding Assistant" value="'+esc(bot?bot.title:'')+'">'+
-    '<div class="sectionTitle">INSTRUCTIONS</div>'+
-    '<textarea id="botInstructions" class="textarea" placeholder="What is this bot, what should it do, and what rules should it follow?">'+esc(bot?bot.instructions:'')+'</textarea>'+
-    '<textarea id="botStyle" class="textarea" placeholder="Response style, personality, tone...">'+esc(bot?bot.style:'')+'</textarea>'+
-    '<input id="botSkills" class="field" placeholder="Skills, comma separated" value="'+esc(bot&&Array.isArray(bot.skills)?bot.skills.join(', '):'')+'">'+
-    '<p class="hint">Each bot keeps its own identity and memory. Shared workspace memory is only read from items you explicitly mark as shared.</p>'+
-    '<div id="editorErr" class="error"></div>'+
-    '<button id="saveBot" class="primary">Save bot</button>'+
-    (bot&&!bot.isDefault?'<div style="height:10px"></div><button id="deleteBot" class="danger">Delete bot</button>':'')+
-    '</div></main></div>';
-
-  document.getElementById('back').onclick=renderHome;
-  document.getElementById('avatarFile').onchange=async function(){
-    const file=this.files&&this.files[0];if(!file)return;
-    try{avatarData=await compressAvatar(file);document.getElementById('avatarPreview').src=avatarData}
-    catch(e){document.getElementById('editorErr').textContent=e.message}
-  };
-  document.getElementById('saveBot').onclick=async function(){
-    const err=document.getElementById('editorErr'),btn=this;
-    const name=document.getElementById('botName').value.trim();
-    if(!name){err.textContent='Bot name is required.';return}
-    const payload={
-      ...(bot?{id:bot.id}:{}),
-      name:name,
-      title:document.getElementById('botTitle').value.trim(),
-      avatarData:avatarData||null,
-      instructions:document.getElementById('botInstructions').value,
-      style:document.getElementById('botStyle').value,
-      skills:document.getElementById('botSkills').value.split(',').map(function(x){return x.trim()}).filter(Boolean),
-      permissions:bot&&bot.permissions?bot.permissions:{}
-    };
-    btn.disabled=true;err.textContent='';
-    try{
-      await post('/bots/save',payload);
-      const d=await get('/bots/list');state.bots=d.bots||[];renderHome();
-    }catch(e){if(!authFail(e))err.textContent=e.message}
-    finally{btn.disabled=false}
-  };
-  const del=document.getElementById('deleteBot');
-  if(del)del.onclick=async function(){
-    if(!confirm('Delete '+bot.name+'? Its private memory will also be removed.'))return;
-    try{await post('/bots/delete',{id:bot.id});const d=await get('/bots/list');state.bots=d.bots||[];renderHome()}
-    catch(e){if(!authFail(e))document.getElementById('editorErr').textContent=e.message}
-  };
+function renderBotPreview(){
+  var b=state.botDraft;if(!b.name.trim()){toast('Bot name is required');renderBotProfile();return}
+  topSub('Bot Profile Preview',renderBotProfile,saveBotDraft);
+  var c=b.config,body=document.getElementById('subBody');
+  body.innerHTML='<div class="previewProfile"><div class="avatarWrap"><img class="avatar lg" src="'+esc(avatar(b))+'"></div></div>'+
+    '<div class="fieldLabel">Name</div><div class="input">'+esc(b.name)+'</div>'+
+    '<div class="fieldLabel">Title</div><div class="input">'+esc(b.title||'Personal AI')+'</div>'+
+    '<div class="fieldLabel">Bot Mark</div><div class="row" style="padding:10px 4px">'+shapeHtml(c.mark)+'<span class="sub">'+esc(c.mark.shape)+' · '+esc(c.mark.color)+'</span></div>'+
+    '<div class="fieldLabel">Preview</div><div class="card previewBubble"><img class="avatar sm" src="'+esc(avatar(b))+'"><div><div><b>'+esc(b.name)+'</b> <span class="badgeAI">AI</span></div><div style="margin-top:7px;line-height:1.45">'+esc(previewGreeting(b))+'</div></div></div>'+
+    '<div class="notice">Model: '+esc(modelName(c.model))+' · Tools: '+enabledTools(c).map(function(x){return x.name}).join(', ')+'</div>'
 }
-
-function renderChat(bot){
-  state.currentBot=bot;
-  app.innerHTML='<div class="screen">'+
-    '<header class="top"><button id="back" class="backBtn">‹</button><img class="smallAvatar" src="'+esc(avatarOf(bot))+'">'+
-    '<div class="topTitle"><b>'+esc(bot.name)+'</b><span id="chatStatus">'+esc(bot.title||'Ready')+'</span></div>'+
-    '<button id="editBot" class="iconBtn">⋮</button></header>'+
-    '<div class="chatTools"><button id="memoryBtn" class="toolChip">Memory</button><button id="sourcesBtn" class="toolChip">Sources</button><button id="newChat" class="toolChip">New chat</button></div>'+
-    '<main id="messages" class="messages"></main>'+
-    '<div class="composerArea">'+
-      '<div id="attachMenu" class="attachMenu hide">'+
-        '<button id="chooseFile" class="attachItem"><span class="attachIcon">▱</span>Choose File</button>'+
-        '<button id="takePhoto" class="attachItem"><span class="attachIcon">◉</span>Take Photo</button>'+
-        '<button id="attachImage" class="attachItem"><span class="attachIcon">▧</span>Attach Image</button>'+
-        '<div class="attachSep"></div>'+
-        '<button id="addSource" class="attachItem"><span class="attachIcon">⌁</span>Add Source</button>'+
-      '</div>'+
-      '<div id="pendingAttachments" class="pending"></div>'+
-      '<div class="composerRow"><button id="plusAttach" class="plusBtn">＋</button><div class="composer"><textarea id="box" rows="1" placeholder="Message '+esc(bot.name)+'…"></textarea><button id="send" class="send">➤</button></div></div>'+
-      '<input id="pdfInput" type="file" accept="application/pdf" class="hide">'+
-      '<input id="imageInput" type="file" accept="image/*" class="hide">'+
-      '<input id="cameraInput" type="file" accept="image/*" capture="environment" class="hide">'+
-    '</div></div>';
-  document.getElementById('back').onclick=renderHome;
-  document.getElementById('editBot').onclick=function(){renderBotEditor(bot)};
-  document.getElementById('memoryBtn').onclick=function(){renderMemories(bot)};
-  document.getElementById('sourcesBtn').onclick=function(){renderSources(bot)};
-  document.getElementById('newChat').onclick=function(){setConv(bot.id);state.pendingAttachments=[];showWelcome(bot);drawPending()};
+function previewGreeting(b){var t=b.instructions||'';if(/github|coding|code/i.test(t))return 'Hai. Aku siap bantu dengan coding dan GitHub. Ada yang mau kita kerjakan hari ini? 😎';return 'Hai. Aku '+b.name+'. Aku siap bantu sesuai peran dan instruksi yang kamu kasih.'}
+async function saveBotDraft(){
+  var b=state.botDraft,btn=document.getElementById('done');btn.disabled=true;
+  try{
+    var payload={name:b.name.trim(),title:(b.title||'').trim(),avatarData:b.avatarData||null,instructions:b.instructions||'',style:b.style||'',skills:b.skills||[],permissions:b.permissions||{},config:b.config||{}};
+    if(b.id)payload.id=b.id;
+    var r=await post('/bots/save',payload);var d=await get('/bots/list');state.bots=d.bots||[];toast('Bot saved');state.tab='agents';renderHome()
+  }catch(e){if(!authFail(e))toast(e.message)}finally{btn.disabled=false}
+}
+document.getElementById('avatarFile').onchange=async function(){
+  var f=this.files&&this.files[0];if(!f||!state.botDraft)return;
+  if(f.size>5*1024*1024){toast('Avatar max 5 MB');return}
+  try{state.botDraft.avatarData=await imageData(f,512,.82);renderBotProfile()}catch(e){toast(e.message)}
+  this.value=''
+};
+function imageData(file,max,q){return new Promise(function(resolve,reject){var r=new FileReader();r.onload=function(){var img=new Image();img.onload=function(){var scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',q))};img.onerror=reject;img.src=r.result};r.onerror=reject;r.readAsDataURL(file)})}
+async function openChat(id){
+  var b=state.bots.find(function(x){return x.id===id});if(!b)return;state.currentBot=b;state.pendingAttachments=[];state.attachOpen=false;renderChat();
+  await loadConversation()
+}
+function renderChat(messages){
+  var b=state.currentBot,c=botConfig(b),qs=c.quickPrompts||[];
+  app.innerHTML='<div class="screen"><header class="chatHead"><button class="back" id="chatBack">‹</button><img class="avatar" src="'+esc(avatar(b))+'"><div class="grow"><div class="botName">'+esc(b.name)+'</div><div class="mini">'+esc(b.title||modelName(c.model))+'</div></div><button class="iconBtn" id="editBot">⋮</button></header>'+
+    '<div class="chatTools"><button class="toolChip" id="memoryBtn">Memory</button><button class="toolChip" id="sourcesBtn">Sources</button><button class="toolChip" id="newChat">New chat</button></div>'+
+    (qs.length?'<div class="chatTools">'+qs.filter(Boolean).map(function(q,i){return '<button class="toolChip" data-q="'+i+'">'+esc(q)+'</button>'}).join('')+'</div>':'')+
+    '<main class="messages" id="messages"></main>'+
+    '<div class="composer"><div class="pending" id="pending"></div><div class="composeRow"><button class="plusBtn" id="attachPlus">＋</button><textarea id="compose" class="composeInput" rows="1" placeholder="Message '+esc(b.name)+'"></textarea><button class="sendBtn" id="send">➤</button></div></div>'+
+    (state.attachOpen?'<div class="attachMenu"><button data-attach="file">▧ &nbsp; Choose File</button><button data-attach="camera">◉ &nbsp; Take Photo</button><button data-attach="image">▣ &nbsp; Attach Image</button><hr><button data-attach="source">＋ &nbsp; Add Source</button></div>':'')+
+    '</div>';
+  document.getElementById('chatBack').onclick=function(){state.tab='chats';renderHome()};
+  document.getElementById('editBot').onclick=function(){beginBot(b.id)};
+  document.getElementById('newChat').onclick=function(){setConv(b.id);state.pendingAttachments=[];renderChat([]);showWelcome()};
+  document.getElementById('memoryBtn').onclick=function(){renderMemoryList(b)};
+  document.getElementById('sourcesBtn').onclick=function(){renderSources(b)};
+  document.getElementById('attachPlus').onclick=function(){state.attachOpen=!state.attachOpen;renderChat(currentMessages())};
   document.getElementById('send').onclick=sendChat;
-  document.getElementById('plusAttach').onclick=function(){
-    document.getElementById('attachMenu').classList.toggle('hide');
-  };
-  document.getElementById('chooseFile').onclick=function(){document.getElementById('attachMenu').classList.add('hide');document.getElementById('pdfInput').click()};
-  document.getElementById('attachImage').onclick=function(){document.getElementById('attachMenu').classList.add('hide');document.getElementById('imageInput').click()};
-  document.getElementById('takePhoto').onclick=function(){document.getElementById('attachMenu').classList.add('hide');document.getElementById('cameraInput').click()};
-  document.getElementById('addSource').onclick=function(){renderSourceEditor(bot)};
-  ['pdfInput','imageInput','cameraInput'].forEach(function(id){
-    document.getElementById(id).onchange=async function(){
-      const file=this.files&&this.files[0];this.value='';if(!file)return;
-      const status=document.getElementById('chatStatus');
-      try{
-        if(status)status.textContent='Uploading…';
-        const ref=await uploadBinary(file);
-        state.pendingAttachments.push(ref);drawPending();
-      }catch(e){alert(e.message)}
-      finally{if(status)status.textContent=bot.title||'Ready'}
-    };
-  });
-  drawPending();
-  const box=document.getElementById('box');
-  box.onkeydown=function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}};
-  box.oninput=function(){box.style.height='auto';box.style.height=Math.min(box.scrollHeight,112)+'px'};
-  loadConversation(bot);
+  document.getElementById('compose').onkeydown=function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat()}};
+  document.querySelectorAll('[data-q]').forEach(function(x){x.onclick=function(){document.getElementById('compose').value=qs[Number(x.dataset.q)];document.getElementById('compose').focus()}});
+  document.querySelectorAll('[data-attach]').forEach(function(x){x.onclick=function(){var a=x.dataset.attach;state.attachOpen=false;if(a==='file')document.getElementById('attachFile').click();if(a==='camera')document.getElementById('cameraFile').click();if(a==='image')document.getElementById('attachImage').click();if(a==='source')renderSourceEditor(b)}});
+  drawMessages(messages||[]);drawPending()
 }
-
-function showWelcome(bot){
-  const m=document.getElementById('messages');if(!m)return;
-  m.innerHTML='<section class="welcome"><img class="avatar" src="'+esc(avatarOf(bot))+'"><h2>'+esc(bot.name)+'</h2>'+
-    '<p>'+esc(bot.instructions?bot.instructions.slice(0,220):'Start a conversation with this bot.')+'</p></section>';
+let _messages=[];
+function currentMessages(){return _messages}
+function drawMessages(msgs){_messages=msgs||[];var box=document.getElementById('messages');if(!box)return;if(!_messages.length){showWelcome();return}box.innerHTML=_messages.map(function(m){return '<div class="msg '+(m.role==='user'?'user':'assistant')+'">'+esc(m.content)+'</div>'}).join('');box.scrollTop=box.scrollHeight}
+function showWelcome(){var box=document.getElementById('messages');if(!box)return;box.innerHTML='<div class="empty"><img class="avatar lg" src="'+esc(avatar(state.currentBot))+'"><h3>'+esc(state.currentBot.name)+'</h3><p class="sub">'+esc(state.currentBot.title||'Ready when you are.')+'</p></div>'}
+async function loadConversation(){
+  var id=conv(state.currentBot.id);if(!id){showWelcome();return}
+  try{var d=await get('/conversations/get?id='+encodeURIComponent(id));drawMessages(d.messages||[])}
+  catch(e){if(e.status===404){setConv(state.currentBot.id);showWelcome()}else if(!authFail(e))toast(e.message)}
 }
-
-async function loadConversation(bot){
-  const id=conv(bot.id);
-  if(!id){showWelcome(bot);return}
-  try{
-    const d=await get('/conversations/get?id='+encodeURIComponent(id));
-    drawMessages(bot,d.messages||[]);
-  }catch(e){
-    if(e.status===404){setConv(bot.id);showWelcome(bot);return}
-    if(!authFail(e)){showWelcome(bot)}
-  }
-}
-
-function drawMessages(bot,messages){
-  const m=document.getElementById('messages');if(!m)return;
-  m.innerHTML='';
-  (messages||[]).forEach(function(x){appendBubble(bot,x.role,x.content)});
-  if(!messages||!messages.length)showWelcome(bot);
-}
-
-function appendBubble(bot,role,content){
-  const m=document.getElementById('messages');if(!m)return;
-  const w=m.querySelector('.welcome');if(w)w.remove();
-  const row=document.createElement('div');row.className='msgRow '+role;
-  if(role==='assistant'){
-    const im=document.createElement('img');im.src=avatarOf(bot);im.className='miniAvatar';row.appendChild(im);
-  }
-  const b=document.createElement('div');b.className='bubble';b.textContent=content;row.appendChild(b);m.appendChild(row);m.scrollTop=m.scrollHeight;
-}
-
 async function sendChat(){
-  if(state.busy||!state.currentBot)return;
-  const bot=state.currentBot,box=document.getElementById('box');
-  let text=box.value.trim();
-  if(!text&&!state.pendingAttachments.length)return;
-  if(!text)text='Please analyze the attached file.';
-  const outgoingAttachments=state.pendingAttachments.slice();
-  state.pendingAttachments=[];drawPending();
-  box.value='';box.style.height='auto';appendBubble(bot,'user',text);
-  state.busy=true;document.getElementById('send').disabled=true;document.getElementById('chatStatus').textContent='Working…';
-  const m=document.getElementById('messages'),wait=document.createElement('div');wait.className='typing';wait.textContent=bot.name+' is working…';m.appendChild(wait);m.scrollTop=m.scrollHeight;
+  if(state.busy)return;var input=document.getElementById('compose'),text=(input.value||'').trim();if(!text)return;
+  state.busy=true;document.getElementById('send').disabled=true;input.value='';
+  var optimistic=_messages.concat([{role:'user',content:text},{role:'assistant',content:'…'}]);drawMessages(optimistic);
   try{
-    const d=await post('/chat',{conversationId:conv(bot.id),botId:bot.id,message:text,attachments:outgoingAttachments});
-    setConv(bot.id,d.conversationId);drawMessages(bot,d.messages||[]);
-  }catch(e){
-    wait.remove();if(authFail(e))return;appendBubble(bot,'assistant',e.message);
-  }finally{
-    state.busy=false;
-    const s=document.getElementById('send');if(s)s.disabled=false;
-    const st=document.getElementById('chatStatus');if(st)st.textContent=bot.title||'Ready';
-  }
+    var payload={botId:state.currentBot.id,message:text,attachments:state.pendingAttachments.map(function(a){return {storageFilename:a.storageFilename,contentType:a.contentType,fileName:a.fileName}})};
+    var cid=conv(state.currentBot.id);if(cid)payload.conversationId=cid;
+    var d=await post('/chat',payload);setConv(state.currentBot.id,d.conversationId);state.pendingAttachments=[];drawMessages(d.messages||[]);
+    var last=(d.messages||[]).filter(function(x){return x.role==='assistant'}).slice(-1)[0];savePreview(state.currentBot.id,last?last.content:text)
+  }catch(e){if(!authFail(e)){toast(e.message);drawMessages(_messages.filter(function(x){return x.content!=='…'}))}}
+  finally{state.busy=false;var s=document.getElementById('send');if(s)s.disabled=false;drawPending()}
 }
-
-
-async function renderSources(bot){
-  const cid=conv(bot.id);
-  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>Sources</b><span>'+esc(bot.name)+' + main sources</span></div><button id="addSrc" class="iconBtn">＋</button></header><main class="scroll"><div id="sourceList" class="pad"><div class="muted">Loading…</div></div></main></div>';
-  document.getElementById('back').onclick=function(){renderChat(bot)};
-  document.getElementById('addSrc').onclick=function(){renderSourceEditor(bot)};
+async function uploadBinary(file){
+  if(!file)return;if(file.size>50*1024*1024){toast('Maximum file size is 50 MB.');return}
+  var allowed=['image/jpeg','image/png','image/webp','image/gif','application/pdf'];if(allowed.indexOf(file.type)<0){toast('Supported: PDF, JPG, PNG, WebP, GIF.');return}
+  if(state.pendingAttachments.length>=3){toast('Maximum 3 attachments per message.');return}
   try{
-    const d=await get('/sources/list'+(cid?'?conversationId='+encodeURIComponent(cid):''));
-    const items=(d.sources||[]).filter(function(x){return x.scope==='main'||(cid&&x.conversationId===cid)});
-    const box=document.getElementById('sourceList');
-    if(!items.length){box.innerHTML='<div class="empty"><h3>No sources yet</h3><p>Add a source for this chat or make it available to every bot.</p></div>';return}
-    box.innerHTML=items.map(function(src){
-      const detail=src.sourceType==='url'?(src.sourceUrl||''):(src.fileName||src.content||'');
-      return '<div class="card"><div class="status '+(src.scope==='main'?'completed':'queued')+'">'+(src.scope==='main'?'MAIN SOURCE':'THIS CHAT')+'</div><h3>'+esc(src.name)+'</h3><p>'+esc(String(detail).slice(0,320))+'</p><div class="meta"><span class="pill">'+esc(src.sourceType)+'</span></div><button class="secondary deleteSource" data-id="'+src.id+'">Delete</button></div>';
-    }).join('');
-    box.querySelectorAll('.deleteSource').forEach(function(btn){btn.onclick=async function(){
-      if(!confirm('Delete this source?'))return;
-      try{await post('/sources/delete',{id:Number(btn.dataset.id)});renderSources(bot)}
-      catch(e){if(!authFail(e))alert(e.message)}
-    }});
-  }catch(e){if(!authFail(e))document.getElementById('sourceList').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+    var mint=await post('/attachments/upload',{filename:file.name,contentType:file.type,sizeBytes:file.size});
+    var put=await fetch(mint.uploadUrl,{method:'PUT',headers:{'content-type':file.type},body:file});if(!put.ok)throw new Error('Upload failed');
+    state.pendingAttachments.push({storageFilename:mint.storageFilename,contentType:file.type,fileName:file.name});drawPending()
+  }catch(e){toast(e.message)}
 }
-
-function renderSourceEditor(bot){
-  let scope='conversation',type='text',fileRef=null;
-  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>Add Source</b><span>Choose where this source is used</span></div></header>'+
-    '<main class="scroll"><div class="pad">'+
-      '<div class="sectionTitle">SOURCE SCOPE</div>'+
-      '<div id="scopeChat" class="scopeChoice on"><div class="scopeRadio"></div><div class="scopeCopy"><b>Source for this chat</b><span>Only used in this conversation</span></div></div>'+
-      '<div id="scopeMain" class="scopeChoice"><div class="scopeRadio"></div><div class="scopeCopy"><b>Main source for all</b><span>Used across all chats and bot tasks</span></div></div>'+
-      '<div class="sectionTitle">SOURCE TYPE</div>'+
-      '<div class="sourceTypeRow"><button class="sourceTypeBtn on" data-type="text">Text</button><button class="sourceTypeBtn" data-type="url">URL</button><button class="sourceTypeBtn" data-type="file">File / Image</button></div>'+
-      '<input id="sourceName" class="field" placeholder="Source name">'+
-      '<div id="sourceFields"></div>'+
-      '<p class="hint">When group chat is enabled, the first option becomes “Source for this group”. Main sources stay available everywhere.</p>'+
-      '<div id="sourceErr" class="error"></div><button id="saveSource" class="primary">Save source</button>'+
-    '</div></main></div>';
-
-  document.getElementById('back').onclick=function(){renderChat(bot)};
-  function drawScope(){
-    document.getElementById('scopeChat').classList.toggle('on',scope==='conversation');
-    document.getElementById('scopeMain').classList.toggle('on',scope==='main');
-  }
-  document.getElementById('scopeChat').onclick=function(){scope='conversation';drawScope()};
-  document.getElementById('scopeMain').onclick=function(){scope='main';drawScope()};
-
-  function drawFields(){
-    document.querySelectorAll('.sourceTypeBtn').forEach(function(b){b.classList.toggle('on',b.dataset.type===type)});
-    const f=document.getElementById('sourceFields');
-    if(type==='text')f.innerHTML='<textarea id="sourceContent" class="textarea" style="min-height:180px" placeholder="Paste source text here"></textarea>';
-    else if(type==='url')f.innerHTML='<input id="sourceUrl" class="field" placeholder="https://...">';
-    else f.innerHTML='<label class="fileLabel" style="width:100%;height:50px">Choose PDF or image<input id="sourceFile" type="file" accept="application/pdf,image/*"></label><div id="sourceFileName" class="hint" style="margin-top:10px">No file selected.</div>';
-    const sf=document.getElementById('sourceFile');
-    if(sf)sf.onchange=async function(){
-      const file=this.files&&this.files[0];if(!file)return;
-      document.getElementById('sourceFileName').textContent='Uploading '+file.name+'…';
-      try{
-        fileRef=await uploadBinary(file);
-        document.getElementById('sourceFileName').textContent=file.name;
-        const n=document.getElementById('sourceName');if(n&&!n.value)n.value=file.name;
-      }catch(e){fileRef=null;document.getElementById('sourceFileName').textContent=e.message}
-    };
-  }
-  document.querySelectorAll('.sourceTypeBtn').forEach(function(b){b.onclick=function(){type=b.dataset.type;fileRef=null;drawFields()}});
-  drawFields();
-
-  document.getElementById('saveSource').onclick=async function(){
-    const err=document.getElementById('sourceErr'),name=document.getElementById('sourceName').value.trim();
-    if(!name){err.textContent='Source name is required.';return}
-    const payload={scope:scope,conversationId:scope==='conversation'?(conv(bot.id)||null):null,botId:scope==='conversation'?bot.id:null,groupKey:null,name:name,sourceType:type};
-    if(type==='text'){
-      const content=document.getElementById('sourceContent').value.trim();if(!content){err.textContent='Paste source text first.';return}
-      payload.content=content;
-    }else if(type==='url'){
-      const u=document.getElementById('sourceUrl').value.trim();if(!u){err.textContent='Enter a URL.';return}
-      payload.sourceUrl=u;
-    }else{
-      if(!fileRef){err.textContent='Choose and upload a file first.';return}
-      payload.sourceType=fileRef.contentType.indexOf('image/')===0?'image':'file';
-      payload.storageFilename=fileRef.storageFilename;payload.fileName=fileRef.fileName;payload.mimeType=fileRef.contentType;
-    }
-    try{
-      const r=await post('/sources/save',payload);
-      if(scope==='conversation'&&r.conversationId)setConv(bot.id,r.conversationId);
-      renderSources(bot);
-    }catch(e){if(!authFail(e))err.textContent=e.message}
-  };
-}
-
-async function renderMemories(bot){
-  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>'+esc(bot.name)+' Memory</b><span>Private bot memory + shared workspace</span></div><button id="addMem" class="iconBtn">＋</button></header><main class="scroll"><div id="memoryList" class="pad"><div class="muted">Loading…</div></div></main></div>';
-  document.getElementById('back').onclick=function(){renderChat(bot)};
-  document.getElementById('addMem').onclick=function(){renderMemoryEditor(bot)};
+['attachFile','attachImage','cameraFile'].forEach(function(id){document.getElementById(id).onchange=function(){var f=this.files&&this.files[0];uploadBinary(f);this.value=''}})
+function drawPending(){var x=document.getElementById('pending');if(!x)return;x.innerHTML=state.pendingAttachments.map(function(a,i){return '<span class="fileTag" data-pdel="'+i+'">'+esc(a.fileName||a.contentType)+' ×</span>'}).join('');x.querySelectorAll('[data-pdel]').forEach(function(t){t.onclick=function(){state.pendingAttachments.splice(Number(t.dataset.pdel),1);drawPending()}})}
+async function renderMemoryList(bot){
+  topSub('Memory',function(){state.currentBot=bot;renderChat(currentMessages())},function(){renderMemoryEditor(bot)});
+  var body=document.getElementById('subBody');body.innerHTML='<div class="empty">Loading…</div>';
   try{
-    const d=await get('/memories/list?botId='+encodeURIComponent(bot.id));
-    const box=document.getElementById('memoryList'),items=d.memories||[];
-    if(!items.length){box.innerHTML='<div class="empty"><h3>No memory yet</h3><p>Add something this bot should remember.</p></div>';return}
-    box.innerHTML=items.map(function(m){
-      return '<div class="card"><h3>'+esc(m.title||'Memory')+'</h3><p>'+esc(m.content)+'</p><div class="meta">'+
-        '<span class="pill">'+esc(m.scope)+'</span><span class="pill">'+esc(m.kind)+'</span>'+(m.pinned?'<span class="pill">pinned</span>':'')+
-        '</div><button class="secondary deleteMem" data-id="'+m.id+'">Delete</button></div>';
-    }).join('');
-    box.querySelectorAll('.deleteMem').forEach(function(btn){
-      btn.onclick=async function(){if(!confirm('Delete this memory?'))return;try{await post('/memories/delete',{id:Number(btn.dataset.id)});renderMemories(bot)}catch(e){if(!authFail(e))alert(e.message)}};
-    });
-  }catch(e){if(!authFail(e))document.getElementById('memoryList').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+    var d=await get('/memories/list?botId='+encodeURIComponent(bot.id)),items=d.memories||[];
+    body.innerHTML=(items.length?items.map(function(m){return '<div class="card taskRow"><div class="row"><b class="grow">'+esc(m.title||'Memory')+'</b><span class="status">'+esc(m.scope)+'</span></div><div class="sub" style="margin-top:7px;white-space:pre-wrap">'+esc(m.content)+'</div></div>'}).join(''):'<div class="empty">No memory yet</div>')+'<button class="primaryBtn" id="addMem">＋ Add Memory</button>';
+    document.getElementById('addMem').onclick=function(){renderMemoryEditor(bot)}
+  }catch(e){body.innerHTML='<div class="empty">'+esc(e.message)+'</div>'}
 }
-
 function renderMemoryEditor(bot){
-  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>Add memory</b><span>'+esc(bot.name)+'</span></div></header>'+
-    '<main class="scroll"><div class="pad">'+
-    '<div class="sectionTitle">SCOPE</div><select id="memScope" class="select"><option value="bot">Private to '+esc(bot.name)+'</option><option value="workspace">Shared workspace</option></select>'+
-    '<select id="memKind" class="select"><option value="long_term">Long-term memory</option><option value="task">Task memory</option></select>'+
-    '<input id="memTitle" class="field" placeholder="Title">'+
-    '<textarea id="memContent" class="textarea" style="min-height:180px" placeholder="What should be remembered?"></textarea>'+
-    '<label class="switchLine"><span>Pin this memory</span><input id="memPin" type="checkbox"></label>'+
-    '<p class="hint">Shared workspace memory can be read by bots during tasks. Private memory stays attached to this bot.</p>'+
-    '<div id="memErr" class="error"></div><button id="saveMem" class="primary">Save memory</button>'+
-    '</div></main></div>';
-  document.getElementById('back').onclick=function(){renderMemories(bot)};
-  document.getElementById('saveMem').onclick=async function(){
-    const scope=document.getElementById('memScope').value,content=document.getElementById('memContent').value.trim();
-    if(!content){document.getElementById('memErr').textContent='Memory content is required.';return}
-    try{
-      await post('/memories/save',{
-        botId:scope==='bot'?bot.id:null,scope:scope,kind:document.getElementById('memKind').value,
-        title:document.getElementById('memTitle').value.trim(),content:content,pinned:document.getElementById('memPin').checked
-      });
-      renderMemories(bot);
-    }catch(e){if(!authFail(e))document.getElementById('memErr').textContent=e.message}
-  };
+  topSub('Add Memory',function(){renderMemoryList(bot)},async function(){
+    var content=document.getElementById('mc').value.trim(),scope=document.getElementById('ms').value;if(!content){toast('Memory content required');return}
+    try{await post('/memories/save',{botId:scope==='bot'?bot.id:null,scope:scope,kind:'long_term',title:document.getElementById('mt').value.trim(),content:content,pinned:document.getElementById('mp').checked});renderMemoryList(bot)}
+    catch(e){toast(e.message)}
+  });
+  document.getElementById('subBody').innerHTML='<div class="fieldLabel">Title</div><input id="mt" class="input"><div class="fieldLabel">Scope</div><select id="ms" class="input"><option value="bot">Private to '+esc(bot.name)+'</option><option value="workspace">Shared workspace</option></select><div class="fieldLabel">Content</div><textarea id="mc" class="textarea"></textarea><label class="row" style="margin-top:12px"><input id="mp" type="checkbox"> <span>Pin memory</span></label>'
 }
-
-async function renderTasks(){
-  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>Tasks</b><span>Bot collaboration only when you assign it</span></div><button id="newTask" class="iconBtn">＋</button></header><main class="scroll"><div id="taskList" class="pad"><div class="muted">Loading…</div></div></main></div>';
-  document.getElementById('back').onclick=renderHome;
-  document.getElementById('newTask').onclick=renderTaskEditor;
+async function renderSources(bot){
+  topSub('Sources',function(){state.currentBot=bot;renderChat(currentMessages())},function(){renderSourceEditor(bot)});
+  var body=document.getElementById('subBody');body.innerHTML='<div class="empty">Loading…</div>';
   try{
-    const d=await get('/tasks/list'),box=document.getElementById('taskList'),items=d.tasks||[];
-    if(!items.length){box.innerHTML='<div class="empty"><h3>No tasks yet</h3><p>Create a task and choose exactly which bots should work on it.</p></div>';return}
-    box.innerHTML=items.map(function(t){
-      return '<div class="card taskCard" data-id="'+t.id+'"><div class="status '+esc(t.status)+'">'+esc(t.status)+'</div><h3>'+esc(t.title)+'</h3><p>'+esc(t.instruction)+'</p><div class="meta"><span class="pill">'+t.stepCount+' steps</span></div></div>';
-    }).join('');
-    box.querySelectorAll('.taskCard').forEach(function(card){card.onclick=function(){renderTaskDetail(Number(card.dataset.id))}});
-  }catch(e){if(!authFail(e))document.getElementById('taskList').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+    var id=conv(bot.id),d=await get('/sources/list'+(id?'?conversationId='+encodeURIComponent(id):'')),items=d.sources||[];
+    body.innerHTML=(items.length?items.map(function(s){return '<div class="card taskRow"><div class="row"><b class="grow">'+esc(s.name)+'</b><span class="status">'+esc(s.scope)+'</span></div><div class="mini" style="margin-top:6px">'+esc(s.sourceType)+'</div></div>'}).join(''):'<div class="empty">No sources</div>')+'<button class="primaryBtn" id="addSrc">＋ Add Source</button>';
+    document.getElementById('addSrc').onclick=function(){renderSourceEditor(bot)}
+  }catch(e){body.innerHTML='<div class="empty">'+esc(e.message)+'</div>'}
 }
-
-function renderTaskEditor(){
-  if(!state.bots.length){renderHome();return}
-  state.taskDraft={title:'',instruction:'',steps:[{botId:state.bots[0].id,instruction:''}]};
-  drawTaskEditor();
-}
-
-function drawTaskEditor(){
-  const d=state.taskDraft;
-  const options=state.bots.map(function(b){return '<option value="'+b.id+'">'+esc(b.name)+'</option>'}).join('');
-  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>New task</b><span>You control every participant and step</span></div></header>'+
-    '<main class="scroll"><div class="pad">'+
-    '<input id="taskTitle" class="field" placeholder="Task title" value="'+esc(d.title)+'">'+
-    '<textarea id="taskInstruction" class="textarea" placeholder="Overall task instruction">'+esc(d.instruction)+'</textarea>'+
-    '<div class="sectionTitle">BOT STEPS</div><div id="steps">'+d.steps.map(function(s,i){
-      return '<div class="taskStep"><div class="taskStepTop"><select class="select stepBot" data-i="'+i+'">'+options+'</select><button class="removeStep" data-i="'+i+'">×</button></div>'+
-        '<textarea class="textarea stepInstruction" data-i="'+i+'" placeholder="What should this bot do?">'+esc(s.instruction)+'</textarea></div>';
-    }).join('')+'</div>'+
-    '<button id="addStep" class="secondary">＋ Add bot step</button>'+
-    '<p class="hint">Bots execute only these user-defined steps. A later bot receives outputs from earlier steps, but bots cannot create their own extra collaboration.</p>'+
-    '<div id="taskErr" class="error"></div><button id="createTask" class="primary">Create task</button>'+
-    '</div></main></div>';
-  document.getElementById('back').onclick=renderTasks;
-  d.steps.forEach(function(s,i){const sel=document.querySelector('.stepBot[data-i="'+i+'"]');if(sel)sel.value=String(s.botId)});
-  function sync(){
-    d.title=document.getElementById('taskTitle').value;
-    d.instruction=document.getElementById('taskInstruction').value;
-    document.querySelectorAll('.stepBot').forEach(function(x){d.steps[Number(x.dataset.i)].botId=Number(x.value)});
-    document.querySelectorAll('.stepInstruction').forEach(function(x){d.steps[Number(x.dataset.i)].instruction=x.value});
-  }
-  document.getElementById('addStep').onclick=function(){sync();d.steps.push({botId:state.bots[0].id,instruction:''});drawTaskEditor()};
-  document.querySelectorAll('.removeStep').forEach(function(x){x.onclick=function(){sync();if(d.steps.length>1){d.steps.splice(Number(x.dataset.i),1);drawTaskEditor()}}});
-  document.getElementById('createTask').onclick=async function(){
-    sync();
-    if(!d.title.trim()||!d.instruction.trim()||d.steps.some(function(s){return !s.instruction.trim()})){document.getElementById('taskErr').textContent='Fill the title, overall instruction, and every bot step.';return}
+function renderSourceEditor(bot){
+  topSub('Add Source',function(){state.currentBot=bot;renderChat(currentMessages())},async function(){
+    var name=document.getElementById('sn').value.trim(),content=document.getElementById('sc').value.trim(),scope=document.getElementById('ss').value;if(!name||!content){toast('Name and content required');return}
     try{
-      const r=await post('/tasks/create',{title:d.title.trim(),instruction:d.instruction.trim(),steps:d.steps.map(function(s){return {botId:s.botId,instruction:s.instruction.trim()}})});
-      renderTaskDetail(r.taskId);
-    }catch(e){if(!authFail(e))document.getElementById('taskErr').textContent=e.message}
-  };
+      var payload={scope:scope,name:name,sourceType:document.getElementById('st').value,content:content};
+      if(scope==='conversation'){var id=conv(bot.id);if(id)payload.conversationId=id;else payload.botId=bot.id}
+      var d=await post('/sources/save',payload);if(d.conversationId)setConv(bot.id,d.conversationId);renderSources(bot)
+    }catch(e){toast(e.message)}
+  });
+  document.getElementById('subBody').innerHTML='<div class="fieldLabel">Name</div><input id="sn" class="input"><div class="fieldLabel">Scope</div><select id="ss" class="input"><option value="conversation">Source for this chat</option><option value="main">Main source for all</option></select><div class="fieldLabel">Type</div><select id="st" class="input"><option value="text">Text</option><option value="url">URL</option></select><div class="fieldLabel">Content / URL</div><textarea id="sc" class="textarea"></textarea>'
 }
-
-async function renderTaskDetail(id){
-  app.innerHTML='<div class="screen"><header class="top"><button id="back" class="backBtn">‹</button><div class="topTitle"><b>Task</b><span>Loading…</span></div></header><main class="scroll"><div id="taskDetail" class="pad"><div class="muted">Loading…</div></div></main></div>';
-  document.getElementById('back').onclick=renderTasks;
+function renderGroupEditor(){
+  var g={id:'g'+Date.now(),name:'',botIds:[]};
+  app.innerHTML='<div class="screen"><header class="top"><button class="back" id="gb">‹</button><div class="topTitle">New Group Chat</div><button class="circleBtn primary" id="gs">✓</button></header><main class="content"><div class="fieldLabel">Group name</div><input id="gn" class="input" placeholder="e.g. Tim Surya Toto"><div class="fieldLabel">Select bots</div><div class="card" id="members">'+state.bots.map(function(b){return '<div class="memberPick" data-mid="'+b.id+'"><img class="avatar sm" src="'+esc(avatar(b))+'"><div class="grow"><b>'+esc(b.name)+'</b><div class="mini">'+esc(b.title||'')+'</div></div><div class="check">✓</div></div>'}).join('')+'</div><div class="notice section">Bot hanya berkolaborasi setelah kamu mengirim task di group ini.</div></main></div>';
+  document.getElementById('gb').onclick=function(){state.tab='groups';renderHome()};
+  document.querySelectorAll('[data-mid]').forEach(function(x){x.onclick=function(){var id=Number(x.dataset.mid),i=g.botIds.indexOf(id);if(i>=0)g.botIds.splice(i,1);else g.botIds.push(id);x.classList.toggle('selected',g.botIds.indexOf(id)>=0)}});
+  document.getElementById('gs').onclick=function(){g.name=document.getElementById('gn').value.trim();if(!g.name||g.botIds.length<2){toast('Name and at least 2 bots required');return}var all=groups();all.push(g);saveGroups(all);state.tab='groups';renderHome()}
+}
+function openGroupChat(id){
+  var g=groups().find(function(x){return x.id===id});if(!g)return;state.currentGroup=g;renderGroupChat()
+}
+function renderGroupChat(){
+  var g=state.currentGroup,h=groupHistory(g.id),members=(g.botIds||[]).map(function(id){return state.bots.find(function(b){return b.id===id})}).filter(Boolean);
+  app.innerHTML='<div class="screen"><header class="chatHead"><button class="back" id="gback">‹</button>'+groupStackHtml(g)+'<div class="grow"><div class="botName">'+esc(g.name)+'</div><div class="mini">'+esc(members.map(function(b){return b.name}).join(', '))+'</div></div><button class="iconBtn" id="gmenu">⋮</button></header><main class="messages" id="gmess">'+(h.length?h.map(function(m){return '<div class="msg '+(m.role==='user'?'user':'assistant')+'">'+(m.bot?'<b>'+esc(m.bot)+':</b><br>':'')+esc(m.text)+'</div>'}).join(''):'<div class="empty"><div class="emptyIcon">♣</div><div>'+esc(g.name)+'</div><p class="sub">Send one task. Selected bots execute in order.</p></div>')+'</main><div class="composer"><div class="composeRow"><textarea id="ginput" class="composeInput" placeholder="Assign a task to the group"></textarea><button class="sendBtn" id="gsend">➤</button></div></div></div>';
+  document.getElementById('gback').onclick=function(){state.tab='groups';renderHome()};
+  document.getElementById('gmenu').onclick=function(){if(confirm('Delete this group?')){saveGroups(groups().filter(function(x){return x.id!==g.id}));localStorage.removeItem('diza_group_history_'+g.id);state.tab='groups';renderHome()}};
+  document.getElementById('gsend').onclick=sendGroupTask;
+}
+async function sendGroupTask(){
+  var input=document.getElementById('ginput'),text=(input.value||'').trim();if(!text||state.busy)return;
+  var g=state.currentGroup,h=groupHistory(g.id);h.push({role:'user',text:text,time:Date.now()});saveGroupHistory(g.id,h);renderGroupChat();state.busy=true;
   try{
-    const d=await get('/tasks/get?id='+encodeURIComponent(id)),t=d.task,box=document.getElementById('taskDetail');
-    document.querySelector('.topTitle span').textContent=t.status;
-    box.innerHTML='<div class="card"><div class="status '+esc(t.status)+'">'+esc(t.status)+'</div><h3>'+esc(t.title)+'</h3><p>'+esc(t.instruction)+'</p></div>'+
-      '<div class="sectionTitle">EXECUTION ORDER</div>'+
-      t.steps.map(function(s){
-        return '<div class="card"><div class="status '+esc(s.status)+'">STEP '+s.stepIndex+' • '+esc(s.status)+'</div><h3>'+esc(s.botName)+'</h3><p>'+esc(s.instruction)+'</p>'+
-          (s.output?'<div class="output">'+esc(s.output)+'</div>':'')+(s.error?'<div class="error">'+esc(s.error)+'</div>':'')+'</div>';
-      }).join('')+
-      (t.status!=='running'&&t.status!=='cancelled'?'<button id="runTask" class="primary">'+(t.status==='completed'?'Run again':'Run task')+'</button>':'')+
-      (t.error?'<div class="error">'+esc(t.error)+'</div>':'');
-    const run=document.getElementById('runTask');
-    if(run)run.onclick=async function(){
-      run.disabled=true;run.textContent='Bots are working…';
-      try{await post('/tasks/run',{taskId:id});renderTaskDetail(id)}
-      catch(e){if(authFail(e))return;alert(e.message);renderTaskDetail(id)}
-    };
-  }catch(e){if(!authFail(e))document.getElementById('taskDetail').innerHTML='<div class="error">'+esc(e.message)+'</div>'}
+    var steps=(g.botIds||[]).map(function(id){return {botId:id,instruction:'Respond to the user task from your assigned role. Build on earlier assigned bot outputs when useful.'}});
+    var c=await post('/tasks/create',{title:'Group: '+g.name,instruction:text,steps:steps});
+    var r=await post('/tasks/run',{taskId:c.taskId});
+    var hh=groupHistory(g.id);(r.steps||[]).forEach(function(s){hh.push({role:'assistant',bot:s.botName,text:s.output,time:Date.now()})});saveGroupHistory(g.id,hh);renderGroupChat()
+  }catch(e){toast(e.message)}finally{state.busy=false}
 }
-
-token()?boot():renderAuth(false);
+window.onerror=function(m){console.error(m);toast('UI error: '+m)};
+boot();
 </script>
 </body>
 </html>
