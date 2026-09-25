@@ -191,7 +191,7 @@ public final class BackgroundEngine {
                     if(!hhmm.equals(r.optString("time"))||day.equals(r.optString("lastRunDay")))continue;
                     String prompt=r.optString("prompt");
                     for(int m=0;m<members.length();m++){String bid=members.optString(m);enqueueChat(c,gid,bid,prompt,s.botName(bid));}
-                    r.put("lastRunDay",day);changed=true;
+                    try{r.put("lastRunDay",day);}catch(Exception ignored){}changed=true;
                 }
                 if(changed)s.saveRoutines("group."+gid,routines);
             }
@@ -203,7 +203,7 @@ public final class BackgroundEngine {
             for(int j=0;j<routines.length();j++){
                 JSONObject r=routines.optJSONObject(j);if(r==null||!r.optBoolean("enabled",true))continue;
                 if(!hhmm.equals(r.optString("time"))||day.equals(r.optString("lastRunDay")))continue;
-                enqueueChat(c,chatId,botId,r.optString("prompt"),speaker);r.put("lastRunDay",day);changed=true;
+                enqueueChat(c,chatId,botId,r.optString("prompt"),speaker);try{r.put("lastRunDay",day);}catch(Exception ignored){}changed=true;
             }
             if(changed)s.saveRoutines(ownerKey,routines);
         }
