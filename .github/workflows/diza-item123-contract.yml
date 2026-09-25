@@ -1,0 +1,26 @@
+name: Diza Items 1-2-3 Contract Tests
+
+on:
+  push:
+    branches:
+      - diza-bot-agent-dev-123
+    paths:
+      - "diza-android/app/src/main/assets/index.html"
+      - "diza-android/app/src/main/java/com/diza/botagent/MainActivity.java"
+      - "diza-android/tests/item123-contract.mjs"
+      - ".github/workflows/diza-item123-contract.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run Item 1-2-3 contract tests
+        run: node diza-android/tests/item123-contract.mjs
