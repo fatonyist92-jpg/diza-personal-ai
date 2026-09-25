@@ -10,40 +10,56 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Copy Diza avatar asset
         run: |
           cp app/src/main/assets/avatar/diza_reference.b64 dizabot-apk/app/src/main/assets/diza_reference.b64
 
-      - uses: actions/setup-java@v4
+      - name: Java 17
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
         with:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
-
-      - name: Install Android 35
-        run: yes | sdkmanager "platforms;android-35" "build-tools;35.0.0"
-
-      - uses: gradle/actions/setup-gradle@v4
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
         with:
-          gradle-version: "8.10.2"
+          gradle-version: "8.9"
+
+      - name: Android toolchain
+        run: |
+          set -euxo pipefail
+          SDKROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDKROOT" -type f -name sdkmanager | head -n1)"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+          echo "sdk.dir=$SDKROOT" > dizabot-apk/local.properties
 
       - name: Build APK
-        working-directory: dizabot-apk
-        run: gradle --no-daemon :app:assembleDebug
+        run: |
+          set -euxo pipefail
+          gradle -p dizabot-apk :app:assembleDebug --stacktrace
 
       - name: Verify
         run: |
-          test -f dizabot-apk/app/build/outputs/apk/debug/app-debug.apk
-          ls -lh dizabot-apk/app/build/outputs/apk/debug/app-debug.apk
+          set -euxo pipefail
+          APK=dizabot-apk/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          cp "$APK" DIZAbot-v0.3-debug.apk
+          sha256sum DIZAbot-v0.3-debug.apk | tee DIZAbot-v0.3-debug.apk.sha256
+          ls -lh DIZAbot-v0.3-debug.apk
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: DIZAbot-v0.3-debug-apk
-          path: dizabot-apk/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          path: |
+            DIZAbot-v0.3-debug.apk
+            DIZAbot-v0.3-debug.apk.sha256
+          retention-days: 14
