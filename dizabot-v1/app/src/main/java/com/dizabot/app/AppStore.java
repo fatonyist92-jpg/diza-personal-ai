@@ -131,10 +131,10 @@ public final class AppStore {
 
     public void saveRoutines(String ownerKey,JSONArray a){putArr("routines."+ownerKey,a);}
 
-    public boolean bool(String key,boolean def){return p.getBoolean(key,def);}
-    public void bool(String key,boolean value){p.edit().putBoolean(key,value).apply();}
-    public String str(String key,String def){return p.getString(key,def);}
-    public void str(String key,String value){p.edit().putString(key,value).apply();}
+    public boolean getBool(String key,boolean def){return p.getBoolean(key,def);}
+    public void setBool(String key,boolean value){p.edit().putBoolean(key,value).apply();}
+    public String getString(String key,String def){return p.getString(key,def);}
+    public void setString(String key,String value){p.edit().putString(key,value).apply();}
 
     public String botName(String id){
         JSONObject b=bot(id);return b==null?id:b.optString("name",id);
