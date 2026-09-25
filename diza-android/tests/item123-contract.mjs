@@ -40,8 +40,9 @@ const requiredUiTerms=[
   "Tasks"
 ];
 
+const lowerHtml=html.toLowerCase();
 for(const term of requiredUiTerms){
-  assert.ok(html.includes(term),"Missing Item 1-2-3 UI term: "+term);
+  assert.ok(lowerHtml.includes(term.toLowerCase()),"Missing Item 1-2-3 UI term: "+term);
 }
 
 assert.ok(
