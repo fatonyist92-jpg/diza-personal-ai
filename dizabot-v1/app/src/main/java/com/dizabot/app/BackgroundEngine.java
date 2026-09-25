@@ -2,7 +2,7 @@ package com.dizabot.app;
 
 import android.Manifest;
 import android.app.*;
-import android.content.Context;
+import android.content.Context;\nimport android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -223,7 +223,7 @@ public final class BackgroundEngine {
     }
 
     private static void notifyReply(Context c,String title,String text){
-        AppStore s=new AppStore(c);if(!s.bool("settings.notifications",true))return;
+        AppStore s=new AppStore(c);if(!s.getBool("settings.notifications",true))return;
         if(Build.VERSION.SDK_INT>=33&&c.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)return;
         Intent i=new Intent(c,MainActivity.class);PendingIntent pi=PendingIntent.getActivity(c,0,i,PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
         Notification n=new NotificationCompat.Builder(c,CHANNEL)
