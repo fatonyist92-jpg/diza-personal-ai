@@ -63,12 +63,19 @@ public class MainActivity extends Activity {
                 }
                 fileChooserCallback = filePathCallback;
 
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                Intent intent = fileChooserParams.createIntent();
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
-                intent.setType("image/*");
+
+                String[] acceptTypes = fileChooserParams.getAcceptTypes();
+                if (acceptTypes != null && acceptTypes.length > 1) {
+                    intent.putExtra(Intent.EXTRA_MIME_TYPES, acceptTypes);
+                    intent.setType("*/*");
+                } else if (acceptTypes != null && acceptTypes.length == 1 && acceptTypes[0] != null && !acceptTypes[0].isEmpty()) {
+                    intent.setType(acceptTypes[0]);
+                }
 
                 try {
-                    startActivityForResult(Intent.createChooser(intent, "Choose bot avatar"), FILE_CHOOSER_REQUEST);
+                    startActivityForResult(Intent.createChooser(intent, "Choose file"), FILE_CHOOSER_REQUEST);
                     return true;
                 } catch (Exception e) {
                     fileChooserCallback = null;
