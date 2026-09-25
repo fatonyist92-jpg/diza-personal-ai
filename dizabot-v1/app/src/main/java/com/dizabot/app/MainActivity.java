@@ -69,8 +69,17 @@ public class MainActivity extends Activity {
     private TextView avatar(JSONObject bot,int size){
         String name=bot==null?"?":bot.optString("name","?");
         String color=bot==null?"#FFFFFF":bot.optString("color","#FFFFFF");
+        String shape=bot==null?"circle":bot.optString("shape","circle");
+        int radius="square".equals(shape)?12:("pill".equals(shape)?Math.max(16,size/3):("drop".equals(shape)?Math.max(14,size/4):size/2));
         TextView t=text(name.isEmpty()?"?":name.substring(0,1).toUpperCase(Locale.ROOT),Math.max(15,size/3),Color.BLACK);
-        t.setGravity(Gravity.CENTER);t.setBackground(bg(Color.parseColor(color),size/2));t.setLayoutParams(new LinearLayout.LayoutParams(dp(size),dp(size)));
+        t.setGravity(Gravity.CENTER);t.setBackground(bg(Color.parseColor(color),radius));t.setLayoutParams(new LinearLayout.LayoutParams(dp(size),dp(size)));
+        String uri=bot==null?"":bot.optString("avatarUri","");
+        if(!uri.isEmpty()){
+            try{
+                android.graphics.drawable.Drawable d=android.graphics.drawable.Drawable.createFromStream(getContentResolver().openInputStream(Uri.parse(uri)),uri);
+                if(d!=null){t.setText("");t.setBackground(d);}
+            }catch(Exception ignored){}
+        }
         return t;
     }
 
@@ -414,8 +423,8 @@ public class MainActivity extends Activity {
 
         TextView name=text(b.optString("name"),27,WHITE);name.setGravity(Gravity.CENTER);pad(name,0,16,0,4);page.addView(name);
         page.addView(section("Character"));LinearLayout ch=card();pad(ch,18,18,18,18);
-        TextView shapeTitle=text("Mark shape",15,MUTED);ch.addView(shapeTitle);LinearLayout shapes=h();String[] sh={"circle","square","pill","drop"};
-        for(String x:sh){Button z=new Button(this);z.setText("●");z.setTextColor(WHITE);z.setTextSize("circle".equals(x)?28:24);z.setAllCaps(false);z.setBackgroundColor(Color.TRANSPARENT);z.setOnClickListener(vv->{store.updateBot(currentId,"shape",x);render();});shapes.addView(z,new LinearLayout.LayoutParams(0,dp(50),1));}ch.addView(shapes);
+        TextView shapeTitle=text("Mark shape",15,MUTED);ch.addView(shapeTitle);LinearLayout shapes=h();String[] sh={"circle","square","pill","drop"};String[] sym={"●","■","▬","◆"};
+        for(int si=0;si<sh.length;si++){String x=sh[si];Button z=new Button(this);z.setText(sym[si]);z.setTextColor(WHITE);z.setTextSize("circle".equals(x)?28:24);z.setAllCaps(false);z.setBackgroundColor(Color.TRANSPARENT);z.setOnClickListener(vv->{store.updateBot(currentId,"shape",x);render();});shapes.addView(z,new LinearLayout.LayoutParams(0,dp(50),1));}ch.addView(shapes);
         TextView colorTitle=text("Color",15,MUTED);pad(colorTitle,0,10,0,4);ch.addView(colorTitle);LinearLayout colors=h();String[] cs={"#FFFFFF","#A6A6A6","#FF453A","#FF9F0A","#FFD60A","#30D158","#64D2FF","#0A84FF","#BF5AF2","#FF375F"};
         for(String color:cs){Button sw=new Button(this);sw.setBackground(bg(Color.parseColor(color),18));sw.setOnClickListener(vv->{store.updateBot(currentId,"color",color);render();});colors.addView(sw,new LinearLayout.LayoutParams(0,dp(34),1));}ch.addView(colors);
         Button reset=new Button(this);reset.setText("Reset to default");reset.setAllCaps(false);reset.setTextColor(WHITE);reset.setTextSize(16);reset.setBackgroundColor(Color.TRANSPARENT);reset.setOnClickListener(x->{store.updateBot(currentId,"color","#FFFFFF");store.updateBot(currentId,"shape","circle");render();});ch.addView(reset);page.addView(ch);
