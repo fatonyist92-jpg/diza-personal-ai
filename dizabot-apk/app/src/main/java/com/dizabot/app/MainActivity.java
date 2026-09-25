@@ -385,8 +385,10 @@ public class MainActivity extends Activity {
     }
 
     private void showDialog(AlertDialog d){
-        d.setOnShowListener(x->{d.getWindow().setBackgroundDrawable(bg(PANEL,22));d.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(BLUE);d.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(BLUE);});
         d.show();
+        if(d.getWindow()!=null)d.getWindow().setBackgroundDrawable(bg(PANEL,22));
+        if(d.getButton(AlertDialog.BUTTON_POSITIVE)!=null)d.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(BLUE);
+        if(d.getButton(AlertDialog.BUTTON_NEGATIVE)!=null)d.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(BLUE);
     }
 
     private void showSimpleList(String title,String[] items,DialogInterface.OnClickListener l){
