@@ -2,7 +2,8 @@ package com.dizabot.app;
 
 import android.Manifest;
 import android.app.*;
-import android.content.Context;\nimport android.content.Intent;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
