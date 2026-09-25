@@ -202,8 +202,8 @@ public class MainActivity extends Activity {
         LinearLayout bot=card();
         bot.addView(toggleRow("Auto-review","Require approval for risky shell, MCP, and computer actions.","settings.autoReview",true,null));
         bot.addView(divider());bot.addView(settingRow("Auto-review Rules",rulesSummary(),x->rulesDialog()));
-        bot.addView(divider());bot.addView(toggleRow("Set Time Zone Automatically","Follow this device's time zone.","settings.autoTimezone",true,x->{if(((Switch)x).isChecked())store.str("settings.timezone",TimeZone.getDefault().getID());}));
-        bot.addView(divider());bot.addView(settingRow("Time Zone",store.bool("settings.autoTimezone",true)?TimeZone.getDefault().getID():store.str("settings.timezone","Asia/Jakarta"),x->timezoneDialog()));
+        bot.addView(divider());bot.addView(toggleRow("Set Time Zone Automatically","Follow this device's time zone.","settings.autoTimezone",true,x->{if(((Switch)x).isChecked())store.getString("settings.timezone",TimeZone.getDefault().getID());}));
+        bot.addView(divider());bot.addView(settingRow("Time Zone",store.getBool("settings.autoTimezone",true)?TimeZone.getDefault().getID():store.getString("settings.timezone","Asia/Jakarta"),x->timezoneDialog()));
         bot.addView(divider());bot.addView(settingRow("Bot Computer","Background tasks and recovery",x->{screen="computer";render();}));
         page.addView(bot);page.addView(gap(1,22));
 
@@ -223,26 +223,26 @@ public class MainActivity extends Activity {
     private View toggleRow(String title,String subtitle,String key,boolean def,View.OnClickListener after){
         LinearLayout r=h();pad(r,18,14,18,14);r.setMinimumHeight(dp(82));
         LinearLayout c=v();c.addView(text(title,19,WHITE));if(subtitle!=null&&!subtitle.isEmpty())c.addView(text(subtitle,14,MUTED));r.addView(c,new LinearLayout.LayoutParams(0,-2,1));
-        Switch sw=new Switch(this);sw.setChecked(store.bool(key,def));sw.setOnCheckedChangeListener((b,on)->{store.bool(key,on);if(after!=null)after.onClick(sw);});r.addView(sw);return r;
+        Switch sw=new Switch(this);sw.setChecked(store.getBool(key,def));sw.setOnCheckedChangeListener((b,on)->{store.getBool(key,on);if(after!=null)after.onClick(sw);});r.addView(sw);return r;
     }
 
     private String rulesSummary(){
-        int n=0;if(store.bool("rule.shell",false))n++;if(store.bool("rule.mcp",false))n++;if(store.bool("rule.computer",false))n++;return n==0?"None":n+" enabled";
+        int n=0;if(store.getBool("rule.shell",false))n++;if(store.getBool("rule.mcp",false))n++;if(store.getBool("rule.computer",false))n++;return n==0?"None":n+" enabled";
     }
 
     private void rulesDialog(){
         String[] names={"Shell actions","MCP actions","Computer actions"};
-        boolean[] vals={store.bool("rule.shell",false),store.bool("rule.mcp",false),store.bool("rule.computer",false)};
+        boolean[] vals={store.getBool("rule.shell",false),store.getBool("rule.mcp",false),store.getBool("rule.computer",false)};
         AlertDialog d=builder("Auto-review Rules").setMultiChoiceItems(names,vals,(x,w,on)->vals[w]=on)
             .setNegativeButton("Cancel",null).setPositiveButton("Save",(x,w)->{
-                store.bool("rule.shell",vals[0]);store.bool("rule.mcp",vals[1]);store.bool("rule.computer",vals[2]);
+                store.getBool("rule.shell",vals[0]);store.getBool("rule.mcp",vals[1]);store.getBool("rule.computer",vals[2]);
             }).create();showDialog(d);
     }
 
     private void timezoneDialog(){
-        if(store.bool("settings.autoTimezone",true)){toast("Turn off automatic time zone first.");return;}
-        EditText e=input("Time zone",store.str("settings.timezone","Asia/Jakarta"));
-        AlertDialog d=builder("Time Zone").setView(e).setNegativeButton("Cancel",null).setPositiveButton("Save",(x,w)->store.str("settings.timezone",e.getText().toString().trim())).create();showDialog(d);
+        if(store.getBool("settings.autoTimezone",true)){toast("Turn off automatic time zone first.");return;}
+        EditText e=input("Time zone",store.getString("settings.timezone","Asia/Jakarta"));
+        AlertDialog d=builder("Time Zone").setView(e).setNegativeButton("Cancel",null).setPositiveButton("Save",(x,w)->store.getString("settings.timezone",e.getText().toString().trim())).create();showDialog(d);
     }
 
     private void plugins(){
