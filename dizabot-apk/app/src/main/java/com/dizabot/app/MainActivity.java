@@ -66,6 +66,7 @@ public class MainActivity extends Activity {
     private LinearLayout v(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
     private LinearLayout h(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.HORIZONTAL);l.setGravity(Gravity.CENTER_VERTICAL);return l;}
     private void pad(View v,int l,int top,int r,int b){v.setPadding(dp(l),dp(top),dp(r),dp(b));}
+    private Space space(int w,int h){Space s=new Space(this);s.setLayoutParams(new LinearLayout.LayoutParams(dp(w),dp(h)));return s;}
 
     private Button round(String s){
         Button b=new Button(this);b.setText(s);b.setTextSize(25);b.setTextColor(TEXT);b.setAllCaps(false);b.setPadding(0,0,0,0);
