@@ -261,9 +261,11 @@ function renderSettings(){
   body.innerHTML='<div class="section"><div class="card">'+
     '<div class="settingRow"><div class="sectionIcon">◫</div><div class="grow"><div>Diza Bot Agent</div><div class="mini">Development build · UI reference implementation</div></div></div>'+
     '<div class="settingRow"><div class="sectionIcon">⌁</div><div class="grow"><div>Backend</div><div class="mini">Native API · authenticated</div></div></div>'+
+    '<div class="settingRow" id="taskManager"><div class="sectionIcon">✓</div><div class="grow"><div>Tasks</div><div class="mini">View and run orchestrated bot tasks</div></div><span class="chev">›</span></div>'+
     '<div class="settingRow"><div class="sectionIcon">▦</div><div class="grow"><div>Storage</div><div class="mini">Target 50 MB per file</div></div></div>'+
     '</div></div><div class="section"><button class="dangerBtn" id="signout">Sign out</button></div>';
-  document.getElementById('signout').onclick=logout
+  document.getElementById('signout').onclick=logout;
+  document.getElementById('taskManager').onclick=renderTasks
 }
 function blankDraft(){
   return {id:null,name:'',title:'',avatarData:null,instructions:'',style:'Warm, concise, natural.',skills:[],permissions:{},config:botConfig(null),isDefault:false}
@@ -297,7 +299,16 @@ function renderBotProfile(){
   document.getElementById('pickAvatar').onclick=function(){document.getElementById('avatarFile').click()};
   document.querySelectorAll('[data-shape]').forEach(function(x){x.onclick=function(){b.config.mark.shape=x.dataset.shape;renderBotProfile()}});
   document.querySelectorAll('[data-color]').forEach(function(x){x.onclick=function(){b.config.mark.color=x.dataset.color;renderBotProfile()}});
-  document.querySelectorAll('[data-section]').forEach(function(x){x.onclick=function(){openBotSection(x.dataset.section)}})
+  document.querySelectorAll('[data-section]').forEach(function(x){x.onclick=function(){openBotSection(x.dataset.section)}});
+  if(b.id&&!b.isDefault){
+    var del=document.createElement('button');del.className='dangerBtn';del.style.marginTop='18px';del.textContent='Delete Bot';
+    del.onclick=async function(){
+      if(!confirm('Delete '+b.name+'?'))return;
+      try{await post('/bots/delete',{id:b.id});var d=await get('/bots/list');state.bots=d.bots||[];toast('Bot deleted');state.tab='agents';renderHome()}
+      catch(e){if(!authFail(e))toast(e.message)}
+    };
+    document.getElementById('subBody').appendChild(del);
+  }
 }
 function sectionButton(id,icon,title,desc){return '<button class="sectionBtn" data-section="'+id+'"><span class="sectionIcon">'+icon+'</span><span class="grow"><b>'+esc(title)+'</b><span class="sub" style="display:block;margin-top:2px">'+esc(desc)+'</span></span><span class="chev">›</span></button>'}
 function modelName(id){var m=MODEL_OPTIONS.find(function(x){return x.id===id});return m?m.name:'Auto · Diza Mesh'}
@@ -502,6 +513,30 @@ function renderSourceEditor(bot){
     }catch(e){toast(e.message)}
   });
   document.getElementById('subBody').innerHTML='<div class="fieldLabel">Name</div><input id="sn" class="input"><div class="fieldLabel">Scope</div><select id="ss" class="input"><option value="conversation">Source for this chat</option><option value="main">Main source for all</option></select><div class="fieldLabel">Type</div><select id="st" class="input"><option value="text">Text</option><option value="url">URL</option></select><div class="fieldLabel">Content / URL</div><textarea id="sc" class="textarea"></textarea>'
+}
+async function renderTasks(){
+  app.innerHTML='<div class="screen"><header class="top"><button class="back" id="tb">‹</button><div class="topTitle">Tasks</div><span style="width:38px"></span></header><main class="content" id="taskBody"><div class="empty">Loading…</div></main></div>';
+  document.getElementById('tb').onclick=function(){state.tab='settings';renderHome()};
+  try{
+    var d=await get('/tasks/list'),items=d.tasks||[],body=document.getElementById('taskBody');
+    body.innerHTML=items.length?items.map(function(t){
+      return '<div class="card taskRow" data-taskid="'+t.id+'"><div class="row"><b class="grow">'+esc(t.title)+'</b><span class="status '+esc(t.status)+'">'+esc(t.status)+'</span></div><div class="sub" style="margin-top:6px">'+esc(t.instruction)+'</div><div class="mini" style="margin-top:6px">'+t.stepCount+' steps</div></div>'
+    }).join(''):'<div class="empty"><div class="emptyIcon">✓</div><div>No tasks yet</div><p class="sub">Tasks are created by group collaboration or the task orchestrator.</p></div>';
+    body.querySelectorAll('[data-taskid]').forEach(function(x){x.onclick=function(){renderTaskDetail(Number(x.dataset.taskid))}})
+  }catch(e){if(!authFail(e))document.getElementById('taskBody').innerHTML='<div class="empty">'+esc(e.message)+'</div>'}
+}
+async function renderTaskDetail(id){
+  app.innerHTML='<div class="screen"><header class="top"><button class="back" id="tdb">‹</button><div class="topTitle">Task Detail</div><span style="width:38px"></span></header><main class="content" id="taskDetail"><div class="empty">Loading…</div></main></div>';
+  document.getElementById('tdb').onclick=renderTasks;
+  try{
+    var d=await get('/tasks/get?id='+encodeURIComponent(id)),t=d.task,body=document.getElementById('taskDetail');
+    body.innerHTML='<div class="section"><h2 style="margin-bottom:6px">'+esc(t.title)+'</h2><div class="sub">'+esc(t.instruction)+'</div></div>'+
+      '<div class="section">'+(t.steps||[]).map(function(x){
+        return '<div class="card taskRow"><div class="row"><b class="grow">'+esc(x.botName)+'</b><span class="status '+esc(x.status)+'">'+esc(x.status)+'</span></div><div class="mini" style="margin-top:7px">'+esc(x.instruction)+'</div>'+(x.output?'<div style="margin-top:10px;white-space:pre-wrap">'+esc(x.output)+'</div>':'')+'</div>'
+      }).join('')+'</div>'+
+      (t.status==='queued'||t.status==='failed'?'<button class="primaryBtn" id="runTask">Run Task</button>':'');
+    var run=document.getElementById('runTask');if(run)run.onclick=async function(){run.disabled=true;try{await post('/tasks/run',{taskId:id});renderTaskDetail(id)}catch(e){toast(e.message);run.disabled=false}}
+  }catch(e){if(!authFail(e))document.getElementById('taskDetail').innerHTML='<div class="empty">'+esc(e.message)+'</div>'}
 }
 function renderGroupEditor(){
   var g={id:'g'+Date.now(),name:'',botIds:[]};
