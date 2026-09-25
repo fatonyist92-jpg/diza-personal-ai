@@ -32,6 +32,16 @@ Do not:
 
 ## Item 1 — Bot Identity
 
+Locked UI contract after Fatony's explicit request:
+- Chats home follows the approved dark DIZA inbox reference
+- bottom navigation: Chats / Agents / Groups / Settings
+- top + menu: New Bot / New Group Chat
+- Create/Edit Bot flow: avatar, name, title, Bot Mark, Instructions, Model, Tools, Memory, Routines
+- Instructions includes Quick Prompts
+- Bot Profile Preview is shown before save
+- custom bot deletion is available; default Diza remains protected
+- group definitions select explicit bot members and collaboration begins only from a user-sent group task
+
 Locked:
 - custom bot name
 - title
@@ -45,6 +55,12 @@ Locked:
 
 ## Item 2 — Memory
 
+Locked UI/behavior addition after Fatony's explicit request:
+- Memory settings expose Long-term Memory, Save Preferences, and Project Context
+- Long-term Memory off prevents that bot's private memory from being injected into native chat/task context
+- Project Context off prevents shared workspace memory from being injected
+- Clear Memory removes only that bot's private memory from the mobile profile flow
+
 Locked:
 - conversation history
 - private per-bot long-term memory
@@ -54,6 +70,11 @@ Locked:
 - files remain separate from memory records and are referenced by metadata/storage references
 
 ## Item 3 — Task Orchestrator
+
+Locked UI addition after Fatony's explicit request:
+- Groups use the existing task orchestrator for user-assigned multi-bot collaboration
+- task list/detail remains accessible from Settings
+- group member order defines the task step order
 
 Locked:
 - user-created task is required for bot-to-bot work
