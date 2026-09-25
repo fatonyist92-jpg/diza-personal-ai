@@ -1,0 +1,49 @@
+name: Build DIZAbot APK
+
+on:
+  push:
+    branches: ["dizabot-bloks-ui-v0.3-apk"]
+    paths:
+      - "dizabot-apk/**"
+      - ".github/workflows/dizabot-apk-build.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy Diza avatar asset
+        run: |
+          cp app/src/main/assets/avatar/diza_reference.b64 dizabot-apk/app/src/main/assets/diza_reference.b64
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android 35
+        run: yes | sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+
+      - name: Build APK
+        working-directory: dizabot-apk
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Verify
+        run: |
+          test -f dizabot-apk/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh dizabot-apk/app/build/outputs/apk/debug/app-debug.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DIZAbot-v0.3-debug-apk
+          path: dizabot-apk/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
