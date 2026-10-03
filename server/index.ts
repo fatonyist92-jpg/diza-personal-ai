@@ -59,6 +59,14 @@ import { houseStyle, HOUSE_STYLE } from "./house-style.ts";
 import { captureFrame, clickAt, typeText } from "./browser-view.ts";
 import { bearerToken, isLocalRequest, isSameOrigin } from "./http-guard.ts";
 import {
+  assertWebModeConfigured,
+  clearWebSession,
+  isWebOwner,
+  setWebSession,
+  webModeEnabled,
+  webPasswordMatches,
+} from "./diza-web.ts";
+import {
   bindHost,
   cancelPairing,
   claimPairing,
@@ -274,7 +282,7 @@ import { speakable } from "./speech-text.ts";
 
 // BLOKS_PORT first (the desktop app always sets it), then a port chosen in
 // config.json, then the usual one
-const PORT = Number(process.env.BLOKS_PORT || loadConfig().port || 8799);
+const PORT = Number(process.env.BLOKS_PORT || process.env.PORT || loadConfig().port || 8799);
 const STATIC_DIR = process.env.BLOKS_STATIC_DIR || null;
 const MIME: Record<string, string> = {
   ".html": "text/html",
@@ -311,6 +319,10 @@ const SECURITY_HEADERS = {
 /** App icons already fetched for the plugin grid, by source URL. Small
  * images, bounded in count, gone on restart. */
 const iconCache = new Map<string, { type: string; bytes: Buffer }>();
+
+// Hosting mode must fail closed: a public listener without its password
+// boundary is never an acceptable partial configuration.
+assertWebModeConfigured();
 
 // Before anything spawns a CLI: a Finder-launched app inherits a PATH
 // that has never heard of npm. See server/path.ts.
@@ -5789,6 +5801,30 @@ const server = createServer(async (req, res) => {
   const path = url.pathname;
   const method = req.method ?? "GET";
 
+  // Optional DIZA web login. The cookie is HttpOnly + SameSite=Strict, so
+  // the renderer never sees a reusable credential. Static assets remain
+  // reachable while locked; every workspace API stays behind this gate.
+  if (method === "GET" && path === "/api/diza/session") {
+    return json(res, 200, {
+      enabled: webModeEnabled(),
+      authenticated: !webModeEnabled() || isWebOwner(req),
+    });
+  }
+  if (webModeEnabled() && method === "POST" && path === "/api/diza/login") {
+    if (!isSameOrigin(req)) return json(res, 403, { error: "cross-origin login refused" });
+    const body = await readBody(req);
+    if (!webPasswordMatches(body.password)) {
+      return json(res, 401, { error: "Password tidak cocok." });
+    }
+    setWebSession(res);
+    return json(res, 200, { ok: true });
+  }
+  if (webModeEnabled() && method === "POST" && path === "/api/diza/logout") {
+    if (!isWebOwner(req)) return json(res, 401, { error: "not signed in" });
+    clearWebSession(res);
+    return json(res, 200, { ok: true });
+  }
+
   // Webhook ingress stands apart from every other boundary: the token in
   // the URL is the whole credential, exactly as webhook senders expect.
   // Reachable from the network only when pairing is on, like the rest of
@@ -5900,7 +5936,8 @@ const server = createServer(async (req, res) => {
   if (viaInvite) return serveInviteRequest(req, res, method, path, viaInvite);
   const viaRelay = relayDeviceFor(req);
   // Loopback is not a boundary in a browser, see server/http-guard.ts.
-  const local = viaRelay ? false : isLocalRequest(req);
+  const webOwner = isWebOwner(req);
+  const local = viaRelay ? false : isLocalRequest(req) || webOwner;
   // A credential that was sent but is not one this server knows (a turn's
   // token after the turn, a typo, an empty header) is refused rather than
   // read as no credential: whoever sent it meant to be someone in
@@ -5919,7 +5956,8 @@ const server = createServer(async (req, res) => {
     // Bloks at all, and trade its code in. Nothing else.
     const open =
       (method === "GET" && path === "/api/health") ||
-      (method === "POST" && path === "/api/pair/claim");
+      (method === "POST" && path === "/api/pair/claim") ||
+      (webModeEnabled() && !path.startsWith("/api/"));
     if (!open && !deviceForToken(bearerToken(req))) {
       return json(res, 401, { error: "pair this device first" });
     }
@@ -10824,7 +10862,7 @@ server.on("error", (error: NodeJS.ErrnoException) => {
   throw error;
 });
 server.listen(PORT, BIND, () => {
-  console.log(`bloks server on http://127.0.0.1:${PORT}`);
+  console.log(`bloks server on http://${BIND}:${PORT}`);
   // Where this server is, for the tools on this machine that look for it
   // (bin/bloks-mcp.mjs, bin/bloks.mjs). The desktop app can end up on a
   // port nobody would guess when the usual ones are taken.
