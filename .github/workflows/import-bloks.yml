@@ -1,0 +1,47 @@
+name: Import Bloks upstream
+
+on:
+  push:
+    branches:
+      - bloks-diza-web
+    paths:
+      - ".github/workflows/import-bloks.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: bloks-diza-web
+          fetch-depth: 0
+
+      - name: Mirror current Bloks main
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .github/workflows/import-bloks.yml /tmp/import-bloks.yml
+          rm -rf /tmp/bloks-upstream
+          git clone --depth 1 --branch main https://github.com/hamedgitty/bloks.git /tmp/bloks-upstream
+          rsync -a --delete --exclude='.git' --exclude='.github/workflows/import-bloks.yml' /tmp/bloks-upstream/ ./
+          mkdir -p .github/workflows
+          cp /tmp/import-bloks.yml .github/workflows/import-bloks.yml
+
+      - name: Commit mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "DIZA Mirror Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Already mirrored"
+            exit 0
+          fi
+          git commit -m "chore: mirror hamedgitty/bloks main for DIZA web"
+          git push origin HEAD:bloks-diza-web
