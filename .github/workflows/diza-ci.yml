@@ -62,4 +62,24 @@ jobs:
           loopback_code="$(docker exec diza-smoke sh -lc "curl -sS -o /tmp/bots-loopback.json -w '%{http_code}' http://127.0.0.1:8799/api/bots")"
           test "$loopback_code" = "401"
 
+          curl -fsS -c /tmp/diza-cookie             -H 'Origin: http://127.0.0.1:18799'             -H 'Content-Type: application/json'             -d '{"password":"ci-only-password-2026"}'             http://127.0.0.1:18799/api/diza/login >/tmp/login.json
+
+          curl -fsS -b /tmp/diza-cookie             -H 'Origin: http://127.0.0.1:18799'             http://127.0.0.1:18799/api/providers >/tmp/providers.json
+          curl -fsS -b /tmp/diza-cookie             -H 'Origin: http://127.0.0.1:18799'             http://127.0.0.1:18799/api/instances >/tmp/instances.json
+
+          node -e '
+            const fs=require("fs");
+            const providers=JSON.parse(fs.readFileSync("/tmp/providers.json","utf8")).providers;
+            const instances=JSON.parse(fs.readFileSync("/tmp/instances.json","utf8")).instances;
+            if (!Array.isArray(providers) || providers.length === 0) {
+              console.error("provider catalog empty");
+              process.exit(1);
+            }
+            if (!Array.isArray(instances) || instances.length === 0) {
+              console.error("instance catalog empty");
+              process.exit(1);
+            }
+            console.log("catalogs ok", {providers: providers.length, instances: instances.length});
+          '
+
           docker logs diza-smoke
