@@ -25,9 +25,23 @@ import { RehearsalsPanel } from "./components/RehearsalsPanel";
 import { ActivityPanel } from "@/components/Activity";
 import { CommandPalette } from "@/components/CommandPalette";
 import { QuickAsk } from "@/components/QuickAsk";
+import { MobileHome } from "@/components/MobileHome";
+import { isDizaAndroid } from "@/lib/dizaAndroid";
 
 function Shell() {
   const { state, dispatch } = useStore();
+  const [mobile, setMobile] = useState(() => window.innerWidth < 768);
+  const [mobileHome, setMobileHome] = useState(() => window.innerWidth < 768);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const onChange = () => {
+      setMobile(media.matches);
+      if (!media.matches) setMobileHome(false);
+    };
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
   const room = state.bloks.find((b) => b.id === state.selectedId);
   const bot = room
     ? null
@@ -41,19 +55,30 @@ function Shell() {
   useEffect(() => {
     window.bloks?.badgeSet?.(waiting);
   }, [waiting]);
+  const backToMobileHome = () => {
+    setMobileHome(true);
+    dispatch({ type: "toggleSettings", open: false });
+    dispatch({ type: "toggleComputer", open: false });
+  };
+
+  const openMobile = (id: string) => {
+    dispatch({ type: "select", id });
+    setMobileHome(false);
+  };
+
   return (
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden md:flex-row">
-      <Sidebar />
-      {/* Settings and Automations live beside the sidebar like any other
-          view, so opening one never hides the agent list. */}
-      {state.appSettingsOpen ? (
+      {!mobile && <Sidebar />}
+      {mobile && mobileHome && !state.appSettingsOpen && !state.routinesOpen ? (
+        <MobileHome onOpen={openMobile} />
+      ) : state.appSettingsOpen ? (
         <AppSettingsPanel />
       ) : state.routinesOpen ? (
         <AutomationsPanel onClose={() => dispatch({ type: "toggleRoutines", open: false })} />
       ) : room ? (
-        <RoomView blok={room} />
+        <RoomView blok={room} onMobileBack={mobile ? backToMobileHome : undefined} />
       ) : bot ? (
-        <ChatView bot={bot} />
+        <ChatView bot={bot} onMobileBack={mobile ? backToMobileHome : undefined} />
       ) : (
         <main className="flex min-h-0 min-w-0 flex-1 flex-col items-center justify-center gap-3 bg-background text-muted-foreground">
           {state.connected && state.hydrated ? (
@@ -108,10 +133,9 @@ export default function App() {
   // setup, and someone who resets setup should not sit through the film
   // twice.
   const forced = new URLSearchParams(location.search).has("intro");
+  const android = isDizaAndroid();
   const [introOpen, setIntroOpen] = useState(
-    // never replay the film for a workspace that finished setup before the
-    // intro existed; ?intro forces a showing for design review
-    () => (introPending() && !setupDone()) || forced,
+    () => android || ((introPending() && !setupDone()) || forced),
   );
   const [setupOpen, setSetupOpen] = useState(() => !setupDone());
   // Until the workspace answers, showing the dashboard would be a guess,
@@ -130,11 +154,11 @@ export default function App() {
     void workspaceSetupDone()
       .then((done) => {
         if (forced) return;
-        setIntroOpen(done ? false : introPending());
+        if (!android) setIntroOpen(done ? false : introPending());
         setSetupOpen(!done);
       })
       .finally(() => setSettled(true));
-  }, [forced]);
+  }, [forced, android]);
   if (!settled) return <div className="h-full bg-background" />;
   return (
     // Reduce motion on the Mac means reduce it here: movement goes, and
