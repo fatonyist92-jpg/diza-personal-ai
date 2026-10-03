@@ -28,7 +28,8 @@ jobs:
           cp .github/workflows/import-bloks.yml /tmp/import-bloks.yml
           rm -rf /tmp/bloks-upstream
           git clone --depth 1 --branch main https://github.com/hamedgitty/bloks.git /tmp/bloks-upstream
-          rsync -a --delete --exclude='.git' --exclude='.github/workflows/import-bloks.yml' /tmp/bloks-upstream/ ./
+          rsync -a --delete             --exclude='.git'             --exclude='.github/workflows/'             /tmp/bloks-upstream/ ./
+          rm -rf .github/workflows
           mkdir -p .github/workflows
           cp /tmp/import-bloks.yml .github/workflows/import-bloks.yml
 
