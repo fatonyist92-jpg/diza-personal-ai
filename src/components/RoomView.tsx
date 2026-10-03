@@ -2,6 +2,7 @@
 // every line is attributed, because who said it is half the meaning.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import AlertTriangle from "lucide-react/dist/esm/icons/alert-triangle.mjs";
+import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.mjs";
 import ArrowUp from "lucide-react/dist/esm/icons/arrow-up.mjs";
 import BookmarkPlus from "lucide-react/dist/esm/icons/bookmark-plus.mjs";
 import FolderOpen from "lucide-react/dist/esm/icons/folder-open.mjs";
@@ -255,7 +256,7 @@ function RoomMessage({
   );
 }
 
-export function RoomView({ blok }: { blok: Blok }) {
+export function RoomView({ blok, onMobileBack }: { blok: Blok; onMobileBack?: () => void }) {
   const { state, dispatch } = useStore();
   const [text, setText] = useState("");
   // Typing @ opens a list of the people in this room. Naming somebody is
@@ -463,8 +464,21 @@ export function RoomView({ blok }: { blok: Blok }) {
 
   return (
     <main className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-background">
-      <div className="titlebar-drag flex h-[52px] shrink-0 items-center justify-between gap-2 border-b px-3 md:px-4">
-        <div className="flex min-w-0 items-center gap-2.5">
+      <div className="titlebar-drag flex h-[52px] shrink-0 items-center justify-between gap-2 border-b px-2.5 md:px-4">
+        <div className="flex min-w-0 items-center gap-1.5">
+          {onMobileBack && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onMobileBack}
+              className="shrink-0 md:hidden"
+              title="Kembali"
+              aria-label="Kembali ke daftar chat"
+            >
+              <ArrowLeft size={18} />
+            </Button>
+          )}
+          <div className="flex min-w-0 items-center gap-2.5">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
             <Users size={15} />
           </span>
@@ -476,6 +490,7 @@ export function RoomView({ blok }: { blok: Blok }) {
                 ` · ${members.length - answering.length} archived`}
             </span>
           </span>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <div className="hidden items-center -space-x-1.5 sm:flex">
