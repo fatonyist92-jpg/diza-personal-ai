@@ -1,13 +1,7 @@
 import { useMemo, useState } from "react";
-import Activity from "lucide-react/dist/esm/icons/activity.mjs";
-import Brain from "lucide-react/dist/esm/icons/brain.mjs";
-import CalendarClock from "lucide-react/dist/esm/icons/calendar-clock.mjs";
-import FolderKanban from "lucide-react/dist/esm/icons/folder-kanban.mjs";
 import Plus from "lucide-react/dist/esm/icons/plus.mjs";
-import Puzzle from "lucide-react/dist/esm/icons/puzzle.mjs";
 import Search from "lucide-react/dist/esm/icons/search.mjs";
 import SlidersHorizontal from "lucide-react/dist/esm/icons/sliders-horizontal.mjs";
-import Sparkles from "lucide-react/dist/esm/icons/sparkles.mjs";
 import Users from "lucide-react/dist/esm/icons/users.mjs";
 import { AgentAvatar } from "./Avatar";
 import { formatWhen, useStore, type Blok, type Bot } from "@/state/store";
