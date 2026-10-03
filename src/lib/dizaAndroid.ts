@@ -59,7 +59,7 @@ function nativeApiPath(input: RequestInfo | URL): string | null {
   return url.pathname + url.search;
 }
 
-async function bodyBase64(input: RequestInfo | URL, init?: RequestInit): Promise<string> {
+async function bodyBase64(init?: RequestInit): Promise<string> {
   const explicit = init?.body;
   if (explicit == null) return "";
   if (typeof explicit === "string") return bytesToBase64(new TextEncoder().encode(explicit));
@@ -114,12 +114,17 @@ export function installDizaAndroidBridge(): void {
       const env = JSON.parse(payload) as DizaNativeEnvelope;
       const headers = new Headers(env.headers ?? {});
       if (env.contentType && !headers.has("content-type")) headers.set("content-type", env.contentType);
-      const body =
-        env.status === 204 || env.status === 205 || env.status === 304
-          ? null
-          : env.base64
-            ? base64ToBytes(env.base64)
-            : new TextEncoder().encode(env.body ?? "");
+      let body: BodyInit | null = null;
+      if (env.status !== 204 && env.status !== 205 && env.status !== 304) {
+        if (env.base64) {
+          const bytes = base64ToBytes(env.base64);
+          const buffer = new ArrayBuffer(bytes.byteLength);
+          new Uint8Array(buffer).set(bytes);
+          body = buffer;
+        } else {
+          body = env.body ?? "";
+        }
+      }
       waiter.resolve(new Response(body, { status: env.status, headers }));
     } catch (error) {
       waiter.reject(error);
@@ -143,7 +148,7 @@ export function installDizaAndroidBridge(): void {
     mergedHeaders(input, init).forEach((value, key) => {
       headers[key] = value;
     });
-    const encoded = await bodyBase64(input, init);
+    const encoded = await bodyBase64(init);
 
     return new Promise<Response>((resolve, reject) => {
       pending.set(id, { resolve, reject });
