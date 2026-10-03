@@ -12,6 +12,11 @@ on:
       - bloks-diza-web
     paths:
       - "android-shell/**"
+      - "src/**"
+      - "index.html"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "vite.config.ts"
       - ".github/workflows/android-apk.yml"
 
 permissions:
@@ -26,6 +31,31 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: bloks-diza-web
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Bloks UI for APK
+        run: pnpm exec vite build --base ./
+
+      - name: Embed Bloks UI into Android assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf android-shell/app/src/main/assets
+          mkdir -p android-shell/app/src/main/assets
+          cp -R dist/. android-shell/app/src/main/assets/
+          test -f android-shell/app/src/main/assets/index.html
+          test -d android-shell/app/src/main/assets/assets
 
       - uses: actions/setup-java@v4
         with:
@@ -68,6 +98,14 @@ jobs:
       - name: Build installable debug APK
         working-directory: android-shell
         run: gradle --no-daemon :app:assembleDebug
+
+      - name: Verify embedded Bloks UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -l android-shell/app/build/outputs/apk/debug/app-debug.apk > /tmp/apk-files.txt
+          grep -q "assets/index.html" /tmp/apk-files.txt
+          grep -q "assets/assets/" /tmp/apk-files.txt
 
       - name: Name APK
         run: cp android-shell/app/build/outputs/apk/debug/app-debug.apk DIZA-AI-PERSONAL-ASSISTANT.apk
