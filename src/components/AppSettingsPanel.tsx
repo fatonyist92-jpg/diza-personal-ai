@@ -28,6 +28,7 @@ import { RemoteSection } from "./RemoteSection";
 import { LocalVmSection } from "./LocalVmSection";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/cn";
 import { thisComputer } from "@/lib/thisComputer";
@@ -37,6 +38,7 @@ import { AgentDefaults } from "./AgentDefaults";
 import { SettingRow, SettingsGroup, SettingsPageHeader } from "./SettingsLayout";
 import { Segmented } from "@/components/ui/segmented";
 import { useConversationsView } from "@/lib/conversationsView";
+import { getDizaServer, isDizaAndroid, setDizaServer } from "@/lib/dizaAndroid";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.mjs";
 import CloudIcon from "lucide-react/dist/esm/icons/cloud.mjs";
 import Cpu from "lucide-react/dist/esm/icons/cpu.mjs";
@@ -590,11 +592,88 @@ export const SETTINGS_PAGES: Array<{ group: string; pages: SettingsPage[] }> = [
 
 const ALL_PAGES = SETTINGS_PAGES.flatMap((g) => g.pages);
 
+function DizaServerSettings() {
+  const [value, setValue] = useState(() => getDizaServer());
+  const [status, setStatus] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  if (!isDizaAndroid()) return null;
+
+  const save = () => {
+    setProblem(null);
+    const result = setDizaServer(value.trim());
+    if (!result.ok) {
+      setStatus(null);
+      setProblem(result.error ?? "Server tidak valid.");
+      return false;
+    }
+    setStatus("Server tersimpan.");
+    return true;
+  };
+
+  const test = async () => {
+    if (!save()) return;
+    setTesting(true);
+    setStatus(null);
+    setProblem(null);
+    try {
+      const res = await fetch("/api/diza/session");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? `Server menjawab HTTP ${res.status}.`);
+      }
+      setStatus("Server aktif dan dapat dijangkau.");
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : "Server tidak dapat dijangkau.");
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <SettingsGroup title="DIZA Server">
+      <div className="p-4">
+        <div className="text-[12.5px] font-medium text-foreground">Server</div>
+        <div className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
+          Backend DIZA yang dipakai APK. Nanti saat pindah ke laptop, cukup ganti URL HTTPS di kotak ini.
+        </div>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <Input
+            value={value}
+            onChange={(event) => {
+              setValue(event.target.value);
+              setStatus(null);
+              setProblem(null);
+            }}
+            placeholder="https://server-diza.example"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            className="min-w-0 flex-1"
+          />
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={() => void test()} disabled={testing || !value.trim()}>
+              {testing ? "Testing…" : "Test"}
+            </Button>
+            <Button size="sm" onClick={save} disabled={!value.trim()}>
+              Save
+            </Button>
+          </div>
+        </div>
+        {status && <div className="mt-2 text-[11.5px] text-success">{status}</div>}
+        {problem && <div className="mt-2 text-[11.5px] text-destructive">{problem}</div>}
+      </div>
+    </SettingsGroup>
+  );
+}
+
 function GeneralPage() {
   const { theme, setTheme } = useTheme();
   const [conversations, setConversations] = useConversationsView();
   return (
     <>
+      <DizaServerSettings />
       <SettingsGroup title="Appearance">
         <SettingRow
           label="Theme"
