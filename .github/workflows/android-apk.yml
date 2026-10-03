@@ -1,0 +1,75 @@
+name: Build DIZA Android APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: "HTTPS URL of the live DIZA server"
+        required: true
+        type: string
+  push:
+    branches:
+      - bloks-diza-web
+    paths:
+      - "android-shell/**"
+      - ".github/workflows/android-apk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      DIZA_SERVER_URL: ${{ inputs.server_url || 'https://example.invalid' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bloks-diza-web
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Validate and inject DIZA server URL
+        shell: bash
+        working-directory: android-shell
+        run: |
+          set -euo pipefail
+          case "$DIZA_SERVER_URL" in
+            https://*) ;;
+            *) echo "DIZA_SERVER_URL must use https://"; exit 1 ;;
+          esac
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          p = Path("app/build.gradle.kts")
+          text = p.read_text()
+          url = os.environ["DIZA_SERVER_URL"].replace("\\", "\\\\").replace('"', '\\"')
+          text = text.replace("https://example.invalid", url)
+          p.write_text(text)
+          PY
+
+      - name: Build installable debug APK
+        working-directory: android-shell
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Name APK
+        run: cp android-shell/app/build/outputs/apk/debug/app-debug.apk DIZA-AI-PERSONAL-ASSISTANT.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DIZA-AI-PERSONAL-ASSISTANT
+          path: DIZA-AI-PERSONAL-ASSISTANT.apk
+          if-no-files-found: error
+          retention-days: 30
