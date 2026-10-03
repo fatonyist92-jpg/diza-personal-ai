@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>DIZA AI</title>
+<style>
+:root{--bg:#070707;--panel:#0d0d0d;--panel2:#151515;--line:#242424;--text:#f4f4f4;--muted:#9b9b9b;--soft:#cfcfcf;--accent:#fff;--danger:#ff6b6b;--ok:#7bd88f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+#app{height:100%;display:flex;flex-direction:column}
+.hidden{display:none!important}
+.top{height:62px;padding:10px 14px;display:flex;align-items:center;gap:10px;background:var(--panel);border-bottom:1px solid var(--line);padding-top:max(10px,env(safe-area-inset-top))}
+.brand{font-weight:800;letter-spacing:.5px;font-size:19px;flex:1}
+.icon-btn{width:40px;height:40px;border:0;background:transparent;color:var(--text);border-radius:50%;font-size:20px}
+.icon-btn:active{background:#1f1f1f}
+.tabs{height:48px;display:grid;grid-template-columns:1fr 1fr;background:var(--panel);border-bottom:1px solid var(--line)}
+.tab{border:0;background:transparent;color:var(--muted);font-weight:700;font-size:14px;position:relative}
+.tab.active{color:#fff}
+.tab.active:after{content:"";position:absolute;bottom:0;left:18%;right:18%;height:2px;background:#fff;border-radius:2px}
+.search-wrap{padding:10px 12px;background:var(--bg)}
+.search{width:100%;border:1px solid var(--line);background:#111;color:#fff;border-radius:12px;padding:11px 13px;outline:none}
+.list{flex:1;overflow:auto;padding-bottom:90px}
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #181818;min-height:72px}
+.row:active{background:#121212}
+.avatar{width:48px;height:48px;border-radius:50%;background:#1f1f1f;border:1px solid #2c2c2c;display:grid;place-items:center;font-weight:800;font-size:17px;flex:none}
+.row-body{min-width:0;flex:1}
+.row-top{display:flex;gap:8px;align-items:center}
+.row-title{font-size:16px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.row-time{font-size:11px;color:#777}
+.row-sub{margin-top:4px;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{padding:3px 7px;border:1px solid #333;border-radius:999px;font-size:10px;color:#bbb}
+.dot{width:8px;height:8px;border-radius:50%;background:#555;display:inline-block;margin-right:6px}.dot.busy{background:var(--ok)}
+.fab{position:fixed;right:18px;bottom:max(22px,calc(env(safe-area-inset-bottom) + 16px));width:56px;height:56px;border-radius:18px;border:0;background:#fff;color:#000;font-size:28px;box-shadow:0 10px 30px #0009}
+.empty{padding:56px 24px;text-align:center;color:#777;line-height:1.5}
+.screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;z-index:10}
+.chat-head{height:62px;display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--panel);border-bottom:1px solid var(--line);padding-top:max(8px,env(safe-area-inset-top))}
+.chat-title{flex:1;min-width:0}.chat-name{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.chat-sub{font-size:11px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.messages{flex:1;overflow:auto;padding:14px 10px 18px;background:#080808}
+.msg-wrap{display:flex;margin:4px 0}.msg-wrap.me{justify-content:flex-end}.msg-wrap.them{justify-content:flex-start}
+.msg{max-width:82%;padding:9px 11px;border-radius:11px;background:#191919;border:1px solid #242424;line-height:1.38;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.me .msg{background:#f2f2f2;color:#111;border-color:#f2f2f2;border-bottom-right-radius:3px}
+.them .msg{border-bottom-left-radius:3px;margin-left:0}
+.msg-meta{font-size:10px;opacity:.55;margin-top:5px;text-align:right}
+.sender{font-size:10px;color:#aaa;margin-bottom:3px;font-weight:700}
+.notice{margin:10px auto;color:#777;font-size:11px;text-align:center;max-width:86%}
+.composer{display:flex;align-items:flex-end;gap:8px;padding:9px 10px;background:var(--panel);border-top:1px solid var(--line);padding-bottom:max(9px,env(safe-area-inset-bottom))}
+.composer textarea{flex:1;max-height:120px;min-height:42px;resize:none;border:1px solid #292929;background:#121212;color:#fff;border-radius:18px;padding:10px 13px;outline:none}
+.send{width:44px;height:44px;border-radius:50%;border:0;background:#fff;color:#000;font-size:18px;font-weight:900}
+.overlay{position:fixed;inset:0;background:#000b;display:grid;place-items:end center;z-index:30}
+.sheet{width:100%;max-height:88vh;overflow:auto;background:#111;border-radius:24px 24px 0 0;border:1px solid #252525;padding:18px 16px max(18px,env(safe-area-inset-bottom))}
+.sheet h2{font-size:19px;margin:0 0 16px}
+.field{margin:11px 0}.field label{display:block;font-size:12px;color:#aaa;margin:0 0 6px}.field input,.field textarea{width:100%;background:#090909;color:#fff;border:1px solid #292929;border-radius:12px;padding:12px;outline:none}
+.primary,.secondary,.danger{width:100%;border-radius:12px;padding:12px 14px;font-weight:800;margin-top:8px}.primary{background:#fff;color:#000;border:0}.secondary{background:#181818;color:#fff;border:1px solid #333}.danger{background:#2b1111;color:#ffabab;border:1px solid #542020}
+.member{display:flex;align-items:center;gap:10px;padding:10px 3px;border-bottom:1px solid #222}.member input{width:20px;height:20px}
+.status{font-size:12px;color:#888;margin:9px 0}.status.ok{color:var(--ok)}.status.err{color:var(--danger)}
+.login{position:fixed;inset:0;z-index:40;background:#080808;display:flex;align-items:center;justify-content:center;padding:22px}
+.login-card{width:100%;max-width:420px;background:#111;border:1px solid #292929;border-radius:22px;padding:22px}.login-card h1{font-size:25px;margin:0 0 6px}.login-card p{color:#888;line-height:1.45;font-size:13px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #555;border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:7px}@keyframes spin{to{transform:rotate(360deg)}}
+.small{font-size:12px;color:#777}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top"><div class="brand">DIZA AI</div><button class="icon-btn" id="refreshBtn">↻</button><button class="icon-btn" id="settingsBtn">⚙</button></div>
+  <div class="tabs"><button class="tab active" data-tab="agents">AGENTS</button><button class="tab" data-tab="rooms">ROOMS</button></div>
+  <div class="search-wrap"><input id="search" class="search" placeholder="Cari agent atau room"></div>
+  <div id="list" class="list"></div>
+  <button id="fab" class="fab">+</button>
+</div>
+
+<div id="chat" class="screen hidden">
+  <div class="chat-head"><button class="icon-btn" id="backBtn">‹</button><div class="avatar" id="chatAvatar">D</div><div class="chat-title"><div class="chat-name" id="chatName"></div><div class="chat-sub" id="chatSub"></div></div><button class="icon-btn" id="chatRefresh">↻</button></div>
+  <div id="messages" class="messages"></div>
+  <div class="composer"><textarea id="messageInput" rows="1" placeholder="Pesan"></textarea><button id="sendBtn" class="send">➤</button></div>
+</div>
+
+<div id="overlay" class="overlay hidden"><div id="sheet" class="sheet"></div></div>
+<div id="login" class="login hidden"><div class="login-card" id="loginCard"></div></div>
+
+<script>
+const S={
+ tab:"agents", agents:[], rooms:[], search:"", chat:null, poll:null, busy:false
+};
+const $=s=>document.querySelector(s);
+const list=$("#list"), overlay=$("#overlay"), sheet=$("#sheet"), login=$("#login");
+
+function bridge(name,...args){
+  if(!window.DizaNative||typeof DizaNative[name]!=="function") throw new Error("Native bridge tidak tersedia");
+  return DizaNative[name](...args);
+}
+function call(method,path,body){
+  const raw=bridge("api",method,path,body?JSON.stringify(body):"");
+  let env; try{env=JSON.parse(raw)}catch{throw new Error("Respons native rusak")}
+  let data={}; try{data=env.body?JSON.parse(env.body):{}}catch{data={raw:env.body}}
+  if(env.status<200||env.status>=300){
+    const e=new Error(data.error||data.detail||("HTTP "+env.status)); e.status=env.status; e.data=data; throw e;
+  }
+  return data;
+}
+function esc(v){const d=document.createElement("div");d.textContent=v??"";return d.innerHTML}
+function initials(name){return (name||"D").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase()||"D"}
+function fmtTime(at){if(!at)return"";const d=new Date(at);return d.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})}
+function lastText(messages){
+  const m=(messages||[]).filter(x=>x&&!x.deleted).at(-1);
+  if(!m)return"Belum ada percakapan";
+  if(m.kind==="notice")return m.text||"Notifikasi";
+  return m.text||m.tool?.name||"Aktivitas";
+}
+function agentName(id){return S.agents.find(a=>a.id===id)?.name||"Agent"}
+
+function render(){
+  const q=S.search.trim().toLowerCase();
+  const data=S.tab==="agents"?S.agents.filter(a=>!a.archivedAt):S.rooms.filter(r=>!r.archived);
+  const filtered=data.filter(x=>{
+    const extra=S.tab==="rooms"?(x.memberIds||[]).map(agentName).join(" "):(x.title||"");
+    return !q||((x.name||"")+" "+extra+" "+lastText(x.messages)).toLowerCase().includes(q);
+  });
+  if(!filtered.length){list.innerHTML='<div class="empty">'+(q?"Tidak ada hasil.":S.tab==="agents"?"Belum ada agent.":"Belum ada room.")+"</div>";return}
+  list.innerHTML=filtered.map(x=>{
+    const room=S.tab==="rooms";
+    const sub=room?(x.memberIds||[]).map(agentName).join(", "):((x.title||"").trim()||lastText(x.messages));
+    const time=(x.messages||[]).at(-1)?.at;
+    const busy=!room&&x.busy;
+    return '<div class="row" data-id="'+esc(x.id)+'"><div class="avatar">'+esc(initials(x.name))+'</div><div class="row-body"><div class="row-top"><div class="row-title">'+esc(x.name||"Tanpa nama")+'</div><div class="row-time">'+esc(fmtTime(time))+'</div></div><div class="row-sub">'+(busy?'<span class="dot busy"></span>':'')+esc(sub||lastText(x.messages))+'</div></div></div>';
+  }).join("");
+  list.querySelectorAll(".row").forEach(el=>el.onclick=()=>openChat(S.tab==="agents"?"agent":"room",el.dataset.id));
+}
+function setTab(tab){
+  S.tab=tab;
+  document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.tab===tab));
+  $("#search").placeholder=tab==="agents"?"Cari agent":"Cari room";
+  render();
+}
+
+function loadAll(silent=false){
+  try{
+    const [a,r]=[call("GET","/api/bots?messages=60"),call("GET","/api/bloks")];
+    S.agents=a.bots||[]; S.rooms=r.bloks||[];
+    render();
+    if(S.chat) refreshChat(true);
+  }catch(e){
+    if(!silent&&e.status===401) showLogin();
+    else if(!silent) toast(e.message,true);
+  }
+}
+function openChat(kind,id){
+  const item=(kind==="agent"?S.agents:S.rooms).find(x=>x.id===id); if(!item)return;
+  S.chat={kind,id};
+  $("#chatName").textContent=item.name||"DIZA";
+  $("#chatAvatar").textContent=initials(item.name);
+  $("#chatSub").textContent=kind==="agent"?(item.title||"Agent"):((item.memberIds||[]).map(agentName).join(", "));
+  $("#chat").classList.remove("hidden");
+  renderMessages(item.messages||[]);
+  if(S.poll)clearInterval(S.poll);
+  S.poll=setInterval(()=>refreshChat(true),1600);
+}
+function closeChat(){
+  $("#chat").classList.add("hidden"); S.chat=null;
+  if(S.poll){clearInterval(S.poll);S.poll=null}
+}
+function renderMessages(messages){
+  const el=$("#messages");
+  const nearBottom=el.scrollHeight-el.scrollTop-el.clientHeight<90;
+  el.innerHTML=(messages||[]).filter(m=>m&&!m.deleted).map(m=>{
+    if(m.kind==="notice")return '<div class="notice">'+esc(m.text||"")+'</div>';
+    if(m.kind!=="text"&&m.kind!=="activity")return "";
+    const mine=m.role==="user";
+    const sender=!mine&&m.from?agentName(m.from):"";
+    const text=m.text||m.tool?.name||"";
+    return '<div class="msg-wrap '+(mine?"me":"them")+'"><div class="msg">'+(sender?'<div class="sender">'+esc(sender)+'</div>':'')+esc(text)+'<div class="msg-meta">'+esc(fmtTime(m.at))+(m.queued?" · antre":"")+'</div></div></div>';
+  }).join("");
+  if(nearBottom||!el.dataset.loaded){requestAnimationFrame(()=>el.scrollTop=el.scrollHeight);el.dataset.loaded="1"}
+}
+function refreshChat(silent=false){
+  if(!S.chat)return;
+  try{
+    if(S.chat.kind==="agent"){
+      const a=call("GET","/api/bots?messages=80").bots||[]; S.agents=a;
+      const item=a.find(x=>x.id===S.chat.id); if(item){renderMessages(item.messages||[]);$("#chatSub").textContent=(item.busy?"Sedang bekerja · ":"")+(item.title||"Agent")}
+    }else{
+      const r=call("GET","/api/bloks").bloks||[];S.rooms=r;
+      const item=r.find(x=>x.id===S.chat.id);if(item)renderMessages(item.messages||[])
+    }
+  }catch(e){if(!silent)toast(e.message,true)}
+}
+function sendMessage(){
+  if(!S.chat||S.busy)return;
+  const input=$("#messageInput"),text=input.value.trim();if(!text)return;
+  input.value=""; S.busy=true; $("#sendBtn").disabled=true;
+  const local={role:"user",kind:"text",text,at:Date.now()};
+  const item=(S.chat.kind==="agent"?S.agents:S.rooms).find(x=>x.id===S.chat.id);
+  if(item){item.messages=[...(item.messages||[]),local];renderMessages(item.messages)}
+  setTimeout(()=>{try{
+    const path=S.chat.kind==="agent"?"/api/bots/"+S.chat.id+"/messages":"/api/bloks/"+S.chat.id+"/messages";
+    call("POST",path,{text}); refreshChat(false); loadAll(true);
+  }catch(e){toast(e.message,true)}finally{S.busy=false;$("#sendBtn").disabled=false}},20);
+}
+
+function showSheet(html){sheet.innerHTML=html;overlay.classList.remove("hidden")}
+function hideSheet(){overlay.classList.add("hidden");sheet.innerHTML=""}
+function settings(){
+  const server=bridge("getServer")||"";
+  showSheet('<h2>Pengaturan DIZA</h2><div class="field"><label>Server HTTPS</label><input id="serverField" value="'+esc(server)+'" placeholder="https://xxxx.hostc.app"></div><div id="setStatus" class="status"></div><button class="primary" id="saveServer">Simpan server</button><button class="secondary" id="loginAgain">Login ulang</button><button class="secondary" id="closeSheet">Tutup</button>');
+  $("#saveServer").onclick=()=>{const raw=bridge("setServer",$("#serverField").value);const e=JSON.parse(raw);const d=JSON.parse(e.body||"{}");if(e.status!==200){$("#setStatus").textContent=d.error||"URL tidak valid";$("#setStatus").className="status err";return}$("#setStatus").textContent="Server tersimpan.";$("#setStatus").className="status ok";setTimeout(()=>{hideSheet();boot()},300)};
+  $("#loginAgain").onclick=()=>{hideSheet();showLogin()};
+  $("#closeSheet").onclick=hideSheet;
+}
+function createAgent(){
+  showSheet('<h2>Agent baru</h2><div class="field"><label>Nama</label><input id="aName" placeholder="Electrical"></div><div class="field"><label>Posisi / spesialisasi</label><input id="aTitle" placeholder="Electrical & PLC Specialist"></div><button class="primary" id="doAgent">Buat agent</button><button class="secondary" id="cancelSheet">Batal</button>');
+  $("#doAgent").onclick=()=>{const name=$("#aName").value.trim();if(!name)return;try{call("POST","/api/bots",{name,title:$("#aTitle").value.trim()});hideSheet();loadAll()}catch(e){toast(e.message,true)}};
+  $("#cancelSheet").onclick=hideSheet;
+}
+function createRoom(){
+  const members=S.agents.filter(a=>!a.archivedAt);
+  showSheet('<h2>Room baru</h2><div class="field"><label>Nama room</label><input id="rName" placeholder="CW421 Investigation"></div><div class="field"><label>Pilih minimal 2 agent</label><div id="memberList">'+members.map(a=>'<label class="member"><input type="checkbox" value="'+esc(a.id)+'"><div class="avatar" style="width:36px;height:36px;font-size:13px">'+esc(initials(a.name))+'</div><div><b>'+esc(a.name)+'</b><div class="small">'+esc(a.title||"Agent")+'</div></div></label>').join("")+'</div></div><button class="primary" id="doRoom">Buat room</button><button class="secondary" id="cancelSheet">Batal</button>');
+  $("#doRoom").onclick=()=>{const ids=[...sheet.querySelectorAll('input[type="checkbox"]:checked')].map(x=>x.value);if(ids.length<2){toast("Room butuh minimal 2 agent.",true);return}try{call("POST","/api/bloks",{name:$("#rName").value.trim()||"Room DIZA",memberIds:ids});hideSheet();loadAll()}catch(e){toast(e.message,true)}};
+  $("#cancelSheet").onclick=hideSheet;
+}
+function showLogin(){
+  const server=bridge("getServer")||"";
+  login.classList.remove("hidden");
+  $("#loginCard").innerHTML='<h1>DIZA AI</h1><p>'+ (server?'Masukkan password server DIZA untuk membuka agent dan room.':'Hubungkan server DIZA terlebih dahulu.') +'</p>'+(server?'<div class="field"><label>Password</label><input id="pass" type="password" autocomplete="current-password"></div><div id="loginStatus" class="status"></div><button class="primary" id="doLogin">Masuk</button>':'')+'<button class="secondary" id="loginSettings">'+(server?"Ganti server":"Atur server")+'</button>';
+  if(server)$("#doLogin").onclick=()=>{const p=$("#pass").value;$("#loginStatus").innerHTML='<span class="spinner"></span>Menghubungkan...';setTimeout(()=>{try{call("POST","/api/diza/login",{password:p});$("#pass").value="";login.classList.add("hidden");loadAll()}catch(e){$("#loginStatus").textContent=e.message;$("#loginStatus").className="status err"}},20)};
+  $("#loginSettings").onclick=()=>{login.classList.add("hidden");settings()};
+}
+function boot(){
+  const server=bridge("getServer")||"";
+  if(!server){showLogin();return}
+  try{
+    const session=call("GET","/api/diza/session");
+    if(session.enabled&&!session.authenticated){showLogin();return}
+    login.classList.add("hidden");loadAll();
+  }catch(e){showLogin();const s=$("#loginStatus");if(s){s.textContent=e.message;s.className="status err"}}
+}
+let toastTimer;
+function toast(msg,err=false){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";t.style.cssText="position:fixed;left:16px;right:16px;bottom:90px;z-index:99;padding:12px 14px;border-radius:12px;background:#222;color:#fff;border:1px solid #444;font-size:13px";document.body.appendChild(t)}t.textContent=msg;t.style.borderColor=err?"#5b2929":"#444";t.style.display="block";clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.style.display="none",2600)}
+
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+$("#search").oninput=e=>{S.search=e.target.value;render()};
+$("#settingsBtn").onclick=settings;$("#refreshBtn").onclick=()=>loadAll();$("#fab").onclick=()=>S.tab==="agents"?createAgent():createRoom();
+$("#backBtn").onclick=closeChat;$("#chatRefresh").onclick=()=>refreshChat();$("#sendBtn").onclick=sendMessage;
+$("#messageInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage()}});
+overlay.onclick=e=>{if(e.target===overlay)hideSheet()};
+boot();
+setInterval(()=>{if(!S.chat)loadAll(true)},5000);
+</script>
+</body>
+</html>
