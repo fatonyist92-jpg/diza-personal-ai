@@ -67,7 +67,8 @@ public final class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setSupportMultipleWindows(false);
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
-        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        webView.clearCache(true);
 
         webView.addJavascriptInterface(bridge, "DizaNative");
         webView.setWebChromeClient(new WebChromeClient());
@@ -97,7 +98,7 @@ public final class MainActivity extends Activity {
         if (state != null) {
             webView.restoreState(state);
         } else {
-            webView.loadUrl("https://" + APP_HOST + "/assets/index.html");
+            webView.loadUrl("https://" + APP_HOST + "/assets/index.html?v=" + BuildConfig.VERSION_CODE);
         }
     }
 
