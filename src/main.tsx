@@ -5,6 +5,9 @@ import { DizaWebGate } from "./components/DizaWebGate";
 import { ThemeProvider } from "./lib/theme";
 import "@fontsource-variable/inter";
 import "./styles.css";
+import { installDizaAndroidBridge } from "./lib/dizaAndroid";
+
+installDizaAndroidBridge();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
