@@ -26,7 +26,7 @@ jobs:
   apk:
     runs-on: ubuntu-latest
     env:
-      DIZA_SERVER_URL: ${{ inputs.server_url || 'https://example.invalid' }}
+      DIZA_SERVER_URL: ${{ inputs.server_url || 'https://9dc3khbk2ipx.hostc.app' }}
     steps:
       - uses: actions/checkout@v4
         with:
