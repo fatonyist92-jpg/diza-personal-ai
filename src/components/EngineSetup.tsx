@@ -17,6 +17,12 @@ import { cn } from "@/lib/cn";
 import { api, useStore } from "@/state/store";
 
 type SetupTable = Record<string, { install: string; signIn?: string }>;
+type DeviceAuthState = {
+  status: "idle" | "running" | "success" | "error";
+  output: string;
+  url?: string;
+  code?: string;
+};
 
 let cached: Promise<SetupTable | null> | null = null;
 
@@ -77,7 +83,8 @@ export function EngineSetupActions({
   const [problem, setProblem] = useState<string | null>(null);
   const [log, setLog] = useState("");
   const [showLog, setShowLog] = useState(false);
-  const [signingIn, setSigningIn] = useState<"opened" | "manual" | null>(null);
+  const [signingIn, setSigningIn] = useState<"opened" | "manual" | "device" | null>(null);
+  const [deviceAuth, setDeviceAuth] = useState<DeviceAuthState | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -98,6 +105,33 @@ export function EngineSetupActions({
     return () => {
       clearInterval(timer);
       clearTimeout(stop);
+    };
+  }, [signingIn]);
+
+  useEffect(() => {
+    if (signingIn !== "device") return;
+    let alive = true;
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/diza/codex-auth");
+        if (!res.ok) return;
+        const current = (await res.json()) as DeviceAuthState;
+        if (!alive) return;
+        setDeviceAuth(current);
+        if (current.status === "success") {
+          changed.current();
+          setSigningIn(null);
+        }
+      } catch {
+        // Keep the prompt on screen. A transient network miss should not
+        // cancel a login the Codex process is still waiting for.
+      }
+    };
+    void poll();
+    const timer = setInterval(() => void poll(), 2000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
     };
   }, [signingIn]);
 
@@ -124,7 +158,12 @@ export function EngineSetupActions({
     try {
       const res = await fetch(`/api/engines/${kind}/signin`, { method: "POST" });
       const result = await res.json();
-      setSigningIn(result.opened ? "opened" : "manual");
+      if (result.deviceAuth) {
+        setDeviceAuth(result as DeviceAuthState);
+        setSigningIn("device");
+      } else {
+        setSigningIn(result.opened ? "opened" : "manual");
+      }
     } catch {
       setSigningIn("manual");
     }
@@ -185,6 +224,39 @@ export function EngineSetupActions({
             Sign in to {name}
           </Button>
         </div>
+        {signingIn === "device" && (
+          <div className="rounded-lg bg-muted px-2.5 py-2 text-[12px] leading-relaxed text-muted-foreground">
+            <div className="font-medium text-foreground">Login ChatGPT untuk Codex</div>
+            <div className="mt-0.5">
+              Buka halaman berikut, masukkan kode satu kali, lalu kembali ke DIZA. Status akan diperbarui otomatis.
+            </div>
+            {deviceAuth?.url && (
+              <a
+                href={deviceAuth.url}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 block break-all text-foreground underline underline-offset-2"
+              >
+                {deviceAuth.url}
+              </a>
+            )}
+            {deviceAuth?.code && <CopyCommand command={deviceAuth.code} className="mt-2" />}
+            {!deviceAuth?.url && deviceAuth?.status === "running" && (
+              <div className="mt-2 flex items-center gap-1.5">
+                <Loader2 size={12} className="animate-spin" />
+                Meminta kode login dari Codex…
+              </div>
+            )}
+            {deviceAuth?.status === "error" && (
+              <div className="mt-2 text-warning">Codex tidak menyelesaikan login. Jalankan lagi untuk kode baru.</div>
+            )}
+            {deviceAuth?.output && (
+              <pre className="mt-2 max-h-28 overflow-auto whitespace-pre-wrap rounded-md bg-background p-2 font-mono text-[10.5px]">
+                {deviceAuth.output}
+              </pre>
+            )}
+          </div>
+        )}
         {signingIn === "opened" && (
           <div className="text-[12px] leading-relaxed text-muted-foreground">
             Finish in the Terminal window that just opened. This turns green by itself once you are
