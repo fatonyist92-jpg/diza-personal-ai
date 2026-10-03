@@ -155,7 +155,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
             className="intro-rise mx-auto hidden h-12 dark:block"
           />
           <h1 className="intro-rise mt-6 text-[28px] font-semibold text-foreground [animation-delay:120ms]">
-            Welcome to Bloks
+            DIZA AI PERSONAL ASSISTANT
           </h1>
           <p className="intro-rise mt-2 text-[14.5px] text-muted-foreground [animation-delay:240ms]">
             Personal AI agents that live on your machine, not in someone
