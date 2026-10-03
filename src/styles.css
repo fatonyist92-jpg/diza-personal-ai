@@ -497,3 +497,139 @@
     animation: none;
   }
 }
+
+
+/* ── DIZA 5-second launch identity ─────────────────────────────────── */
+.diza-intro-grid {
+  opacity: 0.18;
+  background-image:
+    linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: radial-gradient(circle at center, black 20%, transparent 72%);
+  animation: diza-grid-in 1400ms ease-out both;
+}
+.diza-intro-orb {
+  position: absolute;
+  width: 42vw;
+  height: 42vw;
+  min-width: 220px;
+  min-height: 220px;
+  max-width: 520px;
+  max-height: 520px;
+  border-radius: 999px;
+  filter: blur(90px);
+  opacity: 0;
+}
+.diza-intro-orb-a {
+  background: rgba(91,108,255,.24);
+  left: 4%;
+  top: 4%;
+  animation: diza-orb-a 5s ease-in-out both;
+}
+.diza-intro-orb-b {
+  background: rgba(124,138,255,.14);
+  right: 0;
+  bottom: 2%;
+  animation: diza-orb-b 5s ease-in-out both;
+}
+.diza-intro-mark {
+  animation: diza-mark-in 900ms cubic-bezier(.2,.8,.2,1) 180ms both;
+}
+.diza-intro-mark::after {
+  content: "";
+  position: absolute;
+  inset: -18px;
+  border-radius: 34px;
+  border: 1px solid rgba(255,255,255,.07);
+  opacity: 0;
+  animation: diza-halo 2200ms ease-out 600ms both;
+}
+.diza-intro-d {
+  opacity: 0;
+  transform: translateY(8px) scale(.94);
+  animation: diza-d-in 650ms cubic-bezier(.2,.8,.2,1) 650ms forwards;
+}
+.diza-intro-title {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: diza-copy-in 650ms cubic-bezier(.2,.8,.2,1) 980ms forwards;
+}
+.diza-intro-sub {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: diza-copy-in 650ms cubic-bezier(.2,.8,.2,1) 1160ms forwards;
+}
+.diza-intro-rule,
+.diza-intro-status {
+  opacity: 0;
+  animation: diza-fade-in 600ms ease-out 1450ms forwards;
+}
+.diza-intro-rule-run {
+  transform: translateX(-130%);
+  animation: diza-rule-run 1650ms cubic-bezier(.45,0,.2,1) 1550ms both;
+}
+.diza-intro-progress {
+  width: 0%;
+  animation: diza-progress 5s linear both;
+}
+.diza-intro {
+  animation: diza-intro-out 5s ease both;
+}
+@keyframes diza-grid-in {
+  from { opacity: 0; transform: scale(1.08); }
+  to { opacity: .18; transform: scale(1); }
+}
+@keyframes diza-mark-in {
+  from { opacity: 0; transform: scale(.72) rotate(-6deg); filter: blur(12px); }
+  to { opacity: 1; transform: scale(1) rotate(0); filter: blur(0); }
+}
+@keyframes diza-d-in {
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes diza-copy-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes diza-fade-in {
+  to { opacity: 1; }
+}
+@keyframes diza-halo {
+  0% { opacity: 0; transform: scale(.78); }
+  45% { opacity: .75; }
+  100% { opacity: 0; transform: scale(1.32); }
+}
+@keyframes diza-rule-run {
+  0% { transform: translateX(-130%); }
+  55% { transform: translateX(65%); }
+  100% { transform: translateX(230%); }
+}
+@keyframes diza-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+@keyframes diza-orb-a {
+  0% { opacity: 0; transform: translate3d(-8%, -4%, 0) scale(.8); }
+  35% { opacity: .9; }
+  100% { opacity: .25; transform: translate3d(12%, 9%, 0) scale(1.1); }
+}
+@keyframes diza-orb-b {
+  0% { opacity: 0; transform: translate3d(10%, 10%, 0) scale(.8); }
+  40% { opacity: .8; }
+  100% { opacity: .2; transform: translate3d(-8%, -10%, 0) scale(1.12); }
+}
+@keyframes diza-intro-out {
+  0%, 91% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diza-intro *,
+  .diza-intro::before,
+  .diza-intro::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
+  .diza-intro-progress {
+    width: 100%;
+  }
+}
