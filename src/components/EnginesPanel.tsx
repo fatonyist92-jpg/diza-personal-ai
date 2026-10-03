@@ -4,7 +4,7 @@
 // real browser sign-in; the rest are a pasted key, a CLI that already
 // holds a login, or a server on this machine. Nothing here pretends to be
 // a sign-in that is really a text field.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Check from "lucide-react/dist/esm/icons/check.mjs";
 import ExternalLink from "lucide-react/dist/esm/icons/external-link.mjs";
 import Loader2 from "lucide-react/dist/esm/icons/loader-2.mjs";
@@ -226,9 +226,52 @@ function Group({ title, note, rows }: { title: string; note: string; rows: Provi
 }
 
 export function EnginesPanel() {
-  const { state } = useStore();
+  const { state, dispatch } = useStore();
   const providers = state.providers;
-  if (!providers.length) return null;
+  const [loading, setLoading] = useState(providers.length === 0);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const refreshCatalog = () => {
+    setLoading(true);
+    setLoadError(null);
+    Promise.all([api("/api/providers"), api("/api/instances")])
+      .then(([providerResult, instanceResult]) => {
+        dispatch({ type: "providers", providers: providerResult.providers ?? [] });
+        dispatch({ type: "instances", instances: instanceResult.instances ?? [] });
+      })
+      .catch((error) => {
+        setLoadError(error instanceof Error ? error.message : "Engine tidak dapat dimuat.");
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    refreshCatalog();
+    // Engines owns a fresh read whenever this page opens. Provider state
+    // may have hydrated before the hosted DIZA login completed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!providers.length) {
+    return (
+      <div className="mt-4 rounded-2xl border bg-card p-4">
+        <div className="text-[13.5px] font-semibold text-foreground">Engines</div>
+        <div className="mt-1 text-[12.5px] leading-relaxed text-muted-foreground">
+          {loading
+            ? "Memuat daftar engine dari server DIZA…"
+            : loadError
+              ? "Daftar engine belum berhasil dimuat dari server."
+              : "Server belum mengirim katalog engine."}
+        </div>
+        {!loading && (
+          <Button size="sm" variant="secondary" className="mt-3" onClick={refreshCatalog}>
+            Coba lagi
+          </Button>
+        )}
+        {loadError && <div className="mt-2 break-words text-[11.5px] text-destructive">{loadError}</div>}
+      </div>
+    );
+  }
 
   // counted the way the rows read: installed without a login is not ready
   const connected = providers.filter((p) => p.connected && !p.needsSignIn).length;
