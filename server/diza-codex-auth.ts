@@ -3,7 +3,7 @@
 // The official Codex CLI owns the ChatGPT authentication flow and writes
 // its own credential under CODEX_HOME/~/.codex. DIZA only starts the
 // process and relays the human-readable URL/code; it never reads auth.json.
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 
 export type CodexDeviceAuthState = {
   status: "idle" | "running" | "success" | "error";
@@ -14,7 +14,7 @@ export type CodexDeviceAuthState = {
   finishedAt?: number;
 };
 
-let child: ChildProcessWithoutNullStreams | null = null;
+let child: ChildProcess | null = null;
 let state: CodexDeviceAuthState = { status: "idle", output: "" };
 let successConsumed = false;
 let timeout: ReturnType<typeof setTimeout> | null = null;
@@ -67,18 +67,19 @@ export function startCodexDeviceAuth(): CodexDeviceAuthState {
   // pay-as-you-go API authentication.
   delete env.OPENAI_API_KEY;
 
-  child = spawn("codex", ["login", "--device-auth"], {
+  const proc = spawn("codex", ["login", "--device-auth"], {
     env,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  child.stdout.on("data", append);
-  child.stderr.on("data", append);
-  child.on("error", (error) => {
+  child = proc;
+  proc.stdout?.on("data", append);
+  proc.stderr?.on("data", append);
+  proc.on("error", (error) => {
     append(error.message);
     state = derive({ ...state, status: "error", finishedAt: Date.now() });
     child = null;
   });
-  child.on("close", (code) => {
+  proc.on("close", (code) => {
     if (state.status !== "running") return;
     state = derive({
       ...state,
