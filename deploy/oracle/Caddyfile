@@ -1,0 +1,14 @@
+{
+    email off
+}
+
+{$DIZA_HOST} {
+    encode zstd gzip
+    reverse_proxy diza:8799
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer"
+    }
+}
