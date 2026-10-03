@@ -5943,7 +5943,11 @@ const server = createServer(async (req, res) => {
   const viaRelay = relayDeviceFor(req);
   // Loopback is not a boundary in a browser, see server/http-guard.ts.
   const webOwner = isWebOwner(req);
-  const local = viaRelay ? false : isLocalRequest(req) || webOwner;
+  // Hosted web mode is always password-gated, even when a reverse tunnel
+  // (such as hostc) deliberately makes the public browser request look
+  // like localhost. Agent bearer tokens are handled above and still work
+  // only from the real loopback interface.
+  const local = viaRelay ? false : webModeEnabled() ? webOwner : isLocalRequest(req);
   // A credential that was sent but is not one this server knows (a turn's
   // token after the turn, a typo, an empty header) is refused rather than
   // read as no credential: whoever sent it meant to be someone in
