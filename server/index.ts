@@ -14,6 +14,12 @@ import * as attachments from "./attachments.ts";
 import * as box from "./box.ts";
 import * as diagnostics from "./diagnostics.ts";
 import { ENGINE_SETUP, installEngine, openSignIn, runSetupScript } from "./engine-setup.ts";
+import {
+  cancelCodexDeviceAuth,
+  codexDeviceAuthStatus,
+  consumeCodexDeviceAuthSuccess,
+  startCodexDeviceAuth,
+} from "./diza-codex-auth.ts";
 import { ENGINE_PACKAGES, engineUpdates } from "./engine-updates.ts";
 import * as scout from "./scout.ts";
 import {
@@ -7919,6 +7925,26 @@ const server = createServer(async (req, res) => {
       return json(res, 200, { instances: await registry.describe() });
     }
 
+    // Hosted DIZA cannot open a server-side Terminal on the user's phone.
+    // For Codex, expose the CLI's own device-auth prompt instead.
+    if (method === "GET" && path === "/api/diza/codex-auth") {
+      if (!local || asAgent || !webModeEnabled()) return json(res, 403, { error: "not from here" });
+      const current = codexDeviceAuthStatus();
+      if (
+        current.status === "success" &&
+        !store.bots.some((b) => b.busy || b.tasks.some((t) => t.busy)) &&
+        consumeCodexDeviceAuthSuccess()
+      ) {
+        await reloadProviders();
+        broadcast({ kind: "providers", ...(await providerCatalog()) });
+      }
+      return json(res, 200, codexDeviceAuthStatus());
+    }
+    if (method === "POST" && path === "/api/diza/codex-auth/cancel") {
+      if (!local || asAgent || !webModeEnabled()) return json(res, 403, { error: "not from here" });
+      return json(res, 200, cancelCodexDeviceAuth());
+    }
+
     // Setting an engine up from the app (server/engine-setup.ts). This
     // machine only: it installs software and opens Terminal, which no
     // phone, remote window or agent may ask for.
@@ -7963,7 +7989,12 @@ const server = createServer(async (req, res) => {
     if (m && method === "POST") {
       if (!local || asAgent) return json(res, 403, { error: "not from here" });
       if (!ENGINE_SETUP[m[1]]) return json(res, 404, { error: "no such engine" });
-      if (m[2] === "signin") return json(res, 200, openSignIn(m[1]));
+      if (m[2] === "signin") {
+        if (webModeEnabled() && m[1] === "codex") {
+          return json(res, 200, { opened: true, deviceAuth: true, ...startCodexDeviceAuth() });
+        }
+        return json(res, 200, openSignIn(m[1]));
+      }
       const result = await installEngine(m[1]);
       record({ at: Date.now(), kind: "engine.installed", actor: "you", summary: `${m[1]}: ${result.ok ? "installed" : "failed"}` });
       return json(res, 200, result);
