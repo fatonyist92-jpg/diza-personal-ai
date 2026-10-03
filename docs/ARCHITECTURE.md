@@ -1,0 +1,339 @@
+# Architecture
+
+Three pieces, one rule.
+
+| Layer | Location | Responsibility |
+| --- | --- | --- |
+| React app | `src/` | Chat, rooms, agent roster, panels, avatars |
+| Harness server | `server/` | HTTP API, one SSE stream, provider registry, persistence, approvals |
+| Electron shell | `electron/` | macOS window, packaged server, speech and computer bridges |
+
+**The client holds no transports.** The React app never opens a
+connection to a model provider. It dispatches typed commands over HTTP
+and folds a single server-sent event stream into reducer state. Every
+provider process runs inside the harness.
+
+Everything below follows from that.
+
+## A turn, end to end
+
+1. `StoreProvider` loads `/api/bots`, `/api/bloks`, `/api/instances`,
+   `/api/providers` and `/api/config`, then opens `/api/events`.
+2. You send a message. The client dispatches `send`, which POSTs to
+   `/api/bots/:id/messages`.
+3. `startTurn` in `server/index.ts` builds the persona (role, skills,
+   your profile, house style, and in a room the roster plus recent
+   transcript), photographs the agent's folder (`server/checkpoints.ts`),
+   then calls the driver's `sendTurn`.
+4. The driver translates its provider's native output into the canonical
+   events in `server/contracts.ts`.
+5. The bus subscriber folds those events into the transcript, persists
+   them, and broadcasts to every connected client.
+6. The reducer folds the same events into messages, streaming text, busy
+   flags and approval cards.
+7. On `turn.completed` the folder (or, for a rehearsal, its clone) is
+   photographed again. If anything
+   changed, a `changes` message lands under the reply, and
+   `/api/checkpoints/:id/diff` and `/revert` serve its diff and its undo.
+
+The canonical event stream is the source of truth. The persisted
+transcript and every client view are projections of it.
+
+## Drivers
+
+A driver turns one provider into the contract in `server/contracts.ts`.
+There are three shapes:
+
+**CLI over a native protocol.** `claude.ts` and `codex.ts` drive their
+official CLIs headless over the protocols those CLIs expose. They carry
+tool calls and permission requests.
+
+**CLI over the Agent Client Protocol.** `acp.ts` is generic: ACP is a
+JSON-RPC protocol that agent CLIs speak so editors can drive them, so one
+implementation serves any agent that speaks it. Gemini CLI is the first.
+Adding another is an entry in `ACP_SPECS`.
+
+**OpenAI-compatible HTTP.** `openai-compat.ts` is generic too. Nearly
+every lab now answers `/chat/completions`, so providers are data in
+`server/providers.ts` rather than code. These are transcript-replay: the
+harness hands them the folded history each turn. They stream text but
+they do not run tools.
+
+The registry (`server/harness/registry.ts`) turns a config map into live
+instances. An unknown driver or a bad config becomes an unavailable
+shadow entry rather than a startup failure, so a config written by a
+newer build downgrades safely.
+
+## Rooms
+
+A room is a transcript with several agents in it. Two things make it work
+like a workspace rather than a group chat with echoes:
+
+**One speaker at a time.** `postToRoom` runs members sequentially in
+ascending seniority, so each one sees what the last actually said and the
+most senior speaks last. Handoffs raised mid-round queue rather than
+interrupting, then drain in further rounds, bounded by `MAX_AGENT_HOPS`.
+
+**Sessions belong to agents, not rooms.** An agent's provider session is
+keyed to its own thread id. `activeRoom` redirects that agent's events
+into whichever room it is currently speaking in. That is why an agent
+remembers a room conversation when you DM it afterwards.
+
+Team formation (`server/teams.ts`) sits on top: a senior agent can emit a
+fenced plan, which becomes an approval card. Only your yes creates the
+agents and the room.
+
+## Persistence
+
+Plain JSON under `~/.bloks`, written synchronously. No database.
+
+| Path | Contents |
+| --- | --- |
+| `bots.json` | Agent records, model selection, resume cursors |
+| `bloks.json` | Rooms and members |
+| `messages-<id>.json` | One transcript per agent or room, same key space |
+| `config.json` | Connected providers and keys, `0600` |
+| `skills/*.md` | Installed skills |
+| `events/`, `native/` | Canonical events, and raw provider traffic |
+| `checkpoints/` | Content-addressed file versions, one photograph per folder, and the undo records |
+
+Checkpoints are not git. On a Mac without the developer tools
+`/usr/bin/git` is a stub that opens an installer, so the store hashes
+files itself: each version is kept once by its sha256, a file whose size
+and mtime have not moved is not read again, and regenerated folders
+(`node_modules` and friends) are skipped. An undo restores a file only if
+it is still exactly what the turn left behind.
+
+Memory has its own journal (`server/memory-journal.ts`). An agent's
+MEMORY.md and topic files are read before and after each turn, and any
+difference becomes an entry with the whole text before and after, as do
+edits made from the Memory panel. Undo follows the checkpoint rule: only
+a file still exactly as that change left it goes back, and a file that
+has become a link is never written through.
+
+Room ids and agent thread ids share one key space, which is why a room
+transcript and a solo transcript are the same kind of file.
+
+## Clients that are not on this machine
+
+The phone, a browser at bloks.dev/web, and the desktop app in remote mode
+all reach a workspace the same way. Each is a paired device with its own
+token; the workspace keeps only its sha256. Both ends derive one AES-GCM
+key per direction from it (`server/relay-crypto.ts`), every request and
+every event frame is sealed for one device, and the relay in between
+carries ciphertext it cannot open. A browser keeps the two keys as
+non-extractable WebCrypto keys and never the token. Routes that mint new
+pairings answer only on this machine.
+
+The line to the relay (`server/relay-link.ts`) is two things. The stream
+in, which carries asks, is watched for silence and redialled. What goes
+back out, answers and event frames, is its own health reading: an answer
+is retried until the relay's 20 second wait is over (the relay settles an
+ask once, so a repeat is harmless), and `delivering` drops when an answer
+is lost or half the recent posts failed. Status shows green only when
+both hold, because a lossy network can keep the stream open while every
+reply goes nowhere.
+
+The relay takes 2 MB a payload, and sealing grows an answer by about 1.8
+times. So a request that arrives through it gets transcripts cut to their
+newest part: `GET /api/bots`, `GET /api/bloks` and a lane switch each fit
+in about 700 KB of messages, shared evenly so one long conversation cannot
+starve the rest, and each transcript says how many `olderMessages` stayed
+behind. `GET /api/bots/:id/messages?thread=&before=` and
+`GET /api/bloks/:id/messages?before=` page back through them. Requests from
+this machine or the same network are not cut. An answer that would still be
+too big is replaced with a short 413, so the phone hears why instead of
+waiting out the relay's timeout.
+
+## Rehearsals
+
+`server/rehearsals.ts` clones the agent's folder (copy-on-write with
+`cp -c` on APFS, `--reflink=auto` on Linux, a plain copy elsewhere) and
+runs the turn in a lane of its own pinned to the clone. The checkpoint is
+taken between the real folder before and the clone after, so the card is
+the same one undo uses, marked as a rehearsal. `/api/checkpoints/:id/apply`
+writes each file only if the real one still matches what it was when the
+rehearsal began, then the record undoes like any other; applying one
+attempt of a compared task discards the rest. Copies are deleted when an
+attempt is applied or discarded, and swept after a week.
+
+## Rewind
+
+`POST /api/threads/:lane/rewind` takes a lane back to before one of the
+person's messages. It reverts the lane's checkpoints from that message
+on, newest first, with the same rule as undo: a file whose current
+content is not what the turn left is skipped and named. The message and
+everything after it are marked `rewound` (and `deleted`, so no
+transcript carries them), a context summary that covers any of them is
+dropped, and the lane's engine cursors are cleared, so the next turn is
+a fresh session that is replayed only what is left. Memory notes are not
+touched; the memory journal has its own undo. Rooms and rehearsal lanes
+refuse.
+
+## Backup engines
+
+`server/failover.ts` decides whether a failed turn failed because its
+engine is out (a usage or rate limit, no credit, an outage, signed out)
+rather than because of the work, from the turn's runtime errors and stop
+reason, and when the engine should be usable again (an epoch, "try again
+in 20m", "resets 3pm", or a default per reason, capped at twelve hours).
+The engine rests in a per-instance table in memory, so every agent on it
+skips it until then. An agent with a `backupSelection` has its failed
+solo turn started again on the backup, once, with `fallback: true`; the
+engine switch replays the transcript as any switch does. The raw error
+is held back while a backup takes over and shown if none does. Room
+turns do not retry, but the rest applies to their next turn.
+
+## Chat platforms
+
+A shared room can be carried into Slack, Discord or a WhatsApp group
+(`server/chat-bridge.ts` holds the rules, one transport file each moves
+the bytes). Slack and Discord are connections this machine opens. WhatsApp
+can only call a public address, so Bloks Cloud gives each workspace one
+and hands every call over the relay line as an ask; the call arrives
+readable, because Meta sends it that way, and is believed only if Meta's
+signature checks out against the app secret, which stays here.
+
+## Teams as files
+
+`server/team-file.ts` reads and writes a team as one Markdown file: a
+heading per member, a few `key: value` lines, and the brief as the body.
+Rooms export to it, imports go through it, and the gallery at
+bloks.dev/teams is checked with the same parser before anything reaches
+the hire dialog.
+
+## The morning brief
+
+`server/brief.ts` composes a brief from what is already stored: each
+agent's lanes since the last brief (the last reply's first sentences and
+how many files its change cards touched), the live questions and
+approvals (`waitingOnYou`), the day's usage buckets, and counts of things
+ready for a look. No model call. A minute timer makes one when the chosen
+time has passed and today's has not been made (`briefDue`), and a
+`brief.ready` frame wakes the owner's phone with a sealed preview.
+`/api/briefs/:id/parts/:n/audio` speaks one part in that agent's voice,
+or a Mac voice picked per agent.
+
+## Watchers
+
+`server/watchers.ts` looks at a folder (a snapshot of names, sizes and
+times, compared), a page (its readable text, hashed, with the new lines
+as the change, optionally only when it mentions something) or a feed
+(RSS or Atom entries not seen before). Folders are watched with
+`fs.watch` and settle for twenty seconds; everything is also looked at on
+its `every`. A first look is a baseline. A change becomes a turn in the
+watcher's own lane, or a rehearsal (`openRehearsals`), with the message
+marked `via: "watcher"`. A look is skipped while the agent is busy, so
+its own edits are not news to it, and `mayFire` caps a watcher at six
+turns an hour.
+
+## Meeting notes
+
+`electron/resources/speech-helper.swift --meeting [--system]` transcribes
+the microphone and, through ScreenCaptureKit (weakly linked, macOS 13+),
+the Mac's own sound, closing a recognition request at each pause so every
+stretch of speech is a segment. The renderer posts segments to
+`/api/meetings/:id/segments`; ending the meeting gives the chosen agent a
+turn in its Meetings lane with `notesPrompt`, and `actionItems` reads
+"- Owner: task" lines back out of the reply for one-press handoff.
+
+## Recall and notes about the person
+
+`server/recall.ts` searches an agent's own lanes and the rooms it is in
+(only the room itself, from a lane of a shared room), words in any
+order, with the message before each hit. Agents reach it with the CLI's
+`recall` and chat engines with the `search_history` tool.
+`server/profile-notes.ts` holds suggested and kept notes about the
+person; agents suggest with `note` or `note_about_person` (three a turn),
+only kept notes reach the prompt, and never in a shared room.
+
+## Engine scout
+
+`server/engine-report.ts` logs every finished turn with the engine and
+model that ran it, and reads its outcome later from existing records:
+undone (the checkpoint was reverted), rewound, discarded (a rehearsal),
+failed, or out (the engine ran out). A lighter model in the same family
+with at least eight judged turns and a kept rate within five points is
+suggested for that agent.
+
+## Email your agent
+
+Mail to `<agent>.<id>@agents.bloks.dev` is received by Bloks Cloud and
+arrives as a `hook:` ask with `platform: "email"`, like WhatsApp.
+`onEmailHook` routes it by the name before the dot, checks `allowFrom`,
+dedupes by Message-ID, and queues it into the agent's Email lane; the
+reply is the agent's last message, sent back through Bloks Cloud, which
+only sends to an address that wrote in.
+
+## MCP server
+
+`bin/bloks-mcp.mjs` is a dependency-free stdio MCP server that finds the
+local Bloks on its known ports and offers eight tools (list agents and
+rooms, ask an agent and wait for the reply, post in a room, read a
+conversation, search, the latest brief, what is waiting). It has no tool
+that approves, deletes or configures. `/api/mcp-config` gives the command
+to paste, using the runtime the server itself runs on.
+
+## Lanes, unread and the sidebar
+
+An agent keeps up to twenty lanes (`MAX_TASKS` in `server/store.ts`), each
+its own transcript, engine cursors and busy flag. Closing the last lane
+opens a fresh General in its place, because the active lane is what
+`threadId` names everywhere and an agent without one would be a special
+case in every route. A routine can name the lane it runs in
+(`routine.thread`), so two routines stop sharing one context.
+
+Unread is per lane: a turn that ends in a lane marks that lane
+(`store.markLane`), and the agent's own `unread` is kept as "any lane
+unread" so the iPhone app and the Dock badge read it unchanged. Opening a
+lane (`POST .../tasks/:id/activate`) reads it; `PATCH /api/bots/:id` with
+`unread` reads or marks the lane on screen. The client's `select` goes to
+the lane that pinged (`pingedLane` in `src/state/reducer.ts`) unless it is
+given one, so a dot on an agent always leads somewhere. `clientBot` ships
+each lane's `unread` and `lastAt` for the sidebar.
+
+The sidebar's conversations view (`src/components/SidebarParts.tsx`) is a
+per-device choice in `localStorage`. Settings is a page beside the
+sidebar, like Automations, with its pages listed once in
+`SETTINGS_PAGES` (`src/components/AppSettingsPanel.tsx`); anything that
+links into Settings passes a `page`, and the command palette searches the
+same list. Escape is handled once (`src/lib/useEscape.ts`): the most
+recently opened surface that asked for it closes, and Radix menus and
+dialogs keep their own.
+
+## Approval modes
+
+An agent's `approvals` is `ask`, `edits`, `auto` or `full`, and new agents
+start on `cfg.agentDefaults.approvals` (`GET`/`PUT /api/approvals`, which
+can also move every agent; never reachable with an agent's credential).
+The first three are Bloks' own gate: deny rules first, then the mode
+decides whether a request becomes a card. `full` also sets `fullAccess`
+on the turn, and each driver takes its engine's own guard off: Claude
+Code runs with `bypassPermissions` and no approval bridge, Codex with
+`danger-full-access` and `approvalPolicy: never` (stated on resume too),
+ACP engines in their `yolo` mode, Antigravity with
+`--dangerously-skip-permissions`. Nothing asks, so rules cannot refuse
+anything in that mode. A shared room never gets `fullAccess`.
+
+## Boundaries worth knowing
+
+- `server/http-guard.ts` checks `Origin` and `Host` on every request.
+  Loopback is not a boundary in a browser.
+- `server/limits.ts` holds every input cap in one place.
+- `redactSecrets` scrubs stored keys and key-shaped strings from anything
+  returned to the client.
+- Approval requests block the turn. The driver holds the provider's
+  request open until `respondToRequest` resolves it.
+
+## Engine setup
+
+`server/engine-setup.ts` installs an engine CLI when the person presses
+Install, and opens Terminal at its sign-in when they press Sign in. Installs
+run through the person's login shell, so they see the same node and PATH
+their Terminal does, and write only under `~/.local`: the native installer
+for Claude Code, `npm install -g --prefix "$HOME/.local"` for the npm ones.
+A failure comes back as the next step (install Node, check the network)
+with the installer's own output behind a disclosure. The routes answer
+only a window on this computer and never an agent. Claude Code and Codex
+report signed in or not (`claude auth status`, `codex login status`), and
+the first-run check counts an engine as ready only when it is both.
