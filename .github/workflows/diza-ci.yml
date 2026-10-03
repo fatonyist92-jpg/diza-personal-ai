@@ -30,3 +30,30 @@ jobs:
       - run: pnpm build
       - name: Build hosted DIZA container
         run: docker build -t diza-ai:test .
+      - name: Verify Codex CLI is present
+        run: docker run --rm --entrypoint codex diza-ai:test --version
+      - name: Smoke-test hosted DIZA boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run -d --name diza-smoke -p 18799:8799 \
+            -e DIZA_WEB_PASSWORD='ci-only-password-2026' \
+            diza-ai:test
+          trap 'docker rm -f diza-smoke >/dev/null 2>&1 || true' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:18799/api/diza/session > /tmp/session.json; then
+              break
+            fi
+            sleep 1
+          done
+          node -e '
+            const fs=require("fs");
+            const x=JSON.parse(fs.readFileSync("/tmp/session.json","utf8"));
+            if (x.enabled !== true || x.authenticated !== false) {
+              console.error(x);
+              process.exit(1);
+            }
+          '
+          code="$(curl -sS -o /tmp/bots.json -w '%{http_code}' http://127.0.0.1:18799/api/bots)"
+          test "$code" = "401"
+          docker logs diza-smoke
