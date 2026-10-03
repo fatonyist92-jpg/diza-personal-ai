@@ -56,4 +56,10 @@ jobs:
           '
           code="$(curl -sS -o /tmp/bots.json -w '%{http_code}' http://127.0.0.1:18799/api/bots)"
           test "$code" = "401"
+
+          # A localhost tunnel such as hostc connects from loopback and rewrites
+          # Host/Origin to localhost. Hosted mode must still require DIZA login.
+          loopback_code="$(docker exec diza-smoke sh -lc "curl -sS -o /tmp/bots-loopback.json -w '%{http_code}' http://127.0.0.1:8799/api/bots")"
+          test "$loopback_code" = "401"
+
           docker logs diza-smoke
