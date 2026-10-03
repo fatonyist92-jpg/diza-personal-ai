@@ -24,6 +24,7 @@ import { networkInterfaces } from "node:os";
 import { join } from "node:path";
 
 import { DATA_DIR, loadConfig, saveConfig } from "./config.ts";
+import { webModeEnabled } from "./diza-web.ts";
 
 /** A device that completed pairing. The token itself is shown exactly
  * once, at claim time, and only its digest is kept. */
@@ -156,6 +157,9 @@ function putDevices(list: PairedDevice[]): void {
 }
 
 export function remoteEnabled(): boolean {
+  // DIZA web mode is explicitly password-gated and is meant to bind to
+  // the hosting platform network rather than only this machine.
+  if (webModeEnabled()) return true;
   // bloks-server: no screen to flip the switch on, and nothing but the
   // relay can reach it (bindHost below keeps it on loopback), so the
   // remote surface is on and the relay is its only door
