@@ -3,25 +3,16 @@ import Activity from "lucide-react/dist/esm/icons/activity.mjs";
 import Brain from "lucide-react/dist/esm/icons/brain.mjs";
 import CalendarClock from "lucide-react/dist/esm/icons/calendar-clock.mjs";
 import FolderKanban from "lucide-react/dist/esm/icons/folder-kanban.mjs";
-import MoreVertical from "lucide-react/dist/esm/icons/more-vertical.mjs";
 import Plus from "lucide-react/dist/esm/icons/plus.mjs";
 import Puzzle from "lucide-react/dist/esm/icons/puzzle.mjs";
 import Search from "lucide-react/dist/esm/icons/search.mjs";
-import Settings from "lucide-react/dist/esm/icons/settings-2.mjs";
+import SlidersHorizontal from "lucide-react/dist/esm/icons/sliders-horizontal.mjs";
 import Sparkles from "lucide-react/dist/esm/icons/sparkles.mjs";
 import Users from "lucide-react/dist/esm/icons/users.mjs";
 import { AgentAvatar } from "./Avatar";
 import { formatWhen, useStore, type Blok, type Bot } from "@/state/store";
 import { previewLine } from "@/lib/preview";
 import { cn } from "@/lib/cn";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-
 type Tab = "agents" | "rooms";
 
 function botLastAt(bot: Bot): number {
@@ -147,70 +138,69 @@ export function MobileHome({ onOpen }: { onOpen: (id: string) => void }) {
 
   return (
     <main className="flex h-full min-h-0 w-full flex-col bg-background md:hidden">
-      <header className="shrink-0 border-b bg-background">
-        <div className="flex h-[60px] items-center gap-2 px-4">
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[19px] font-bold tracking-[-0.025em] text-foreground">DIZA AI</div>
-            <div className="text-[10.5px] font-medium tracking-[0.12em] text-muted-foreground">PERSONAL ASSISTANT</div>
+      <header
+        className="shrink-0 border-b bg-background"
+        style={{ paddingTop: "max(14px, env(safe-area-inset-top))" }}
+      >
+        <div className="flex h-[58px] items-center gap-2 px-4">
+          <div className="min-w-0 flex-1 truncate text-[29px] font-semibold tracking-[-0.035em] text-foreground">
+            Obrolan
           </div>
           <button
             onClick={create}
-            className="flex size-9 items-center justify-center rounded-full text-foreground transition-colors active:bg-accent"
-            aria-label={tab === "agents" ? "Agent baru" : "Room baru"}
+            className="flex size-11 items-center justify-center rounded-full text-foreground transition-colors active:bg-accent"
+            aria-label={tab === "agents" ? "Buat agen baru" : "Buat ruang baru"}
           >
-            <Plus size={20} />
+            <Plus size={27} strokeWidth={1.8} />
           </button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex size-9 items-center justify-center rounded-full text-foreground transition-colors active:bg-accent" aria-label="Menu">
-                <MoreVertical size={19} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[210px]">
-              <DropdownMenuItem onClick={() => dispatch({ type: "toggleNewAgent", open: true })}>Agent baru</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => dispatch({ type: "toggleNewRoom", open: true })}>Room baru</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => dispatch({ type: "toggleActivity", open: true })}><Activity />Activity</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => dispatch({ type: "toggleProjects", open: true })}><FolderKanban />Projects</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => dispatch({ type: "toggleMemory", open: true, botId: null })}><Brain />Memory</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => dispatch({ type: "toggleRoutines", open: true })}><CalendarClock />Routines</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => dispatch({ type: "toggleSkills", open: true })}><Sparkles />Skills</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => dispatch({ type: "togglePlugins", open: true })}><Puzzle />Plugins</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => dispatch({ type: "toggleAppSettings", open: true })}><Settings />Settings</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <button
+            onClick={() => dispatch({ type: "toggleAppSettings", open: true })}
+            className="flex size-11 items-center justify-center rounded-full text-foreground transition-colors active:bg-accent"
+            aria-label="Pengaturan"
+          >
+            <SlidersHorizontal size={24} strokeWidth={1.9} />
+          </button>
         </div>
 
-        <div className="px-4 pb-3">
-          <div className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2.5">
-            <Search size={15} className="shrink-0 text-muted-foreground" />
+        <div className="grid grid-cols-2 px-5">
+          <button
+            onClick={() => {
+              setTab("agents");
+              setQuery("");
+            }}
+            className={cn(
+              "relative h-12 text-[17px] font-medium transition-colors",
+              tab === "agents" ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            Agen
+            {tab === "agents" && <span className="absolute inset-x-8 bottom-0 h-[2px] rounded-full bg-foreground/75" />}
+          </button>
+          <button
+            onClick={() => {
+              setTab("rooms");
+              setQuery("");
+            }}
+            className={cn(
+              "relative h-12 text-[17px] font-medium transition-colors",
+              tab === "rooms" ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            Ruang
+            {tab === "rooms" && <span className="absolute inset-x-8 bottom-0 h-[2px] rounded-full bg-foreground/75" />}
+          </button>
+        </div>
+
+        <div className="px-4 pb-3 pt-3">
+          <div className="flex items-center gap-3 rounded-[24px] bg-muted/85 px-4 py-3">
+            <Search size={20} className="shrink-0 text-muted-foreground" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={tab === "agents" ? "Cari agent" : "Cari room"}
-              className="min-w-0 flex-1 bg-transparent text-[13.5px] text-foreground outline-none placeholder:text-muted-foreground"
+              placeholder={tab === "agents" ? "Cari agen" : "Cari ruang"}
+              className="min-w-0 flex-1 bg-transparent text-[17px] text-foreground outline-none placeholder:text-muted-foreground"
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 px-4">
-          {(["agents", "rooms"] as const).map((value) => (
-            <button
-              key={value}
-              onClick={() => {
-                setTab(value);
-                setQuery("");
-              }}
-              className={cn(
-                "relative h-11 text-[13px] font-semibold transition-colors",
-                tab === value ? "text-brand-ink" : "text-muted-foreground",
-              )}
-            >
-              {value === "agents" ? `Agents (${state.bots.filter((bot) => !bot.hidden).length})` : `Rooms (${state.bloks.filter((room) => !room.archived).length})`}
-              {tab === value && <span className="absolute inset-x-7 bottom-0 h-0.5 rounded-full bg-brand" />}
-            </button>
-          ))}
         </div>
       </header>
 
@@ -220,14 +210,14 @@ export function MobileHome({ onOpen }: { onOpen: (id: string) => void }) {
             bots.map((bot) => <AgentRow key={bot.id} bot={bot} onOpen={() => onOpen(bot.id)} />)
           ) : (
             <div className="px-8 py-16 text-center text-[13px] text-muted-foreground">
-              {query ? "Agent tidak ditemukan." : "Belum ada agent. Tekan + untuk membuat agent."}
+              {query ? "Agen tidak ditemukan." : "Belum ada agen. Tekan + untuk membuat agen."}
             </div>
           )
         ) : rooms.length ? (
           rooms.map((room) => <RoomRow key={room.id} room={room} bots={state.bots} onOpen={() => onOpen(room.id)} />)
         ) : (
           <div className="px-8 py-16 text-center text-[13px] text-muted-foreground">
-            {query ? "Room tidak ditemukan." : "Belum ada room. Tekan + untuk membuat room."}
+            {query ? "Ruang tidak ditemukan." : "Belum ada ruang. Tekan + untuk membuat ruang."}
           </div>
         )}
       </section>
