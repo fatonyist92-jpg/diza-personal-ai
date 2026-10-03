@@ -165,7 +165,7 @@ public final class MainActivity extends Activity {
                 if (response.isBlank()) response = "{}";
                 return envelope(status, response);
             } catch (Exception error) {
-                return envelope(599, new JSONObject().put("error", "Server DIZA tidak dapat dijangkau.").put("detail", error.getMessage()).toString());
+                return envelope(599, "{\"error\":\"Server DIZA tidak dapat dijangkau.\"}");
             } finally {
                 if (connection != null) connection.disconnect();
             }
