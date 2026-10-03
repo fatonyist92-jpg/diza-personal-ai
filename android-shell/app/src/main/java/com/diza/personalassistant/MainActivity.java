@@ -28,6 +28,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -263,7 +264,11 @@ public final class MainActivity extends Activity {
             Map<String, String> headers = new HashMap<>();
             if (headersJson != null && !headersJson.isEmpty()) {
                 JSONObject object = new JSONObject(headersJson);
-                for (String key : object.keySet()) headers.put(key, object.optString(key, ""));
+                Iterator<String> keys = object.keys();
+                while (keys.hasNext()) {
+                    String key = keys.next();
+                    headers.put(key, object.optString(key, ""));
+                }
             }
             return open(server, path, method, headers);
         }
