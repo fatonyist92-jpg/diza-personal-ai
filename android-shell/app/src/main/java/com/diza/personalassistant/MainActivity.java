@@ -395,13 +395,17 @@ public final class MainActivity extends Activity {
             }
         }
 
-        private static String responseEnvelope(int status, String contentType, String headersJson, byte[] bytes) throws Exception {
-            JSONObject env = new JSONObject();
-            env.put("status", status);
-            if (contentType != null) env.put("contentType", contentType);
-            env.put("headers", new JSONObject(headersJson == null || headersJson.isEmpty() ? "{}" : headersJson));
-            env.put("base64", Base64.encodeToString(bytes == null ? new byte[0] : bytes, Base64.NO_WRAP));
-            return env.toString();
+        private static String responseEnvelope(int status, String contentType, String headersJson, byte[] bytes) {
+            try {
+                JSONObject env = new JSONObject();
+                env.put("status", status);
+                if (contentType != null) env.put("contentType", contentType);
+                env.put("headers", new JSONObject(headersJson == null || headersJson.isEmpty() ? "{}" : headersJson));
+                env.put("base64", Base64.encodeToString(bytes == null ? new byte[0] : bytes, Base64.NO_WRAP));
+                return env.toString();
+            } catch (Exception ignored) {
+                return "{\"status\":500,\"headers\":{},\"base64\":\"\"}";
+            }
         }
 
         private static String responseHeadersJson(HttpURLConnection connection) {
