@@ -1,0 +1,40 @@
+services:
+  diza:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      DIZA_WEB_PASSWORD: ${DIZA_WEB_PASSWORD}
+      DIZA_WEB_MODE: "1"
+      PORT: "8799"
+    volumes:
+      - diza-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8799/api/diza/session"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      diza:
+        condition: service_healthy
+    environment:
+      DIZA_HOST: ${DIZA_HOST}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  diza-data:
+  caddy-data:
+  caddy-config:
