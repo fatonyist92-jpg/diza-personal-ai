@@ -5,7 +5,7 @@ on:
     inputs:
       server_url:
         description: "HTTPS URL of the live DIZA server"
-        required: true
+        required: false
         type: string
   push:
     branches:
