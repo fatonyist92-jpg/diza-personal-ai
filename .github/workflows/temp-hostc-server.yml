@@ -1,0 +1,118 @@
+name: Temporary DIZA HostC Server
+
+on:
+  push:
+    branches:
+      - bloks-diza-web
+    paths:
+      - ".github/workflows/temp-hostc-server.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hostc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bloks-diza-web
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build DIZA server image
+        run: docker build -t diza-temp-server .
+
+      - name: Start DIZA backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          PASSWORD="$(openssl rand -hex 20)"
+          echo "::add-mask::$PASSWORD"
+          printf '%s' "$PASSWORD" > /tmp/diza-web-password
+          mkdir -p /tmp/diza-data
+          docker run -d --name diza-temp             -p 8799:8799             -e DIZA_WEB_PASSWORD="$PASSWORD"             -v /tmp/diza-data:/data             diza-temp-server
+
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:8799/api/diza/session >/tmp/session.json; then
+              node -e '
+                const x=require("/tmp/session.json");
+                if (x.enabled !== true || x.authenticated !== false) process.exit(1);
+              '
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs diza-temp
+          exit 1
+
+      - name: Start HostC tunnel
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > /tmp/hostc.log
+          nohup bash -lc 'npx --yes hostc@latest 8799 2>&1 | tee -a /tmp/hostc.log' >/tmp/hostc-launch.log 2>&1 &
+          echo $! > /tmp/hostc.pid
+
+          URL=""
+          for i in {1..90}; do
+            URL="$(sed -r 's/\x1B\[[0-9;]*[mK]//g' /tmp/hostc.log | grep -Eo 'https://[A-Za-z0-9._-]+[^[:space:]]*' | head -1 | tr -d '\r' || true)"
+            if [ -n "$URL" ]; then break; fi
+            sleep 2
+          done
+
+          if [ -z "$URL" ]; then
+            echo "HostC URL not found"
+            cat /tmp/hostc.log || true
+            cat /tmp/hostc-launch.log || true
+            exit 1
+          fi
+
+          echo "$URL" > /tmp/diza-hostc-url
+          printf 'SERVER_URL=%s\nPASSWORD=%s\n' "$URL" "$(cat /tmp/diza-web-password)" > /tmp/diza-server-info.txt
+
+          for i in {1..30}; do
+            if curl -fsS "$URL/api/diza/session" >/tmp/public-session.json; then
+              cat /tmp/public-session.json
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Public tunnel health check failed"
+          cat /tmp/hostc.log || true
+          exit 1
+
+      - name: Upload temporary server info
+        uses: actions/upload-artifact@v4
+        with:
+          name: DIZA-TEMP-SERVER-INFO
+          path: /tmp/diza-server-info.txt
+          retention-days: 1
+          if-no-files-found: error
+
+      - name: Keep temporary server alive
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="$(cat /tmp/diza-hostc-url)"
+          echo "Temporary DIZA HostC server is running."
+          echo "Server info is stored in the DIZA-TEMP-SERVER-INFO artifact."
+          for i in {1..66}; do
+            sleep 300
+            curl -fsS "$URL/api/diza/session" >/dev/null
+            docker inspect -f '{{.State.Running}}' diza-temp | grep -q true
+            kill -0 "$(cat /tmp/hostc.pid)" 2>/dev/null
+            echo "keepalive $i/66"
+          done
+
+      - name: Diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          docker logs diza-temp 2>/dev/null || true
+          cat /tmp/hostc.log 2>/dev/null || true
+          cat /tmp/hostc-launch.log 2>/dev/null || true
