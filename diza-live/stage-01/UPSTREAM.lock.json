@@ -1,0 +1,9 @@
+{
+  "project": "DIZA Live / Stage 01",
+  "upstream": "https://github.com/hamedgitty/bloks",
+  "commit": "ba36e7604e5c283bbebed4e4f99d3273f92ec0ec",
+  "version": "2.5.32",
+  "license": "FSL-1.1-MIT",
+  "nodeMin": "22",
+  "policy": "The upstream source is pinned by commit and checked out independently in CI. Existing DIZA v19 is not a source dependency."
+}

@@ -1,0 +1,36 @@
+name: DIZA Live Stage 01 - upstream + contract QC
+
+on:
+  push:
+    branches:
+      - diza-live-stage-01-core
+    paths:
+      - "diza-live/stage-01/**"
+      - ".github/workflows/diza-live-stage-01.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout isolated DIZA Live branch
+        uses: actions/checkout@v4
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify Stage 01 bridge contracts
+        run: node --test diza-live/stage-01/core-bridge.test.mjs
+      - name: Fetch exact official Bloks source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --no-checkout --filter=blob:none https://github.com/hamedgitty/bloks.git bloks-upstream
+          git -C bloks-upstream fetch origin ba36e7604e5c283bbebed4e4f99d3273f92ec0ec
+          git -C bloks-upstream checkout --detach ba36e7604e5c283bbebed4e4f99d3273f92ec0ec
+      - name: Verify immutable upstream architecture and license
+        run: node diza-live/stage-01/verify-upstream.mjs ./bloks-upstream
