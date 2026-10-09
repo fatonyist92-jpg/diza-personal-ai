@@ -1,0 +1,75 @@
+name: DIZA Live Cloud Lab - Bloks Docker + pairing QC
+
+on:
+  push:
+    branches:
+      - diza-live-cloud-pairing-lab
+    paths:
+      - "diza-live/cloud-lab/**"
+      - ".github/workflows/diza-live-cloud-lab.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pairing-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build source-pinned upstream Bloks Docker image
+        run: docker build -f diza-live/cloud-lab/Dockerfile -t diza-bloks-pairing-lab:ci .
+      - name: Verify lab refuses to start without ephemeral acknowledgement
+        run: |
+          set -euo pipefail
+          out="$(docker run --rm diza-bloks-pairing-lab:ci 2>&1)" && { echo "Lab incorrectly started"; exit 1; } || true
+          printf '%s' "$out" | grep -q 'Refusing boot'
+          echo "PASS ephemeral acknowledgement guard"
+      - name: Test boot, pairing authentication and bot discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm -d --name diza-bloks-lab-ci -p 18799:10000 \
+            -e DIZA_LAB_ACK_EPHEMERAL=1 -e PORT=10000 \
+            diza-bloks-pairing-lab:ci >/dev/null
+          trap 'docker rm -f diza-bloks-lab-ci >/dev/null 2>&1 || true' EXIT
+          up=0
+          for n in $(seq 1 60); do
+            if curl --max-time 2 -fsS http://127.0.0.1:18799/api/health -o /tmp/diza-lab-health.json; then
+              up=1; break
+            fi
+            if ! docker ps --format '{{.Names}}' | grep -qx diza-bloks-lab-ci; then
+              docker logs diza-bloks-lab-ci 2>&1 | sed -E 's/DIZA_PAIRING_CODE=[0-9]+/DIZA_PAIRING_CODE=REDACTED/g'
+              exit 1
+            fi
+            sleep 1
+          done
+          test "$up" = 1
+          echo "PASS official Bloks /api/health"
+          status="$(curl -sS -o /tmp/diza-lab-denied.json -w '%{http_code}' http://127.0.0.1:18799/api/bots)"
+          test "$status" = 401
+          echo "PASS unauthenticated remote access denied"
+
+          code="$(docker logs diza-bloks-lab-ci 2>&1 | sed -n 's/^DIZA_PAIRING_CODE=\([0-9]\{6\}\).*$/\1/p' | tail -1)"
+          test "${#code}" -eq 6
+          printf '{"credential":"%s","device":"DIZA CI"}' "$code" >/tmp/diza-lab-claim-request.json
+          status="$(curl -sS -H 'Content-Type: application/json' \
+            --data-binary @/tmp/diza-lab-claim-request.json \
+            -o /tmp/diza-lab-claim-response.json -w '%{http_code}' \
+            http://127.0.0.1:18799/api/pair/claim)"
+          test "$status" = 200
+          token="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync("/tmp/diza-lab-claim-response.json", "utf8")).token)')"
+          test -n "$token"
+          echo "PASS one-time 6-digit code pairing"
+
+          denied="$(curl -sS -H 'Authorization: Bearer wrong-token' \
+            -o /tmp/diza-invalid.json -w '%{http_code}' \
+            http://127.0.0.1:18799/api/bots)"
+          test "$denied" = 401
+          echo "PASS invalid device token rejected"
+
+          curl -fsS -H "Authorization: Bearer $token" \
+            http://127.0.0.1:18799/api/bots -o /tmp/diza-lab-bots.json
+          node -e 'const a=JSON.parse(require("fs").readFileSync("/tmp/diza-lab-bots.json","utf8"));if(!Array.isArray(a.bots))process.exit(1)'
+          echo "PASS authenticated Bloks agent discovery"
