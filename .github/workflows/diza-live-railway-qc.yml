@@ -1,0 +1,68 @@
+name: DIZA Live Railway - durable Bloks pairing QC
+
+on:
+  push:
+    branches: [diza-live-railway-free]
+    paths:
+      - "diza-live/railway/**"
+      - ".github/workflows/diza-live-railway-qc.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  persistent-pairing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned official Bloks image
+        run: docker build -f diza-live/railway/Dockerfile -t diza-bloks-railway:ci .
+      - name: Reject backend without a persistent volume
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(docker run --rm diza-bloks-railway:ci 2>&1)" && exit 1 || true
+          printf '%s' "$output" | grep -q 'Refusing to start'
+          echo "PASS volume mandatory safety gate"
+      - name: Pair Android-equivalent token and prove persistence after restart
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/diza-railway-volume
+          chmod 700 /tmp/diza-railway-volume
+          start_server() {
+            docker run --rm -d --name diza-railway-ci -p 18799:10000 \
+              -e PORT=10000 -e RAILWAY_VOLUME_MOUNT_PATH=/home/node/.bloks \
+              -v /tmp/diza-railway-volume:/home/node/.bloks \
+              diza-bloks-railway:ci >/dev/null
+            for n in $(seq 1 45); do
+              if curl -fsS --max-time 2 http://127.0.0.1:18799/api/health \
+                -o /tmp/diza-railway-health.json; then return 0; fi
+              sleep 1
+            done
+            echo "FAILED to start server" >&2
+            exit 1
+          }
+          trap 'docker rm -f diza-railway-ci >/dev/null 2>&1 || true' EXIT
+          start_server
+          code="$(docker logs diza-railway-ci 2>&1 | sed -n 's/^DIZA_PAIRING_CODE=\([0-9]\{6\}\).*$/\1/p' | tail -1)"
+          test "${#code}" -eq 6
+          status="$(curl -s -o /tmp/denied.json -w '%{http_code}' http://127.0.0.1:18799/api/bots)"
+          test "$status" = 401
+          printf '{"credential":"%s","device":"DIZA Railway CI"}' "$code" >/tmp/diza-pair.json
+          curl -fsS -H 'Content-Type: application/json' \
+            --data-binary @/tmp/diza-pair.json \
+            http://127.0.0.1:18799/api/pair/claim >/tmp/diza-token.json
+          token="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync("/tmp/diza-token.json","utf8")).token)')"
+          test -n "$token"
+          curl -fsS -H "Authorization: Bearer $token" \
+            http://127.0.0.1:18799/api/bots -o /tmp/diza-before.json
+          echo "PASS authenticated pairing"
+          docker stop diza-railway-ci >/dev/null
+          start_server
+          curl -fsS -H "Authorization: Bearer $token" \
+            http://127.0.0.1:18799/api/bots -o /tmp/diza-after.json
+          node -e 'const a=JSON.parse(require("fs").readFileSync("/tmp/diza-after.json","utf8"));if(!Array.isArray(a.bots))process.exit(1)'
+          echo "PASS token survives Bloks restart on same persistent volume"
