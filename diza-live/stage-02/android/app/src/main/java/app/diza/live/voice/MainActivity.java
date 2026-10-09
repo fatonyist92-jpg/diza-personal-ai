@@ -51,6 +51,7 @@ public final class MainActivity extends Activity implements RecognitionListener,
     private boolean ttsReady = false;
     private boolean recognitionReady = false;
     private boolean recognitionStarting = false;
+    private boolean engineConnected = false;
     private volatile int epoch = 0;
     private String agentId = "";
     private String lease = "";
@@ -186,10 +187,12 @@ public final class MainActivity extends Activity implements RecognitionListener,
         BloksApi session;
         try { session = setupApi(); } catch (Exception e) { error(e); return; }
         status("Menghubungkan ke Bloks...");
+        engineConnected = false;
         io.execute(() -> {
             try {
                 session.health();
                 JSONArray found = session.agents();
+                boolean ready = session.hasConnectedEngine();
                 ArrayList<String> names = new ArrayList<>();
                 ArrayList<String> ids = new ArrayList<>();
                 for (int i=0; i<found.length(); i++) {
@@ -198,6 +201,7 @@ public final class MainActivity extends Activity implements RecognitionListener,
                     ids.add(agent.getString("id"));
                 }
                 ui.post(() -> {
+                    engineConnected = ready;
                     agentIds.clear();
                     agentIds.addAll(ids);
                     ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
@@ -211,13 +215,15 @@ public final class MainActivity extends Activity implements RecognitionListener,
                         @Override public void onNothingSelected(AdapterView<?> parent) { agentId = ""; }
                     });
                     if (names.isEmpty()) status("Server tersambung, tetapi belum ada agent Bloks.");
-                    else status("Tersambung. Pilih agent lalu Mulai Live.");
+                    else if (!ready) status("Pairing dan agent OK, tetapi engine AI belum tersambung di Bloks. Atur engine di server dulu.");
+                    else status("Engine aktif. Pilih agent lalu Mulai Live.");
                 });
             } catch (Exception e) { error(e); }
         });
     }
     private void requestStart() {
         if (api == null || agentId.isEmpty()) { status("Hubungkan dan pilih agent Bloks dahulu."); return; }
+        if (!engineConnected) { status("Engine AI belum terhubung di Bloks. Hubungkan engine di server, lalu tekan Hubungkan lagi."); return; }
         if (!recognitionReady) { status("SpeechRecognizer tidak tersedia di HP ini."); return; }
         if (!ttsReady) { status("TextToSpeech Indonesia belum siap. Periksa voice pack Android."); return; }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -330,10 +336,14 @@ public final class MainActivity extends Activity implements RecognitionListener,
             try {
                 JSONObject agent=BloksApi.find(api.agents(), id);
                 String reply=BloksApi.newReply(agent, baseline);
+                String notice=reply == null ? BloksApi.newNotice(agent, baseline) : null;
                 ui.post(() -> {
                     if (myEpoch != epoch || cycle.state() != VoiceCycle.State.WAITING) return;
                     if (reply != null && cycle.answered(reply)) say(reply, myEpoch);
-                    else ui.postDelayed(() -> pollReply(myEpoch, id, baseline, began), 1150);
+                    else if (notice != null) {
+                        display("Lu: " + spokenTranscript + "\\n\\nBloks: " + notice);
+                        stopSessionWithError(new IllegalStateException(notice));
+                    } else ui.postDelayed(() -> pollReply(myEpoch, id, baseline, began), 1150);
                 });
             } catch (Exception e) {
                 if (myEpoch == epoch) ui.post(() -> stopSessionWithError(e));
