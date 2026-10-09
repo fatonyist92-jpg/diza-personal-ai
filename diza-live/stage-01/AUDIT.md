@@ -49,7 +49,7 @@ Later Android stages must support:
 - [x] Stable REST/SSE contract adapter written with a secure transport rule.
 - [x] Automated contract tests written (7 scenarios).
 - [x] CI upstream checkout check against exact pinned commit and key paths.
-- [ ] Live upstream server smoke test: see latest Stage-01 GitHub Actions run for final status.
+- [x] Live upstream server smoke test: /api/health and /api/bots responded successfully on a clean instance (GitHub Actions run 37873931699).
 - [ ] Android and voice acceptance: **not in Stage 01**.
 
 The existing `diza-live/stage-01/core-bridge.mjs` is a portable proof of contract, not a replacement for native Kotlin audio or Bloks' actual memory layer.
