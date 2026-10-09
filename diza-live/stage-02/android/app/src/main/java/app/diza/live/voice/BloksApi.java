@@ -66,6 +66,17 @@ final class BloksApi {
     }
     JSONObject health() throws Exception { return request("GET", "/api/health", null); }
     JSONArray agents() throws Exception { return request("GET", "/api/bots?messages=60", null).getJSONArray("bots"); }
+    boolean hasConnectedEngine() throws Exception {
+        // Upstream Bloks /api/providers is available to a paired device.
+        // An installed CLI that still needs sign-in is NOT a working engine.
+        JSONArray providers = request("GET", "/api/providers", null).getJSONArray("providers");
+        for (int i=0; i<providers.length(); i++) {
+            JSONObject provider = providers.getJSONObject(i);
+            if (provider.optBoolean("connected", false)
+                && !provider.optBoolean("needsSignIn", false)) return true;
+        }
+        return false;
+    }
     JSONObject pair(String sixDigitCode) throws Exception {
         if (!sixDigitCode.matches("[0-9]{6}")) throw new IllegalArgumentException("Pairing code must contain 6 digits");
         return request("POST", "/api/pair/claim", new JSONObject()
@@ -99,12 +110,26 @@ final class BloksApi {
         if (items == null) return seen;
         for (int i=0; i<items.length(); i++) {
             JSONObject m=items.getJSONObject(i);
-            if ("bot".equals(m.optString("role")) && "text".equals(m.optString("kind"))
+            if ("bot".equals(m.optString("role"))
+                && ("text".equals(m.optString("kind")) || "notice".equals(m.optString("kind")))
                 && !m.optBoolean("deleted") && !m.optString("text").trim().isEmpty()) {
                 seen.add(m.optString("id", "none-"+i));
             }
         }
         return seen;
+    }
+    static String newNotice(JSONObject agent, Set<String> oldIds) throws Exception {
+        if (agent.optBoolean("busy", false)) return null;
+        JSONArray messages=agent.optJSONArray("messages");
+        if (messages == null) return null;
+        for (int i=messages.length()-1; i>=0; i--) {
+            JSONObject m=messages.getJSONObject(i);
+            if ("bot".equals(m.optString("role")) && "notice".equals(m.optString("kind"))
+                && !m.optBoolean("deleted") && !oldIds.contains(m.optString("id"))
+                && !m.optString("text").trim().isEmpty())
+                return m.optString("text");
+        }
+        return null;
     }
     static String newReply(JSONObject agent, Set<String> oldIds) throws Exception {
         if (agent.optBoolean("busy", false)) return null;
