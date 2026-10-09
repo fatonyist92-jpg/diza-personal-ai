@@ -34,3 +34,47 @@ jobs:
           git -C bloks-upstream checkout --detach ba36e7604e5c283bbebed4e4f99d3273f92ec0ec
       - name: Verify immutable upstream architecture and license
         run: node diza-live/stage-01/verify-upstream.mjs ./bloks-upstream
+      - name: Set up pnpm for smoke boot
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Install exact upstream dependencies
+        working-directory: bloks-upstream
+        run: pnpm install --frozen-lockfile
+      - name: Boot official Bloks core without provider credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/diza-live-stage01-home"
+          (
+            cd bloks-upstream
+            HOME="$RUNNER_TEMP/diza-live-stage01-home" BLOKS_PORT=18799 node server/index.ts
+          ) > "$RUNNER_TEMP/diza-live-core.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" >/dev/null 2>&1 || true' EXIT
+          healthy=0
+          for attempt in $(seq 1 40); do
+            if curl --max-time 2 -fsS http://127.0.0.1:18799/api/health -o "$RUNNER_TEMP/bloks-health.json"; then
+              healthy=1
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              echo "Bloks process exited before health check"; cat "$RUNNER_TEMP/diza-live-core.log"; exit 1
+            fi
+            sleep 1
+          done
+          if [ "$healthy" -ne 1 ]; then cat "$RUNNER_TEMP/diza-live-core.log"; exit 1; fi
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const base = 'http://127.0.0.1:18799';
+          const healthResponse = await fetch(base+'/api/health');
+          assert.equal(healthResponse.status, 200);
+          const health = await healthResponse.json();
+          assert.ok(health && typeof health === 'object');
+          console.log('PASS live /api/health');
+          const agentsResponse = await fetch(base+'/api/bots?messages=0');
+          assert.equal(agentsResponse.status, 200);
+          const agents = await agentsResponse.json();
+          assert.ok(Array.isArray(agents.bots), 'Bloks must return bot list');
+          console.log('PASS live /api/bots', agents.bots.length);
+          NODE
