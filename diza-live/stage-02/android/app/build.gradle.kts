@@ -8,8 +8,8 @@ android {
         applicationId = "app.diza.live.voice.prototype"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0-stage2"
+        versionCode = 3
+        versionName = "0.2.1-stage2-agentfix"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
