@@ -161,6 +161,10 @@ public final class MainActivity extends Activity implements RecognitionListener,
         return result;
     }
     private void pair() {
+        if (cycle.state() != VoiceCycle.State.STOPPED) {
+            status("Akhiri sesi live sebelum mengganti pairing.");
+            return;
+        }
         String code = pairingCode.getText().toString().trim();
         if (!code.matches("[0-9]{6}")) { status("Butuh kode pairing 6 digit dari Bloks."); return; }
         BloksApi session;
@@ -247,7 +251,7 @@ public final class MainActivity extends Activity implements RecognitionListener,
                 });
                 scheduleRenew(myEpoch);
             } catch (Exception e) {
-                ui.post(() -> stopSessionWithError(e));
+                if (myEpoch == epoch) ui.post(() -> stopSessionWithError(e));
             }
         });
     }
@@ -311,7 +315,9 @@ public final class MainActivity extends Activity implements RecognitionListener,
                 Set<String> baseline=BloksApi.existingReplies(agent);
                 api.send(id, said);
                 ui.post(() -> pollReply(myEpoch, id, baseline, System.currentTimeMillis()));
-            } catch (Exception e) { ui.post(() -> stopSessionWithError(e)); }
+            } catch (Exception e) {
+                if (myEpoch == epoch) ui.post(() -> stopSessionWithError(e));
+            }
         });
     }
     private void pollReply(int myEpoch, String id, Set<String> baseline, long began) {
@@ -329,7 +335,9 @@ public final class MainActivity extends Activity implements RecognitionListener,
                     if (reply != null && cycle.answered(reply)) say(reply, myEpoch);
                     else ui.postDelayed(() -> pollReply(myEpoch, id, baseline, began), 1150);
                 });
-            } catch (Exception e) { ui.post(() -> stopSessionWithError(e)); }
+            } catch (Exception e) {
+                if (myEpoch == epoch) ui.post(() -> stopSessionWithError(e));
+            }
         });
     }
     private void say(String reply, int myEpoch) {
@@ -367,6 +375,7 @@ public final class MainActivity extends Activity implements RecognitionListener,
             @Override public void onStart(String id) { }
             @Override public void onDone(String id) {
                 ui.post(() -> {
+                    if (id == null || !id.startsWith("diza_" + epoch + "_")) return;
                     if (cycle.speechEnded()) {
                         status("Giliran selesai: " + cycle.turnsCompleted() + ". Mendengarkan lagi...");
                         ui.postDelayed(MainActivity.this::startListening, 350);
@@ -374,7 +383,11 @@ public final class MainActivity extends Activity implements RecognitionListener,
                 });
             }
             @Override public void onError(String id) {
-                ui.post(() -> stopSessionWithError(new IllegalStateException("TextToSpeech playback error")));
+                ui.post(() -> {
+                    if (id != null && id.startsWith("diza_" + epoch + "_")) {
+                        stopSessionWithError(new IllegalStateException("TextToSpeech playback error"));
+                    }
+                });
             }
         });
     }
