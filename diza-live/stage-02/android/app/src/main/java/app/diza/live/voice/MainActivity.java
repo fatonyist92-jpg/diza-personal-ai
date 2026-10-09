@@ -341,7 +341,7 @@ public final class MainActivity extends Activity implements RecognitionListener,
                     if (myEpoch != epoch || cycle.state() != VoiceCycle.State.WAITING) return;
                     if (reply != null && cycle.answered(reply)) say(reply, myEpoch);
                     else if (notice != null) {
-                        display("Lu: " + spokenTranscript + "\\n\\nBloks: " + notice);
+                        display("Lu: " + spokenTranscript + "\n\nBloks: " + notice);
                         stopSessionWithError(new IllegalStateException(notice));
                     } else ui.postDelayed(() -> pollReply(myEpoch, id, baseline, began), 1150);
                 });
