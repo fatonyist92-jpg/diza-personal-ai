@@ -51,6 +51,12 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Preserve prototype debug signing identity for later updates
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: diza-live-stage02-debug-keystore-v1
+
       - name: Compile new native Android APK
         working-directory: diza-live/stage-02/android
         run: gradle --no-daemon :app:assembleDebug --stacktrace
