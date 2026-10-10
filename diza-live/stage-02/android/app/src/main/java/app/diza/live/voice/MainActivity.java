@@ -186,8 +186,11 @@ public final class MainActivity extends Activity implements RecognitionListener,
                 String token = response.getString("token");
                 secretStore.saveToken(token);
                 session.setToken(token);
-                ui.post(() -> pairingCode.setText(""));
-                status("Perangkat berhasil dipasangkan. Tekan Hubungkan.");
+                ui.post(() -> {
+                    pairingCode.setText("");
+                    status("Pairing berhasil. Menyambungkan agent...");
+                    connect();
+                });
             } catch (Exception e) { error(e); }
         });
     }
@@ -201,13 +204,14 @@ public final class MainActivity extends Activity implements RecognitionListener,
             try {
                 session.health();
                 JSONArray found = session.agents();
-                boolean ready;
-                try { ready = session.hasConnectedEngine(); }
+                boolean detectedReady;
+                try { detectedReady = session.hasConnectedEngine(); }
                 catch (Exception unsupportedProvidersEndpoint) {
                     // Older/newer Bloks API versions can omit /api/providers.
                     // Agent connection must remain usable and failures appear during a turn.
-                    ready = false;
+                    detectedReady = false;
                 }
+                final boolean ready = detectedReady;
                 ArrayList<String> names = new ArrayList<>();
                 ArrayList<String> ids = new ArrayList<>();
                 for (int i=0; i<found.length(); i++) {
