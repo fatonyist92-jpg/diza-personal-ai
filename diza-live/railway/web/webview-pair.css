@@ -1,0 +1,15 @@
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#111315;color:#fafafa;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px 18px;background:radial-gradient(circle at 50% 7%,#273331 0,transparent 42%),#111315}
+.panel{width:min(100%,430px);padding:34px 26px 30px;background:#1c1f21;border:1px solid #33393a;border-radius:23px;box-shadow:0 28px 100px #0008}
+.logo{display:grid;place-items:center;width:56px;height:56px;border-radius:17px;background:#dceee4;color:#162d24;font-size:34px;font-weight:700;margin-bottom:24px}
+.eyebrow{color:#a8c2b4;font-size:10px;letter-spacing:2.2px;font-weight:800}h1{font-size:27px;letter-spacing:-1.1px;margin:12px 0 8px}
+.subtitle{font-size:14px;line-height:1.65;color:#aeb3b3;margin:0 0 25px}
+form{display:flex;flex-direction:column;gap:10px}label{font-size:12px;font-weight:700;color:#dbdfe0}
+input{width:100%;background:#101314;color:#fff;border:1px solid #4c5352;border-radius:13px;outline:0;padding:15px 16px;min-height:55px;font-size:24px;text-align:center;letter-spacing:9px}
+input:focus{border-color:#b7d9c5;box-shadow:0 0 0 3px #b7d9c520}
+button{min-height:52px;background:#d4e9da;color:#16261e;border:0;border-radius:12px;margin-top:9px;padding:13px 17px;font-size:14px;font-weight:800;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}.status{font-size:12px;line-height:1.5;min-height:19px;color:#f3b3ad}.status.ok{color:#a3e4bc}
+.tip{background:#151819;border:1px solid #313737;border-radius:13px;margin-top:20px;padding:17px;font-size:12px;line-height:1.65;color:#aeb6b3}
+.tip-title{font-size:12px;color:#fff;font-weight:800;margin-bottom:6px}.tip strong{color:#e8eaea}.tip code{font-size:11px;color:#b3d4bd}
+.footer{display:flex;align-items:center;justify-content:center;gap:8px;font-size:10px;color:#929b97;margin-top:24px}.dot{height:6px;width:6px;border-radius:100%;background:#7dc69a}
+@media(max-width:390px){.panel{padding:26px 20px 24px}.subtitle{font-size:13px}}
