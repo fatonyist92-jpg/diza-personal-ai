@@ -79,6 +79,10 @@ public final class MainActivity extends Activity implements RecognitionListener,
             status("Android tidak menyediakan SpeechRecognizer. Cek layanan pengenal suara.");
         }
         tts = new TextToSpeech(this, this);
+        // Restore an existing pairing automatically. No code or token is bundled in the APK.
+        if (!secretStore.origin().isEmpty() && !secretStore.token().isEmpty()) {
+            ui.post(this::connect);
+        }
     }
 
     private TextView text(String value, int sp) {
@@ -116,16 +120,17 @@ public final class MainActivity extends Activity implements RecognitionListener,
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(26, 28, 26, 28);
         outer.addView(box);
-        TextView title = text("DIZA LIVE  •  VOICE LAB", 23);
+        TextView title = text("DIZA LIVE  •  BLOKS", 23);
         title.setGravity(Gravity.CENTER);
         box.addView(title);
-        TextView label = text("Stage 02 · Uji ngobrol langsung memakai Bloks Core", 13);
+        TextView label = text("Chat suara langsung dengan agent Bloks", 13);
         label.setGravity(Gravity.CENTER);
         label.setTextColor(Color.LTGRAY);
         box.addView(label);
         box.addView(text("Server Bloks (HTTPS)", 14));
         endpoint = field(box, "https://server-bloks.example", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        endpoint.setText(secretStore.origin());
+        endpoint.setText(secretStore.origin().isEmpty()
+            ? "https://bloks-core-production.up.railway.app" : secretStore.origin());
         box.addView(text("Kode pairing sekali (6 digit)", 14));
         pairingCode = field(box, "Masukkan kode dari pengaturan Bloks", InputType.TYPE_CLASS_NUMBER);
         button("1. Pasangkan perangkat", box, v -> pair());
@@ -144,7 +149,7 @@ public final class MainActivity extends Activity implements RecognitionListener,
         startButton = button("🎙 MULAI LIVE VOICE", box, v -> requestStart());
         stopButton = button("■ AKHIRI PANGGILAN", box, v -> stopSession());
         stopButton.setEnabled(false);
-        TextView note = text("Prototype Stage 2: suara→agent→suara. Belum barge-in, lip-sync, atau UI avatar final.", 12);
+        TextView note = text("Live Voice berbasis pengenal suara dan TTS Android. Interupsi suara saat Diza berbicara belum tersedia.", 12);
         note.setTextColor(Color.LTGRAY);
         box.addView(note);
         setContentView(outer);
@@ -156,7 +161,11 @@ public final class MainActivity extends Activity implements RecognitionListener,
         status("Gagal: " + s);
     }
     private BloksApi setupApi() {
-        BloksApi result = new BloksApi(endpoint.getText().toString(), secretStore.token());
+        BloksApi result = new BloksApi(endpoint.getText().toString(), "");
+        // Critical: never send a previously paired server token to a new host.
+        String previousOrigin = secretStore.origin();
+        if (!result.origin.equals(previousOrigin)) secretStore.clearToken();
+        else result.setToken(secretStore.token());
         secretStore.saveOrigin(result.origin);
         api = result;
         return result;
@@ -192,7 +201,13 @@ public final class MainActivity extends Activity implements RecognitionListener,
             try {
                 session.health();
                 JSONArray found = session.agents();
-                boolean ready = session.hasConnectedEngine();
+                boolean ready;
+                try { ready = session.hasConnectedEngine(); }
+                catch (Exception unsupportedProvidersEndpoint) {
+                    // Older/newer Bloks API versions can omit /api/providers.
+                    // Agent connection must remain usable and failures appear during a turn.
+                    ready = false;
+                }
                 ArrayList<String> names = new ArrayList<>();
                 ArrayList<String> ids = new ArrayList<>();
                 for (int i=0; i<found.length(); i++) {
@@ -215,7 +230,7 @@ public final class MainActivity extends Activity implements RecognitionListener,
                         @Override public void onNothingSelected(AdapterView<?> parent) { agentId = ""; }
                     });
                     if (names.isEmpty()) status("Server tersambung, tetapi belum ada agent Bloks.");
-                    else if (!ready) status("Pairing dan agent OK, tetapi engine AI belum tersambung di Bloks. Atur engine di server dulu.");
+                    else if (!ready) status("Agent terhubung. Status engine belum terverifikasi; Mulai Live boleh dicoba. Bila gagal, atur engine di server.");
                     else status("Engine aktif. Pilih agent lalu Mulai Live.");
                 });
             } catch (Exception e) { error(e); }
@@ -223,7 +238,6 @@ public final class MainActivity extends Activity implements RecognitionListener,
     }
     private void requestStart() {
         if (api == null || agentId.isEmpty()) { status("Hubungkan dan pilih agent Bloks dahulu."); return; }
-        if (!engineConnected) { status("Engine AI belum terhubung di Bloks. Hubungkan engine di server, lalu tekan Hubungkan lagi."); return; }
         if (!recognitionReady) { status("SpeechRecognizer tidak tersedia di HP ini."); return; }
         if (!ttsReady) { status("TextToSpeech Indonesia belum siap. Periksa voice pack Android."); return; }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
