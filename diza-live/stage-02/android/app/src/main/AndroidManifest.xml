@@ -10,7 +10,7 @@
             <action android:name="android.intent.action.TTS_SERVICE"/>
         </intent>
     </queries>
-    <application android:label="DIZA Live Voice · Stage 2"
+    <application android:label="DIZA Live"
         android:allowBackup="false" android:usesCleartextTraffic="false"
         android:theme="@android:style/Theme.Material.NoActionBar"
         android:supportsRtl="true">
