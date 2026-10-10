@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <meta name="theme-color" content="#121416"/>
+  <title>Bloks • Hubungkan WebView</title>
+  <link rel="icon" href="/app-icon.svg" type="image/svg+xml"/>
+  <link rel="stylesheet" href="/webview-pair.css"/>
+  <script src="/webview-pair.js" defer></script>
+</head>
+<body>
+  <main class="panel">
+    <div class="logo" aria-hidden="true"><span>▦</span></div>
+    <div class="eyebrow">BLOKS · SECURE WEBVIEW</div>
+    <h1>Hubungkan perangkat</h1>
+    <p class="subtitle">Masuk untuk membuka tampilan asli Bloks dari server Railway.</p>
+    <form id="pairForm" autocomplete="off">
+      <label for="pairCode">Kode pairing 6 digit</label>
+      <input id="pairCode" name="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autocapitalize="off" spellcheck="false"/>
+      <button id="submit" type="submit">Hubungkan WebView ↗</button>
+    </form>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+    <div class="tip">
+      <div class="tip-title">Ambil kode pairing</div>
+      Buka Railway → <strong>DIZA Live Bloks Core</strong> → <strong>bloks-core</strong> → <strong>Deploy Logs</strong>.
+      Cari <code>DIZA_PAIRING_CODE</code>. Kode berlaku 5 menit setelah server memulai ulang.
+      Jika kedaluwarsa, lakukan <em>restart</em> tanpa menghapus volume.
+    </div>
+    <div class="footer"><span class="dot"></span> HTTPS · akses hanya untuk perangkat yang dipairing</div>
+  </main>
+</body>
+</html>
