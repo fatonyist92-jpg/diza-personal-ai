@@ -38,10 +38,15 @@ export async function startBrowserMic(hooks: Hooks, autoStop: boolean): Promise<
   }
 
   // This call explicitly requests Chrome microphone permission.
-  const stream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-    video: false,
-  });
+  let stream: MediaStream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      video: false,
+    });
+  } catch (error) {
+    throw new Error(description(error));
+  }
 
   let recorder: MediaRecorder;
   let audioContext: AudioContext | null = null;
