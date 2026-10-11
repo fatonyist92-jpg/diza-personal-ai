@@ -74,6 +74,26 @@ if (process.env.GEMINI_TTS_STREAM_ENABLED === "1") {
   console.log("GEMINI_TTS_STREAM_SMOKE=OFF");
 }
 
+// Opt-in, synthetic-only local Indonesian voice acceptance test.
+// All generation is offline; no user text, Google API call or tokens used.
+console.log("SUPERTONIC3_TTS_STATUS=" +
+  (process.env.SUPERTONIC3_TTS_ENABLED === "1" ? "ENABLED_NO_API_QUOTA" : "OFF"));
+if (process.env.SUPERTONIC3_TTS_SMOKE_ON_BOOT === "1" &&
+    process.env.SUPERTONIC3_TTS_ENABLED === "1") {
+  void import("/opt/bloks/server/supertonic3-local-tts.mjs")
+    .then(async ({ speakOfflineIndonesian }) => {
+      const started = Date.now();
+      const result = await speakOfflineIndonesian(
+        "Halo, ini suara lokal Diza dalam bahasa Indonesia.",
+        "id-ID-GadisNeural");
+      if (!result) throw Error("no offline wav");
+      let bytes = 0;
+      for await (const chunk of result.stream) bytes += chunk.length;
+      console.log("SUPERTONIC3_TTS_SMOKE=" + (bytes > 1_000 ? "PASS" : "FAIL"));
+      console.log("SUPERTONIC3_TTS_SMOKE_MS=" + (Date.now() - started));
+    }).catch(() => console.log("SUPERTONIC3_TTS_SMOKE=FAIL"));
+}
+
 // Check live neural audio in background; never block UI/chat startup.
 void import("/opt/diza-live/neural-smoke.mjs").catch(() => {
   console.log("NEURAL_VOICE_TEST=FAILED_TO_START");
