@@ -1,12 +1,11 @@
-// One privacy-safe REAL local Indonesian speech-to-text test:
-// test two exact short Indonesian phrases and a longer sentence using
-// neural voices, with Whisper base. Log no audio or transcripts.
+// Verify non-Whisper Indonesian Zipformer2 real audio-to-text locally.
+// Only these fixed synthetic phrases are tested; no user speech logged.
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, writeFile, rm, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 const ROOT = "/home/node/.bloks";
-const REPORT = join(ROOT, "whisper-base-preserve-onsets-v4.json");
+const REPORT = join(ROOT, "sherpa-zipformer2-id-v1-smoke.json");
 const MAX_AGE = 12 * 60 * 60 * 1000;
 async function once(bin, args, input, timeout) {
   return await new Promise((resolve) => {
@@ -53,10 +52,10 @@ try {
   if (Date.now() - Date.parse(saved.checkedAt) < MAX_AGE) recent = saved;
 } catch {}
 if (recent) {
-  console.log("LOCAL_WHISPER_STT_TEST=" + recent.status + " (cached)");
-  console.log("LOCAL_WHISPER_STT_REASON=" + recent.reason);
+  console.log("LOCAL_ZIPFORMER_STT_TEST=" + recent.status + " (cached)");
+  console.log("LOCAL_ZIPFORMER_STT_REASON=" + recent.reason);
 } else {
-  console.log("LOCAL_WHISPER_STT_TEST=checking");
+  console.log("LOCAL_ZIPFORMER_STT_TEST=checking");
   const tmp = await mkdtemp(join(tmpdir(), "bloks-stt-check-"));
   let status = "FAILED", reason = "LOCAL_STT_UNAVAILABLE";
   try {
@@ -78,9 +77,9 @@ if (recent) {
       const file=join(tmp, "test-"+i+".mp3");
       await writeFile(file, audio.bytes, { mode: 0o600 });
       const words=await once("/opt/diza-live/stt-venv/bin/python",
-        ["/opt/diza-live/stt-whisper.py", file], null, 70_000);
+        ["/opt/diza-live/stt-zipformer.py", file], null, 70_000);
       if (!words.ok) {
-        failedAt="BASE_MODEL_PROCESS_FAILED";
+        failedAt="ZIPFORMER_MODEL_PROCESS_FAILED";
         break;
       }
       const heard=words.bytes.toString("utf8").toLowerCase()
@@ -91,7 +90,7 @@ if (recent) {
         .replace(/\b3\b/g,"tiga").replace(/\btest\b/g,"tes").replace(/\s+/g," ").trim();
       // Only fixed synthetic voice inputs (never real user speech) are
       // diagnosed in PRIVATE Railway logs for this test.
-      console.log("WHISPER_SYNTHETIC_CASE_" + i + "=" + (heard||"[empty]").slice(0,100));
+      console.log("ZIPFORMER_SYNTHETIC_CASE_" + i + "=" + (heard||"[empty]").slice(0,100));
       if (!normalized.includes(item.expected)) {
         failedAt = i<2 ? "SHORT_NUMBER_PHRASE_MISMATCH" : "LONG_INDONESIAN_PHRASE_MISMATCH";
         break;
@@ -110,7 +109,7 @@ if (recent) {
     await rm(tmp, { recursive: true, force: true }).catch(() => {});
     await mkdir(ROOT, { recursive: true });
     await writeFile(REPORT, JSON.stringify({ status, reason, checkedAt: new Date().toISOString() }), { mode: 0o600 });
-    console.log("LOCAL_WHISPER_STT_TEST=" + status);
-    console.log("LOCAL_WHISPER_STT_REASON=" + reason);
+    console.log("LOCAL_ZIPFORMER_STT_TEST=" + status);
+    console.log("LOCAL_ZIPFORMER_STT_REASON=" + reason);
   }
 }
