@@ -13,4 +13,7 @@ fi
 mkdir -p "$STORE"
 chown -R node:node "$STORE"
 chmod 700 "$STORE"
+mkdir -p "$STORE/codex"
+chown node:node "$STORE/codex"
+chmod 700 "$STORE/codex"
 exec gosu node node /opt/diza-live/boot.mjs
