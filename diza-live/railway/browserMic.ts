@@ -1,7 +1,7 @@
 /**
- * Browser microphone capture using real MediaRecorder and private local
- * Indonesian Whisper STT. This path does NOT depend on unreliable Chrome
- * SpeechRecognition, and never sends audio to a paid third-party STT API.
+ * Browser microphone capture using real MediaRecorder and authenticated
+ * server STT (Gemini opt-in, local Zipformer fallback). Never use Chrome
+ * SpeechRecognition. Privacy and key handling are enforced server-side.
  *
  * Audio leaves the browser only for this same-origin, paired Bloks server.
  */
@@ -17,7 +17,8 @@ export interface BrowserMicSession {
 }
 
 const MAX_MS = 18_000;
-const SPEECH_SILENCE_MS = 1_450;
+// Call end-of-utterance pause. Avoid cutting natural inter-word gaps (<1s).
+const SPEECH_SILENCE_MS = 1_050;
 const START_SILENCE_MS = 9_000;
 
 function description(error: unknown): string {
