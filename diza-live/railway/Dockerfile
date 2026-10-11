@@ -9,6 +9,11 @@ RUN apt-get update \
 # Package installs at build time only. No Microsoft API key or billing.
 RUN python3 -m venv /opt/diza-live/tts-venv \
  && /opt/diza-live/tts-venv/bin/pip install --no-cache-dir edge-tts==7.2.8
+# CPU-only Whisper tiny for no-key Indonesian speech-to-text, model baked
+# into image so audio never leaves this server for transcription.
+RUN python3 -m venv /opt/diza-live/stt-venv \
+ && /opt/diza-live/stt-venv/bin/pip install --no-cache-dir faster-whisper==1.2.1 \
+ && /opt/diza-live/stt-venv/bin/python -c 'from huggingface_hub import snapshot_download; snapshot_download(repo_id="Systran/faster-whisper-tiny", local_dir="/opt/diza-live/models/whisper-tiny", allow_patterns=["*.bin", "*.json", "*.txt"])'
 WORKDIR /opt/bloks
 RUN git init . \
  && git remote add origin https://github.com/hamedgitty/bloks.git \
@@ -29,15 +34,20 @@ COPY diza-live/railway/patch-codex.mjs /opt/diza-live/patch-codex.mjs
 # Opt-in official Meta Model API provider, no key and no auto-billing.
 COPY diza-live/railway/patch-muse.mjs /opt/diza-live/patch-muse.mjs
 COPY diza-live/railway/patch-neural-voice.mjs /opt/diza-live/patch-neural-voice.mjs
+COPY diza-live/railway/patch-local-stt.mjs /opt/diza-live/patch-local-stt.mjs
+COPY diza-live/railway/browser-stt.ts /opt/bloks/server/browser-stt.ts
+COPY diza-live/railway/browserMic.ts /opt/bloks/src/lib/browserMic.ts
 COPY diza-live/railway/patch-browser-speech.mjs /opt/diza-live/patch-browser-speech.mjs
 # Inject the Codex auth widget into upstream Bloks Engines panel before Vite build.
 COPY diza-live/railway/CodexWebviewAuth.tsx /opt/bloks/src/components/CodexWebviewAuth.tsx
 COPY diza-live/railway/codex-login.ts /opt/bloks/server/codex-login.ts
-RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && node /opt/diza-live/patch-muse.mjs && node /opt/diza-live/patch-neural-voice.mjs && node /opt/diza-live/patch-browser-speech.mjs && pnpm exec vite build
+RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && node /opt/diza-live/patch-muse.mjs && node /opt/diza-live/patch-neural-voice.mjs && node /opt/diza-live/patch-browser-speech.mjs && node /opt/diza-live/patch-local-stt.mjs && pnpm exec vite build
 COPY diza-live/railway/web/ /opt/bloks/dist/
 COPY diza-live/railway/entrypoint.sh /opt/diza-live/entrypoint.sh
 COPY diza-live/railway/boot.mjs /opt/diza-live/boot.mjs
 COPY diza-live/railway/tts-neural.py /opt/diza-live/tts-neural.py
+COPY diza-live/railway/stt-whisper.py /opt/diza-live/stt-whisper.py
+COPY diza-live/railway/stt-smoke.mjs /opt/diza-live/stt-smoke.mjs
 COPY diza-live/railway/neural-smoke.mjs /opt/diza-live/neural-smoke.mjs
 COPY diza-live/railway/muse-smoke.mjs /opt/diza-live/muse-smoke.mjs
 COPY diza-live/railway/muse-acp-smoke.mjs /opt/diza-live/muse-acp-smoke.mjs
