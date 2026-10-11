@@ -1,0 +1,31 @@
+name: Bloks F5 GPU Worker Python Syntax
+on:
+  push:
+    branches: [bloks-f5-remote-voice-staging-20261012]
+    paths:
+      - "diza-live/f5-gpu/f5_gpu_service.py"
+      - ".github/workflows/bloks-f5-gpu-worker-syntax.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  python-static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse isolated GPU service without loading CUDA or user data
+        run: |
+          python3 -m py_compile diza-live/f5-gpu/f5_gpu_service.py
+          python3 - <<'PY'
+          import ast,pathlib
+          p=pathlib.Path('diza-live/f5-gpu/f5_gpu_service.py')
+          s=p.read_text()
+          tree=ast.parse(s)
+          functions={n.name for n in ast.walk(tree) if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))}
+          assert {'synthesize','health','require_config','_generate'}.issubset(functions)
+          assert 'hmac.compare_digest' in s
+          assert 'audio/wav' in s
+          assert 'F5_VOICE_TOKEN' in s
+          print('F5 GPU service isolated source validation PASS')
+          PY
