@@ -77,7 +77,7 @@ test('rejects external download URLs without leaking Hugging Face token',async()
 test('rejects invalid event IDs and too-long model text',async()=>{
   setup();
   globalThis.fetch=async()=>new Response(JSON.stringify({event_id:'../etc/passwd'}));
-  await assert.rejects(speakF5ZeroGpu('Halo','id-ID-GadisNeural'),/ZeroGPU belum menerima antrean/);
+  await assert.rejects(speakF5ZeroGpu('Halo','id-ID-GadisNeural'),/F5 GPU sedang antre/);
   await assert.rejects(speakF5ZeroGpu('A'.repeat(351),'id-ID-GadisNeural'),/350 karakter/);
 });
 test('single-flight guard blocks second request while first is pending',async()=>{
