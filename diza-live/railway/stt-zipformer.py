@@ -53,7 +53,9 @@ def main() -> None:
         provider="cpu",
     )
     stream = recognizer.create_stream()
-    # Keep entire speech, including initial consonants. No VAD cropping.
+    # Streaming transducers need a little context before a clipped first
+    # consonant. Never trim audio; prepend 400ms silence and keep the tail.
+    stream.accept_waveform(SAMPLE_RATE, np.zeros(int(SAMPLE_RATE * 0.4), dtype=np.float32))
     stream.accept_waveform(SAMPLE_RATE, samples)
     stream.accept_waveform(SAMPLE_RATE, np.zeros(SAMPLE_RATE // 2, dtype=np.float32))
     stream.input_finished()
