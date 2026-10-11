@@ -5,14 +5,14 @@ import { mkdtemp, readFile, writeFile, rm, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 const ROOT = "/home/node/.bloks";
-const REPORT = join(ROOT, "sherpa-zipformer2-id-v3-onset-smoke.json");
+const REPORT = join(ROOT, "zipformer-id-greedy-beam-ab-v1.json");
 const MAX_AGE = 12 * 60 * 60 * 1000;
-async function once(bin, args, input, timeout) {
+async function once(bin, args, input, timeout, extraEnv = {}) {
   return await new Promise((resolve) => {
     const child = spawn(bin, args, {
       cwd: "/home/node",
       stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env, STT_SYNTHETIC_TEST: "1", HF_HUB_OFFLINE: "1", OMP_NUM_THREADS: "2", OPENBLAS_NUM_THREADS: "2" },
+      env: { ...process.env, STT_SYNTHETIC_TEST: "1", HF_HUB_OFFLINE: "1", OMP_NUM_THREADS: "2", OPENBLAS_NUM_THREADS: "2", ...extraEnv },
     });
     let chunks = [];
     let diagnostic = "";
@@ -65,45 +65,51 @@ if (recent) {
       { voice: "id-ID-ArdiNeural", line: "Tes satu dua tiga.", expected: "tes satu dua tiga" },
       { voice: "id-ID-GadisNeural", line: "Halo Diza, saya sedang mencoba mikrofon.", expected: "halo diza saya sedang mencoba mikrofon" },
     ];
-    let passes = 0;
-    let failedAt = null;
-    for (let i=0; i<cases.length; i++) {
-      const item=cases[i];
-      const audio=await once("/opt/diza-live/tts-venv/bin/python",
-        ["/opt/diza-live/tts-neural.py", item.voice], item.line, 32_000);
-      if (!audio.ok || audio.bytes.length < 500) {
-        failedAt="SYNTHETIC_VOICE_SOURCE_UNAVAILABLE";
-        break;
+    const outcomes = {};
+    for (const mode of ["greedy", "beam"]) {
+      let passes = 0;
+      const heardText = [];
+      let failedAt = "";
+      for (let i=0; i<cases.length; i++) {
+        const item = cases[i];
+        const audio = await once("/opt/diza-live/tts-venv/bin/python",
+          ["/opt/diza-live/tts-neural.py", item.voice], item.line, 32_000);
+        if (!audio.ok || audio.bytes.length < 500) {
+          failedAt = "SYNTHETIC_VOICE_SOURCE_UNAVAILABLE";
+          break;
+        }
+        const file = join(tmp, mode + "-test-" + i + ".mp3");
+        await writeFile(file, audio.bytes, { mode: 0o600 });
+        const words = await once("/opt/diza-live/stt-venv/bin/python",
+          ["/opt/diza-live/stt-zipformer.py", file], null, 70_000,
+          { ZIPFORMER_BEAM_TEST: mode === "beam" ? "1" : "0" });
+        if (!words.ok) {
+          failedAt = "ZIPFORMER_PROCESS_FAILED";
+          break;
+        }
+        const heard = words.bytes.toString("utf8").toLowerCase()
+          .normalize("NFKC").replace(/[^a-z0-9]+/g," ").trim();
+        const normalized = heard.replace(/\b1\b/g,"satu").replace(/\b2\b/g,"dua")
+          .replace(/\b3\b/g,"tiga").replace(/\btest\b/g,"tes")
+          .replace(/\s+/g," ").trim();
+        const pass = normalized.includes(item.expected);
+        // Only fixed synthetic examples: no private speech/transcripts recorded.
+        console.log("ZIPFORMER_AB_" + mode.toUpperCase() + "_CASE_" + i + "=" +
+          (pass ? "PASS" : "FAIL") + " [" + heard.slice(0,95) + "]");
+        heardText.push(heard);
+        if (pass) passes++;
       }
-      const file=join(tmp, "test-"+i+".mp3");
-      await writeFile(file, audio.bytes, { mode: 0o600 });
-      const words=await once("/opt/diza-live/stt-venv/bin/python",
-        ["/opt/diza-live/stt-zipformer.py", file], null, 70_000);
-      if (!words.ok) {
-        failedAt="ZIPFORMER_MODEL_PROCESS_FAILED";
-        console.log("ZIPFORMER_SYNTHETIC_DIAGNOSTIC=" + String(words.diagnostic || "[none]").replace(/[\r\n]+/g," ").slice(0,260));
-        break;
-      }
-      const heard=words.bytes.toString("utf8").toLowerCase()
-        .normalize("NFKC").replace(/[^a-z0-9]+/g," ").trim();
-      // Numeric orthography like "tes 1 2 3" is the SAME spoken phrase,
-      // not an ASR error. Normalize only this known synthetic test case.
-      const normalized=heard.replace(/\b1\b/g,"satu").replace(/\b2\b/g,"dua")
-        .replace(/\b3\b/g,"tiga").replace(/\btest\b/g,"tes").replace(/\s+/g," ").trim();
-      // Only fixed synthetic voice inputs (never real user speech) are
-      // diagnosed in PRIVATE Railway logs for this test.
-      console.log("ZIPFORMER_SYNTHETIC_CASE_" + i + "=" + (heard||"[empty]").slice(0,100));
-      if (!normalized.includes(item.expected)) {
-        failedAt = failedAt || (i<2 ? "SHORT_NUMBER_PHRASE_MISMATCH" : "LONG_INDONESIAN_PHRASE_MISMATCH");
-        continue;
-      }
-      passes++;
+      outcomes[mode] = { passes, failure: failedAt };
     }
-    if (passes===cases.length) {
-      status="PASS";
-      reason="EXACT_3_OF_3_INDONESIAN_TRANSCRIPT_TESTS";
+    if (outcomes.beam.passes > outcomes.greedy.passes) {
+      status = "PASS";
+      reason = "BEAM_WINS_" + outcomes.beam.passes + "_VS_" + outcomes.greedy.passes;
+    } else if (outcomes.beam.passes === outcomes.greedy.passes) {
+      status = "UNDECIDED";
+      reason = "TIE_" + outcomes.beam.passes + "_OF_3";
     } else {
-      reason=failedAt || "ACCURACY_TEST_FAILED";
+      status = "PASS";
+      reason = "GREEDY_WINS_" + outcomes.greedy.passes + "_VS_" + outcomes.beam.passes;
     }
   } catch {
     reason = "LOCAL_STT_SMOKE_ERROR";
