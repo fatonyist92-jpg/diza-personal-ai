@@ -31,8 +31,8 @@ jobs:
           test "$(git rev-parse HEAD)" = e801e7d6c2692121a39e80ae525cb5265174a495
           "$HOME/.local/bin/cmake" -S . -B .build -G Ninja -DCMAKE_BUILD_TYPE=Release
           "$HOME/.local/bin/cmake" --build .build -j2
-          test -x .build/pocket-tts
-          .build/pocket-tts --help | head -n 22
+          test -x ./pocket-tts
+          ./pocket-tts --help | head -n 22
       - name: Download 164MB Indonesian INT8 only, four public domain Indonesian voice samples
         shell: bash
         run: |
@@ -69,7 +69,7 @@ jobs:
           for wav in voices/*.wav; do
             i="$((i+1))"
             echo "INDO_NATIVE_PROMPT_$i=$(basename "$wav")"
-            timeout 110s .build/pocket-tts --threads 2 --eos-threshold -6.0 \
+            timeout 110s ./pocket-tts --threads 2 --eos-threshold -6.0 \
               --models-dir models --voices-dir voices --tokenizer models/tokenizer.model \
               'Halo, aku Diza. Kita ngobrol santai saja, ya. Gimana kabar kamu hari ini? Kalau ada masalah, ceritain saja. Aku bantu cari solusinya sampai beres.' \
               "$wav" "../indonesian-pockettts-audition/Indo-$i.wav"
