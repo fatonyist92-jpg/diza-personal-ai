@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="id"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bloks Codex Connection</title>
+<link rel="stylesheet" href="/webview-pair.css">
+<script src="/codex.js" defer></script>
+</head><body><main class="panel">
+<div class="eyebrow">BLOKS · CODEX</div>
+<h1>Hubungkan Codex</h1>
+<p class="subtitle">Codex CLI menggunakan login ChatGPT resmi. Tanpa API key.</p>
+<p id="state" role="status">Memeriksa status Codex...</p>
+<button id="start" type="button">Buat kode perangkat</button>
+<div class="tip" id="authorization" hidden>
+<div class="tip-title">Kode perangkat</div>
+<h2 id="code"></h2>
+<a id="open" href="https://auth.openai.com/codex/device" target="_blank" rel="noopener noreferrer">Buka halaman resmi otorisasi OpenAI</a>
+<p>Masukkan kode di halaman resmi, lalu kembali ke sini.</p>
+</div>
+<p id="problem" role="status"></p>
+<button id="refresh" type="button">Periksa status</button>
+<p><a href="/">Kembali ke Bloks</a></p>
+</main></body></html>
