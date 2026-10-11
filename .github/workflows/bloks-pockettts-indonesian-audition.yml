@@ -41,7 +41,7 @@ jobs:
           from huggingface_hub import snapshot_download
           snapshot_download(
             repo_id='anak10thn/pocket-tts-indonesian',
-            revision='edbe9da',
+            revision='382fe85',
             local_dir='pocket-native/hf',
             allow_patterns=['onnx/*.onnx','onnx/*.npy','onnx/*.json','tokenizer.model','voices/*.mp3'],
             max_workers=4,
