@@ -16,11 +16,24 @@ let login: {
   child: ChildProcessWithoutNullStreams | null;
   output: string;
   timer: ReturnType<typeof setTimeout> | null;
-} = { state: "idle", code: null, expiresAt: 0, problem: null, child: null, output: "", timer: null };
+  codeTimer: ReturnType<typeof setTimeout> | null;
+} = { state: "idle", code: null, expiresAt: 0, problem: null, child: null, output: "", timer: null, codeTimer: null };
 
 const DEVICE_URL = "https://auth.openai.com/codex/device";
 const MAX_AGE_MS = 15 * 60_000;
-const CODE_RE = /\b([A-Z0-9]{4}(?:-[A-Z0-9]{4}){1,3})\b/;
+// OpenAI user codes can have unequal groups (e.g. XXXX-XXXXX), not only XXXX-XXXX.
+const CODE_MARKER = "Enter this one-time code";
+const CODE_RE = /\b([A-Z0-9]{3,8}(?:-[A-Z0-9]{3,8}){1,3})\b/;
+const CODE_RESPONSE_TIMEOUT_MS = 75_000;
+
+/** Only scan after Codex's explicit device-code prompt; never include stdout in the API. */
+export function extractDeviceCode(output: string): string | null {
+  const marker = output.indexOf(CODE_MARKER);
+  if (marker < 0) return null;
+  const after = output.slice(marker + CODE_MARKER.length);
+  const candidate = after.match(CODE_RE)?.[1] ?? null;
+  return candidate;
+}
 
 function redactedProblem(output: string): string {
   if (/not enabled|not supported|device.code.*disabled|404/i.test(output))
@@ -32,7 +45,9 @@ function redactedProblem(output: string): string {
 
 function stop() {
   if (login.timer) clearTimeout(login.timer);
+  if (login.codeTimer) clearTimeout(login.codeTimer);
   login.timer = null;
+  login.codeTimer = null;
   try { login.child?.kill("SIGTERM"); } catch {}
   login.child = null;
 }
@@ -86,6 +101,7 @@ export async function codexLoginStart() {
     child: null,
     output: "",
     timer: null,
+    codeTimer: null,
   };
 
   let child: ChildProcessWithoutNullStreams;
@@ -111,6 +127,22 @@ export async function codexLoginStart() {
     login.problem = "Batas login 15 menit habis. Mulai lagi.";
   }, MAX_AGE_MS + 5000);
   login.timer.unref?.();
+  // Waiting indefinitely for a never-issued code looks like a broken button.
+  // Fail clearly after a reasonable network window; the owner may retry.
+  login.codeTimer = setTimeout(() => {
+    if (login.child !== child || login.code) return;
+    const tail = login.output;
+    stop();
+    login.state = "error";
+    login.code = null;
+    login.problem = /device code.*(not enabled|disabled)|request failed|forbidden|status 403|status 404/i.test(tail)
+      ? "Autentikasi kode perangkat Codex ditolak OpenAI. Aktifkan device code authorization di pengaturan keamanan ChatGPT, lalu ulangi."
+      : /network|dns|connection|timed out|connect|certificate/i.test(tail)
+        ? "Codex gagal menghubungi layanan login OpenAI. Coba lagi setelah jaringan server stabil."
+        : "Kode belum diterima dari OpenAI dalam 75 detik. Tekan Buat kode autentikasi untuk mencoba lagi.";
+    login.output = "";
+  }, CODE_RESPONSE_TIMEOUT_MS);
+  login.codeTimer.unref?.();
 
   const collect = (buf: Buffer) => {
     if (login.child !== child) return;
@@ -118,13 +150,12 @@ export async function codexLoginStart() {
     login.output = (login.output + buf.toString("utf8"))
       .replace(/\x1b\[[0-9;]*m/g, "").slice(-3500);
     // Parse only after Codex emits the one-time-code instruction.
-    const pos = login.output.indexOf("Enter this one-time code");
-    if (pos !== -1) {
-      const match = login.output.slice(pos + 24).match(CODE_RE);
-      if (match) {
-        login.code = match[1];
-        login.state = "waiting";
-      }
+    const code = extractDeviceCode(login.output);
+    if (code) {
+      login.code = code;
+      login.state = "waiting";
+      if (login.codeTimer) clearTimeout(login.codeTimer);
+      login.codeTimer = null;
     }
   };
   child.stdout.on("data", collect);
