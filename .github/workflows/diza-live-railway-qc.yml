@@ -2,7 +2,7 @@ name: DIZA Live Railway - durable Bloks pairing QC
 
 on:
   push:
-    branches: [diza-live-railway-free, bloks-supertonic3-offline-int8-20261012]
+    branches: [diza-live-railway-free]
     paths:
       - "diza-live/railway/**"
       - ".github/workflows/diza-live-railway-qc.yml"
