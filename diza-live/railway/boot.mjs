@@ -36,11 +36,11 @@ await import("/opt/bloks/server/index.ts");
 void import("/opt/diza-live/neural-smoke.mjs").catch(() => {
   console.log("NEURAL_VOICE_TEST=FAILED_TO_START");
 });
-// Prove local Whisper transcribes actual Indonesian speech, not just MP3 generation.
-// Never log the recording or transcript. Nonblocking and cached 12h.
-void import("/opt/diza-live/stt-smoke.mjs").catch(() => {
-  console.log("LOCAL_WHISPER_STT_TEST=FAILED_TO_START");
-});
+// Transcription is opt-in: do not upload microphone audio or spend
+// free trial credits before the user enables Gladia with their own key.
+console.log("GLADIA_STT_STATUS=" +
+  (process.env.GLADIA_STT_ENABLED === "1" && process.env.GLADIA_API_KEY?.trim()
+    ? "CONFIGURED" : "NOT_CONFIGURED"));
 // One bounded smoke test, non-blocking: Bloks remains online even if
 // OpenCode/Zen is unreachable or rejects third-party ACP clients.
 void import("/opt/diza-live/muse-smoke.mjs")
