@@ -43,8 +43,6 @@ def main():
         )
     )
     tts = sherpa_onnx.OfflineTts(config)
-    if tts.num_speakers < 1:
-        raise RuntimeError("no offline TTS speakers")
     opts = sherpa_onnx.GenerationConfig()
     opts.sid = 0  # F1: female voice, from model voice catalog
     opts.num_steps = 8
