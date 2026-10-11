@@ -53,6 +53,8 @@ COPY diza-live/railway/patch-neural-voice.mjs /opt/diza-live/patch-neural-voice.
 COPY diza-live/railway/gemini-natural-tts.mjs /opt/bloks/server/gemini-natural-tts.mjs
 COPY diza-live/railway/gemini-fast-stream.mjs /opt/bloks/server/gemini-fast-stream.mjs
 COPY diza-live/railway/supertonic3-local-tts.mjs /opt/bloks/server/supertonic3-local-tts.mjs
+COPY diza-live/railway/supertonic3-local-tts.test.mjs /opt/bloks/server/supertonic3-local-tts.test.mjs
+RUN node --test /opt/bloks/server/supertonic3-local-tts.test.mjs
 COPY diza-live/railway/gemini-fast-stream.test.mjs /opt/bloks/server/gemini-fast-stream.test.mjs
 COPY diza-live/railway/pcmStreamAudio.ts /opt/bloks/src/lib/pcmStreamAudio.ts
 COPY diza-live/railway/patch-fast-voice.mjs /opt/diza-live/patch-fast-voice.mjs
