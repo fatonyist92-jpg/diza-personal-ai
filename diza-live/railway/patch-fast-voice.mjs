@@ -14,13 +14,31 @@ swap(speech,
   'import { generateGeminiNaturalVoice } from "./gemini-natural-tts.mjs";\nimport { streamGeminiNaturalVoice } from "./gemini-fast-stream.mjs";',
   "server-only Google PCM streaming import");
 swap(speech,
+  'import { streamGeminiNaturalVoice } from "./gemini-fast-stream.mjs";',
+  'import { streamGeminiNaturalVoice } from "./gemini-fast-stream.mjs";\nimport { speakOfflineIndonesian, offlineNaturalVoiceSelected } from "./supertonic3-local-tts.mjs";',
+  "isolated self-hosted no-quota TTS import");
+swap(speech,
   '    const realistic = await generateGeminiNaturalVoice(clipped, voice.id);',
   [
   '    const fast = await streamGeminiNaturalVoice(clipped, voice.id);',
+  
   '    if (fast) return fast;',
   '    const realistic = await generateGeminiNaturalVoice(clipped, voice.id);',
   ].join("\n"),
   "stream Gemini ahead of existing verified WAV and Edge fallback");
+swap(speech,
+  '    const fast = await streamGeminiNaturalVoice(clipped, voice.id);',
+  [
+    '    // Local Supertonic preempts all Gemini/Edge TTS for this selected voice.',
+    '    // No daily API request quota, never silently switch to robotic Edge.',
+    '    if (offlineNaturalVoiceSelected(voice.id)) {',
+    '      const localVoice = await speakOfflineIndonesian(clipped, voice.id);',
+    '      if (localVoice) return localVoice;',
+    '      throw new Error("Suara natural lokal belum tersedia. Tidak diganti ke suara robot.");',
+    '    }',
+    '    const fast = await streamGeminiNaturalVoice(clipped, voice.id);',
+  ].join("\n"),
+  "select offline voice ahead of every network TTS");
 swap(voice,
   'import { startBrowserMic, type BrowserMicSession } from "@/lib/browserMic";',
   'import { startBrowserMic, type BrowserMicSession } from "@/lib/browserMic";\nimport { PcmStreamAudio } from "@/lib/pcmStreamAudio";',
