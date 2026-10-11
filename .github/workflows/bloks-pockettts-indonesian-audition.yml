@@ -72,7 +72,7 @@ jobs:
             timeout 110s ./pocket-tts --threads 2 --eos-threshold -6.0 \
               --models-dir models --voices-dir voices --tokenizer models/tokenizer.model \
               'Halo, aku Diza. Kita ngobrol santai saja, ya. Gimana kabar kamu hari ini? Kalau ada masalah, ceritain saja. Aku bantu cari solusinya sampai beres.' \
-              "$wav" "../indonesian-pockettts-audition/Indo-$i.wav"
+              "$(basename "$wav")" "../indonesian-pockettts-audition/Indo-$i.wav"
             python3 - "../indonesian-pockettts-audition/Indo-$i.wav" <<'PY'
           import wave,sys
           with wave.open(sys.argv[1]) as w:
