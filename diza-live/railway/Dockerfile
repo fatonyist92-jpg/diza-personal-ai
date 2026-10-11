@@ -17,6 +17,18 @@ RUN python3 -m venv /opt/diza-live/stt-venv \
  && /opt/diza-live/stt-venv/bin/python -c 'from huggingface_hub import snapshot_download; snapshot_download(repo_id="spacewave/sherpa-onnx-streaming-zipformer2-id", revision="44e21d5e554a360c4ae0c3cdc57ec30811011ab6", local_dir="/opt/diza-live/models/sherpa-id", allow_patterns=["*.int8.onnx", "tokens.txt"])' \
  && test -s /opt/diza-live/models/sherpa-id/encoder-iter-100000-avg-15-chunk-32-left-256.int8.onnx \
  && test -s /opt/diza-live/models/sherpa-id/tokens.txt
+# Optional quota-free Indonesian natural speech. The 145MB INT8 weights
+# are baked into the Docker image; NEVER downloaded at runtime or to the
+# persistent Railway volume. Reuses existing sherpa-onnx Python environment.
+RUN /opt/diza-live/stt-venv/bin/python -c 'import sherpa_onnx; assert hasattr(sherpa_onnx, "OfflineTtsSupertonicModelConfig"), "need a sherpa-onnx with Supertonic3"; assert hasattr(sherpa_onnx, "GenerationConfig")' \
+ && /opt/diza-live/stt-venv/bin/python -c 'from huggingface_hub import snapshot_download; snapshot_download(repo_id="csukuangfj2/sherpa-onnx-supertonic-3-tts-int8-2026-05-11", revision="cca5a0e", local_dir="/opt/diza-live/models/supertonic3-id", allow_patterns=["*.int8.onnx", "tts.json", "unicode_indexer.bin", "voice.bin", "LICENSE"])' \
+ && test -s /opt/diza-live/models/supertonic3-id/vector_estimator.int8.onnx \
+ && test -s /opt/diza-live/models/supertonic3-id/voice.bin
+COPY diza-live/railway/tts-supertonic3.py /opt/diza-live/tts-supertonic3.py
+# Fail safely during build if Indonesian WAV cannot actually be synthesized.
+RUN printf 'Halo, saya Diza. Suara Indonesia tanpa kuota API.' | /opt/diza-live/stt-venv/bin/python /opt/diza-live/tts-supertonic3.py > /tmp/supertonic3-smoke.wav \
+ && /opt/diza-live/stt-venv/bin/python -c 'import wave; w=wave.open("/tmp/supertonic3-smoke.wav", "rb"); assert w.getnframes() > 1000; assert w.getnchannels()==1' \
+ && rm -f /tmp/supertonic3-smoke.wav
 WORKDIR /opt/bloks
 RUN git init . \
  && git remote add origin https://github.com/hamedgitty/bloks.git \
@@ -40,6 +52,9 @@ COPY diza-live/railway/patch-neural-voice.mjs /opt/diza-live/patch-neural-voice.
 # Gemini TTS is strictly opt-in and uses the existing server-only Gemini API key.
 COPY diza-live/railway/gemini-natural-tts.mjs /opt/bloks/server/gemini-natural-tts.mjs
 COPY diza-live/railway/gemini-fast-stream.mjs /opt/bloks/server/gemini-fast-stream.mjs
+COPY diza-live/railway/supertonic3-local-tts.mjs /opt/bloks/server/supertonic3-local-tts.mjs
+COPY diza-live/railway/supertonic3-local-tts.test.mjs /opt/bloks/server/supertonic3-local-tts.test.mjs
+RUN node --test /opt/bloks/server/supertonic3-local-tts.test.mjs
 COPY diza-live/railway/gemini-fast-stream.test.mjs /opt/bloks/server/gemini-fast-stream.test.mjs
 COPY diza-live/railway/pcmStreamAudio.ts /opt/bloks/src/lib/pcmStreamAudio.ts
 COPY diza-live/railway/patch-fast-voice.mjs /opt/diza-live/patch-fast-voice.mjs
