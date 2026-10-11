@@ -57,12 +57,17 @@ COPY diza-live/railway/supertonic3-local-tts.test.mjs /opt/bloks/server/superton
 # Off by default: secure remote F5 GPU speech; no credentials baked in image.
 COPY diza-live/railway/f5-remote-tts.mjs /opt/bloks/server/f5-remote-tts.mjs
 COPY diza-live/railway/f5-remote-tts.test.mjs /opt/bloks/server/f5-remote-tts.test.mjs
+# Official HF Gradio ZeroGPU backend, opt-in only and with private HF token.
+COPY diza-live/railway/f5-hf-zerogpu-tts.mjs /opt/bloks/server/f5-hf-zerogpu-tts.mjs
+COPY diza-live/railway/f5-hf-zerogpu-tts.test.mjs /opt/bloks/server/f5-hf-zerogpu-tts.test.mjs
+RUN node --test /opt/bloks/server/f5-hf-zerogpu-tts.test.mjs
 RUN node --test /opt/bloks/server/f5-remote-tts.test.mjs
 RUN node --test /opt/bloks/server/supertonic3-local-tts.test.mjs
 COPY diza-live/railway/gemini-fast-stream.test.mjs /opt/bloks/server/gemini-fast-stream.test.mjs
 COPY diza-live/railway/pcmStreamAudio.ts /opt/bloks/src/lib/pcmStreamAudio.ts
 COPY diza-live/railway/patch-fast-voice.mjs /opt/diza-live/patch-fast-voice.mjs
 COPY diza-live/railway/patch-f5-voice.mjs /opt/diza-live/patch-f5-voice.mjs
+COPY diza-live/railway/patch-f5-zerogpu.mjs /opt/diza-live/patch-f5-zerogpu.mjs
 COPY diza-live/railway/gemini-natural-tts.test.mjs /opt/bloks/server/gemini-natural-tts.test.mjs
 RUN node --test /opt/bloks/server/gemini-natural-tts.test.mjs
 RUN node --test /opt/bloks/server/gemini-fast-stream.test.mjs
@@ -73,7 +78,7 @@ COPY diza-live/railway/patch-browser-speech.mjs /opt/diza-live/patch-browser-spe
 # Inject the Codex auth widget into upstream Bloks Engines panel before Vite build.
 COPY diza-live/railway/CodexWebviewAuth.tsx /opt/bloks/src/components/CodexWebviewAuth.tsx
 COPY diza-live/railway/codex-login.ts /opt/bloks/server/codex-login.ts
-RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && node /opt/diza-live/patch-muse.mjs && node /opt/diza-live/patch-neural-voice.mjs && node /opt/diza-live/patch-browser-speech.mjs && node /opt/diza-live/patch-local-stt.mjs && node /opt/diza-live/patch-fast-voice.mjs && node /opt/diza-live/patch-f5-voice.mjs && pnpm exec vite build
+RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && node /opt/diza-live/patch-muse.mjs && node /opt/diza-live/patch-neural-voice.mjs && node /opt/diza-live/patch-browser-speech.mjs && node /opt/diza-live/patch-local-stt.mjs && node /opt/diza-live/patch-fast-voice.mjs && node /opt/diza-live/patch-f5-voice.mjs && node /opt/diza-live/patch-f5-zerogpu.mjs && pnpm exec vite build
 COPY diza-live/railway/web/ /opt/bloks/dist/
 COPY diza-live/railway/entrypoint.sh /opt/diza-live/entrypoint.sh
 COPY diza-live/railway/boot.mjs /opt/diza-live/boot.mjs
