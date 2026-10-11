@@ -48,7 +48,7 @@ def main() -> None:
         model_type="zipformer2",
         num_threads=2,
         sample_rate=SAMPLE_RATE,
-        decoding_method=("modified_beam_search" if (os.environ.get("STT_SYNTHETIC_TEST") == "1" and os.environ.get("ZIPFORMER_BEAM_TEST") == "1") else "greedy_search"),
+        decoding_method=("greedy_search" if (os.environ.get("STT_SYNTHETIC_TEST") == "1" and os.environ.get("ZIPFORMER_BEAM_TEST") == "0") else "modified_beam_search"),
         max_active_paths=4,
         enable_endpoint_detection=False,
         provider="cpu",
