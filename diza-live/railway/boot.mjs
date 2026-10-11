@@ -32,6 +32,12 @@ console.log("DIZA_PERSISTENT_VOLUME=YES");
 console.log("DIZA_PAIRING_CODE=" + pairing.code);
 console.log("DIZA_PAIRING_EXPIRES_IN_SEC=300");
 await import("/opt/bloks/server/index.ts");
+// Non-sensitive runtime choice only. Never print Google credentials.
+console.log("GEMINI_STT_STATUS=" +
+  (process.env.GEMINI_STT_ENABLED === "1"
+    ? (process.env.GEMINI_API_KEY?.trim() ? "ENABLED" : "ENABLED_MISSING_KEY")
+    : "OFF_LOCAL_ZIPFORMER_ACTIVE"));
+
 // Check live neural audio in background; never block UI/chat startup.
 void import("/opt/diza-live/neural-smoke.mjs").catch(() => {
   console.log("NEURAL_VOICE_TEST=FAILED_TO_START");

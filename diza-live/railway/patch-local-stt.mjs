@@ -108,7 +108,7 @@ put(composer,
  [
  '      {transcribingAudio && (',
  '        <div className="mx-auto mb-2 max-w-[760px] px-3 text-[12px] text-muted-foreground">',
- '          Sedang mengubah rekaman menjadi teks dengan Zipformer lokal…',
+ '          Sedang mengenali suara menjadi teks…',
  '        </div>',
  '      )}',
  '      {speechError && (',
