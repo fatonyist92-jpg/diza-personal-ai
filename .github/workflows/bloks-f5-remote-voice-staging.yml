@@ -29,7 +29,10 @@ jobs:
         run: |
           set -euo pipefail
           if grep -R -E '^ENV F5_REMOTE_TTS_ENABLED=1|^ENV F5_REMOTE_TTS_TOKEN=' diza-live/railway/Dockerfile; then exit 1; fi
-          git diff --name-only "HEAD^" HEAD | grep -E '^(diza-live/railway/|.github/workflows/)' >/dev/null
+          test -s diza-live/railway/f5-remote-tts.mjs
+          test -s diza-live/railway/f5-remote-tts.test.mjs
+          grep -q 'patch-f5-voice.mjs' diza-live/railway/Dockerfile
+          test ! -e diza-live/railway/.f5-remote-secret
   docker-smoke:
     needs: voice-gate
     runs-on: ubuntu-latest
