@@ -17,7 +17,7 @@ export interface BrowserMicSession {
 }
 
 const MAX_MS = 18_000;
-const SPEECH_SILENCE_MS = 1_100;
+const SPEECH_SILENCE_MS = 1_450;
 const START_SILENCE_MS = 9_000;
 
 function description(error: unknown): string {
@@ -94,7 +94,7 @@ export async function startBrowserMic(hooks: Hooks, autoStop: boolean): Promise<
       .find((candidate) => MediaRecorder.isTypeSupported(candidate));
     recorder = new MediaRecorder(stream, {
       ...(type ? { mimeType: type } : {}),
-      audioBitsPerSecond: 32_000,
+      audioBitsPerSecond: 64_000,
     });
     recorder.ondataavailable = (event) => {
       if (event.data.size) blobs.push(event.data);
