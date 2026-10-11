@@ -64,3 +64,17 @@ replaceOnce(file,
     '      }',
     '      // resolve, then require the result to stay inside STATIC_DIR,'),
   "redirect unpaired browser to pairing page");
+
+// Voice preview and calls play authenticated MP3 through temporary local
+// blob: URLs created by the original Voice.tsx. The upstream CSP omits
+// media-src, so Chromium falls back to default-src 'self' and blocks blob:
+// playback, reporting "Failed to load because no supported source was found".
+// Grant only same-origin media and in-memory blob audio; never allow remote
+// scripts, cross-origin calls or broaden authorization.
+replaceOnce(file,
+  lines('    "img-src \'self\' data: blob:",',
+    '    "font-src \'self\' data:",'),
+  lines('    "img-src \'self\' data: blob:",',
+    '    "font-src \'self\' data:",',
+    '    "media-src \'self\' blob:",'),
+  "allow local neural MP3 blob playback in strict CSP");
