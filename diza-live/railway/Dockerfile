@@ -29,10 +29,11 @@ COPY diza-live/railway/patch-codex.mjs /opt/diza-live/patch-codex.mjs
 # Opt-in official Meta Model API provider, no key and no auto-billing.
 COPY diza-live/railway/patch-muse.mjs /opt/diza-live/patch-muse.mjs
 COPY diza-live/railway/patch-neural-voice.mjs /opt/diza-live/patch-neural-voice.mjs
+COPY diza-live/railway/patch-browser-speech.mjs /opt/diza-live/patch-browser-speech.mjs
 # Inject the Codex auth widget into upstream Bloks Engines panel before Vite build.
 COPY diza-live/railway/CodexWebviewAuth.tsx /opt/bloks/src/components/CodexWebviewAuth.tsx
 COPY diza-live/railway/codex-login.ts /opt/bloks/server/codex-login.ts
-RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && node /opt/diza-live/patch-muse.mjs && node /opt/diza-live/patch-neural-voice.mjs && pnpm exec vite build
+RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && node /opt/diza-live/patch-muse.mjs && node /opt/diza-live/patch-neural-voice.mjs && node /opt/diza-live/patch-browser-speech.mjs && pnpm exec vite build
 COPY diza-live/railway/web/ /opt/bloks/dist/
 COPY diza-live/railway/entrypoint.sh /opt/diza-live/entrypoint.sh
 COPY diza-live/railway/boot.mjs /opt/diza-live/boot.mjs
