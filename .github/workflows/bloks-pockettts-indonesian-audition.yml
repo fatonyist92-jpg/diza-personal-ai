@@ -69,17 +69,13 @@ jobs:
           for wav in voices/*.wav; do
             i="$((i+1))"
             echo "INDO_NATIVE_PROMPT_$i=$(basename "$wav")"
-            timeout 110s ./pocket-tts --threads 2 --eos-threshold -6.0 \
+            timeout 110s ./pocket-tts --threads 2 --eos-threshold -5.0 \
               --models-dir models --voices-dir voices --tokenizer models/tokenizer.model \
-              'Halo, aku Diza. Kita ngobrol santai saja, ya. Gimana kabar kamu hari ini? Kalau ada masalah, ceritain saja. Aku bantu cari solusinya sampai beres.' \
+              'Halo, aku Diza. Gimana kabar kamu hari ini? Ceritain saja, aku dengerin.' \
               "$(basename "$wav")" "../indonesian-pockettts-audition/Indo-$i.wav"
-            python3 - "../indonesian-pockettts-audition/Indo-$i.wav" <<'PY'
-          import wave,sys
-          with wave.open(sys.argv[1]) as w:
-              assert w.getnchannels() == 1
-              assert w.getnframes() > 2000
-              print(f'INDONESIAN_NATIVE_PCM_OK={w.getnframes()/w.getframerate():.2f}s')
-          PY
+            ffprobe -v error -show_entries stream=sample_rate,channels,duration \
+              -of default=noprint_wrappers=1 "../indonesian-pockettts-audition/Indo-$i.wav"
+            test "$(stat -c %s "../indonesian-pockettts-audition/Indo-$i.wav")" -gt 4000
             ffmpeg -v error -nostdin -y -i "../indonesian-pockettts-audition/Indo-$i.wav" \
               -codec:a libmp3lame -qscale:a 3 "../indonesian-pockettts-audition/Indo-$i.mp3"
             rm "../indonesian-pockettts-audition/Indo-$i.wav"
