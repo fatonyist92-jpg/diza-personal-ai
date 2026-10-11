@@ -31,3 +31,13 @@ Documentation:
 
 ## Kaggle live support: 2026-10-12 FIX v4
 Screenshot after FIX v3 confirmed Torch/GPU and Chatterbox dependency installer passed, but the next import failed with `ModuleNotFoundError: No module named 'pkg_resources'` via old `librosa.core.intervals`. Root cause: isolated `chatterbox311` venv missing setuptools version that still bundles `pkg_resources`. Pin **`setuptools==80.9.0` in that venv**, not system Kaggle kernel. In same live notebook session: `uv pip install --python /kaggle/working/bloks_voice_lab_fix/chatterbox311/bin/python --no-deps setuptools==80.9.0`, then retry imports. Full revised notebook `Bloks_Kaggle_GPU_Voice_Lab_FIX_v4_pkg_resources.ipynb` provided in ChatGPT and validated locally (nbformat and Python syntax). It is *not* a verified Kaggle run or a live Railway deployment.
+
+## Voice decision 2026-10-12: F5 Indonesian V2 female is user's preferred sound
+- All Supertonic3 F1-F5 presets rejected: foreign accent.
+- PocketTTS Indonesian pilot rejected.
+- Chatterbox-TTS-Indonesian on Kaggle rejected: male sounding and poor quality.
+- User explicitly approved the **official F5-TTS-INDO-FINETUNE-V2 female demo** as promising. It is **not yet** equivalent to a Kaggle-generated/Bloks Call sample.
+- Standalone import-ready Jupyter notebook `Bloks_Kaggle_F5_Indonesia_Female_Only.ipynb` produced in ChatGPT conversation (not stored in GitHub branch). It isolates Python 3.11, verifies GPU, installs only F5, fetches the 1.35 GB checkpoint, vocab and `ref_reporter.mp3` with exact reference transcript, and synthesizes one Indonesian sample first with visible progress, bounded deadlines and QA on generated WAV duration. F5 model config uses official `F5TTS_v1_Base` CLI according to https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/infer/README.md .
+- New notebook passes local nbformat and Python AST validation, but has **NOT** been run on Kaggle GPU nor integrated into live Call. Await native-listening acceptance and GPU performance test before any deployment.
+- Model license CC-BY-NC-4.0; do not use commercially; consent/licensing of an eventual production voice reference must be verified.
+- Preserve Railway `diza-live-railway-free`, main, UI, Codex, Muse Spark, Gemini STT, data volume, and locked Gemini Aoede snapshot.
