@@ -1,4 +1,4 @@
-// Activate verified local Whisper voice capture AFTER the upstream browser
+// Activate verified local Zipformer voice capture AFTER the upstream browser
 // patch, without touching original Bloks desktop/agent/paid provider behavior.
 // All private STT routes inherit the existing token/cookie authorization.
 import { readFileSync, writeFileSync } from "node:fs";
@@ -108,14 +108,14 @@ put(composer,
  [
  '      {transcribingAudio && (',
  '        <div className="mx-auto mb-2 max-w-[760px] px-3 text-[12px] text-muted-foreground">',
- '          Sedang mengubah rekaman menjadi teks dengan Whisper lokal…',
+ '          Sedang mengubah rekaman menjadi teks dengan Zipformer lokal…',
  '        </div>',
  '      )}',
  '      {speechError && (',
  ].join("\n"),
  "show speech transcription progress, not a false recording state");
 
-// Call mode uses the same private local Whisper path. This replaces Chrome's
+// Call mode uses the same private local Zipformer path. This replaces Chrome's
 // flaky SpeechRecognition in WebView, while keeping the original desktop
 // bridge fallback.
 put(voice,
@@ -158,7 +158,7 @@ put(voice,
  '  const Recognition =',
  '    (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;',
  ].join("\n"),
- "Call uses MediaRecorder and Railway Whisper, no Chrome SpeechRecognition");
+ "Call uses MediaRecorder and Railway Zipformer, no Chrome SpeechRecognition");
 
 putFirstDuplicate(voice,
  '      onFinal: (text) => finishUtterance(text),\n      onSilence: () => listen(),\n      onError: (message) => setError(message),',
