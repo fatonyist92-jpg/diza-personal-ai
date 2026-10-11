@@ -9,11 +9,11 @@ RUN apt-get update \
 # Package installs at build time only. No Microsoft API key or billing.
 RUN python3 -m venv /opt/diza-live/tts-venv \
  && /opt/diza-live/tts-venv/bin/pip install --no-cache-dir edge-tts==7.2.8
-# CPU-only Whisper tiny for no-key Indonesian speech-to-text, model baked
+# CPU-only multilingual Whisper base for improved Indonesian accuracy (no STT API), baked
 # into image so audio never leaves this server for transcription.
 RUN python3 -m venv /opt/diza-live/stt-venv \
  && /opt/diza-live/stt-venv/bin/pip install --no-cache-dir faster-whisper==1.2.1 \
- && /opt/diza-live/stt-venv/bin/python -c 'from huggingface_hub import snapshot_download; snapshot_download(repo_id="Systran/faster-whisper-tiny", local_dir="/opt/diza-live/models/whisper-tiny", allow_patterns=["*.bin", "*.json", "*.txt"])'
+ && /opt/diza-live/stt-venv/bin/python -c 'from huggingface_hub import snapshot_download; snapshot_download(repo_id="Systran/faster-whisper-base", local_dir="/opt/diza-live/models/whisper-base", allow_patterns=["*.bin", "*.json", "*.txt"])'
 WORKDIR /opt/bloks
 RUN git init . \
  && git remote add origin https://github.com/hamedgitty/bloks.git \
