@@ -1,0 +1,97 @@
+name: Bloks native Indonesian PocketTTS audition (no deployment)
+on:
+  push:
+    branches: [bloks-native-pockettts-indonesian-audition-20261012]
+    paths:
+      - ".github/workflows/bloks-pockettts-indonesian-audition.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-indonesian-voice-audition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare isolated C++ CPU tools and audio conversion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user 'cmake>=3.28,<4' 'huggingface_hub>=0.30,<2'
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends g++ git make ninja-build ffmpeg
+      - name: Build pinned independent native PocketTTS.cpp CPU runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --filter=blob:none https://github.com/VolgaGerm/PocketTTS.cpp.git pocket-native
+          cd pocket-native
+          git checkout e801e7d6c2692121a39e80ae525cb5265174a495
+          test "$(git rev-parse HEAD)" = e801e7d6c2692121a39e80ae525cb5265174a495
+          "$HOME/.local/bin/cmake" -S . -B .build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          "$HOME/.local/bin/cmake" --build .build -j2
+          test -x .build/pocket-tts
+          .build/pocket-tts --help | head -n 22
+      - name: Download 164MB Indonesian INT8 only, four public domain Indonesian voice samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from huggingface_hub import snapshot_download
+          snapshot_download(
+            repo_id='anak10thn/pocket-tts-indonesian',
+            revision='edbe9da',
+            local_dir='pocket-native/hf',
+            allow_patterns=['onnx/*.onnx','onnx/*.npy','onnx/*.json','tokenizer.model','voices/*.mp3'],
+            max_workers=4,
+          )
+          PY
+          mkdir -p pocket-native/models pocket-native/voices
+          cp pocket-native/hf/onnx/*.onnx pocket-native/models/
+          cp pocket-native/hf/onnx/*.npy pocket-native/models/
+          cp pocket-native/hf/onnx/*.json pocket-native/models/
+          cp pocket-native/hf/tokenizer.model pocket-native/models/tokenizer.model
+          for prompt in pocket-native/hf/voices/*.mp3; do
+            name="$(basename "$prompt" .mp3)"
+            ffmpeg -v error -nostdin -y -i "$prompt" -ar 48000 -ac 1 "pocket-native/voices/$name.wav"
+          done
+          test "$(find pocket-native/voices -name '*.wav' | wc -l)" -eq 4
+          test -s pocket-native/models/flow_lm_main_int8.onnx
+          du -sh pocket-native/models
+      - name: Generate native Indonesian samples with no API or user recordings
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd pocket-native
+          mkdir -p ../indonesian-pockettts-audition
+          i=0
+          for wav in voices/*.wav; do
+            i="$((i+1))"
+            echo "INDO_NATIVE_PROMPT_$i=$(basename "$wav")"
+            timeout 110s .build/pocket-tts --threads 2 --eos-threshold -6.0 \
+              --models-dir models --voices-dir voices --tokenizer models/tokenizer.model \
+              'Halo, aku Diza. Kita ngobrol santai saja, ya. Gimana kabar kamu hari ini? Kalau ada masalah, ceritain saja. Aku bantu cari solusinya sampai beres.' \
+              "$wav" "../indonesian-pockettts-audition/Indo-$i.wav"
+            python3 - "../indonesian-pockettts-audition/Indo-$i.wav" <<'PY'
+          import wave,sys
+          with wave.open(sys.argv[1]) as w:
+              assert w.getnchannels() == 1
+              assert w.getnframes() > 2000
+              print(f'INDONESIAN_NATIVE_PCM_OK={w.getnframes()/w.getframerate():.2f}s')
+          PY
+            ffmpeg -v error -nostdin -y -i "../indonesian-pockettts-audition/Indo-$i.wav" \
+              -codec:a libmp3lame -qscale:a 3 "../indonesian-pockettts-audition/Indo-$i.mp3"
+            rm "../indonesian-pockettts-audition/Indo-$i.wav"
+          done
+          test "$i" -eq 4
+          printf '%s\n' "Pocket TTS Indonesian 6-layer ONNX INT8; local synthesis from 502-hour Indonesian speech training." \
+            "Four Common Voice CC0 native Indonesian prompts. Preview gender and accent by listening." \
+            "No new application deployment, API keys, quota, or private user audio." \
+            > ../indonesian-pockettts-audition/README.txt
+      - name: Upload Indonesian audition files
+        uses: actions/upload-artifact@v4
+        with:
+          name: bloks-pockettts-native-indonesian-preview
+          path: indonesian-pockettts-audition/
+          retention-days: 7
