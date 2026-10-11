@@ -28,3 +28,6 @@ Documentation:
 - https://huggingface.co/Eempostor/F5-TTS-INDO-FINETUNE-V2
 - https://www.kaggle.com/docs/notebooks
 - https://www.kaggle.com/docs/efficient-gpu-usage
+
+## Kaggle live support: 2026-10-12 FIX v4
+Screenshot after FIX v3 confirmed Torch/GPU and Chatterbox dependency installer passed, but the next import failed with `ModuleNotFoundError: No module named 'pkg_resources'` via old `librosa.core.intervals`. Root cause: isolated `chatterbox311` venv missing setuptools version that still bundles `pkg_resources`. Pin **`setuptools==80.9.0` in that venv**, not system Kaggle kernel. In same live notebook session: `uv pip install --python /kaggle/working/bloks_voice_lab_fix/chatterbox311/bin/python --no-deps setuptools==80.9.0`, then retry imports. Full revised notebook `Bloks_Kaggle_GPU_Voice_Lab_FIX_v4_pkg_resources.ipynb` provided in ChatGPT and validated locally (nbformat and Python syntax). It is *not* a verified Kaggle run or a live Railway deployment.
