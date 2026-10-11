@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Private Indonesian speech recognition with multilingual Whisper small CPU.
+"""Private Indonesian speech recognition with multilingual Whisper base CPU.
 Preserves word onsets by padding silence and never cropping VAD timestamps.
 Audio stays transient, and only the recognized words go back to the owner.
 """
@@ -9,7 +9,7 @@ from faster_whisper import WhisperModel
 from faster_whisper.audio import decode_audio
 from faster_whisper.vad import get_speech_timestamps, VadOptions
 
-MODEL_DIR = "/opt/diza-live/models/whisper-small"
+MODEL_DIR = "/opt/diza-live/models/whisper-base"
 SAMPLE_RATE = 16000
 
 def main() -> None:
