@@ -16,6 +16,12 @@ const ui = "/opt/bloks/src/components/Voice.tsx";
 const db = "/opt/bloks/server/store.ts";
 const reducer = "/opt/bloks/src/state/reducer.ts";
 
+// Only patch the existing neural TTS branch; preserve all other providers and UI.
+swap(server,
+  'import { Readable } from "node:stream";',
+  'import { Readable } from "node:stream";\nimport { generateGeminiNaturalVoice } from "./gemini-natural-tts.mjs";',
+  "server-only optional Gemini voice import");
+
 // Both Voice and BotVoice must accept a neural selection, but only through
 // the existing private /api/bots/:id voice setter (no public endpoints).
 swap(server,
@@ -55,6 +61,8 @@ swap(server,
     '  const clipped = text.slice(0, SPEAK_MAX_CHARS);',
     '  if (voice.provider === "neural") {',
     '    if (!NEURAL_VOICES.some((v) => v.id === voice.id)) throw new Error("invalid neural voice");',
+    '    const realistic = await generateGeminiNaturalVoice(clipped, voice.id);',
+    '    if (realistic) return { stream: Readable.toWeb(Readable.from([realistic.audio])) as ReadableStream<Uint8Array>, mime: realistic.mime };',
     '    const mp3 = await new Promise<Buffer>((resolve, reject) => {',
     '      const child = execFile(',
     '        "/opt/diza-live/tts-venv/bin/python",',
