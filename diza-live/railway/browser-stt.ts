@@ -40,7 +40,7 @@ export async function transcribeBrowserAudio(req: IncomingMessage): Promise<{
     const output = await new Promise<string>((resolve, reject) => {
       execFile(
         "/opt/diza-live/stt-venv/bin/python",
-        ["/opt/diza-live/stt-whisper.py", file],
+        ["/opt/diza-live/stt-zipformer.py", file],
         {
           cwd: "/home/node",
           timeout: 45_000,
