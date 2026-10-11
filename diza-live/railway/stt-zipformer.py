@@ -53,9 +53,11 @@ def main() -> None:
         provider="cpu",
     )
     stream = recognizer.create_stream()
-    # Keep entire speech, including initial consonants. No VAD cropping.
+    # Silence before the recorded waveform stabilizes the transducer's
+    # initial acoustic context. Never crop the leading syllable.
+    stream.accept_waveform(SAMPLE_RATE, np.zeros(int(SAMPLE_RATE * 0.5), dtype=np.float32))
     stream.accept_waveform(SAMPLE_RATE, samples)
-    stream.accept_waveform(SAMPLE_RATE, np.zeros(SAMPLE_RATE // 2, dtype=np.float32))
+    stream.accept_waveform(SAMPLE_RATE, np.zeros(int(SAMPLE_RATE * 0.65), dtype=np.float32))
     stream.input_finished()
     decoded = 0
     while recognizer.is_ready(stream):
