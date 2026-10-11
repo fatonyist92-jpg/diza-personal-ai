@@ -117,3 +117,28 @@ replaceOnce(voice,
  '    }',
  ].join("\n"),
  "Call mic start error handling");
+
+replaceOnce(voice,
+ 'export function CallButton({ bot }: { bot: Bot }) {\n  const [calling, setCalling] = useState(false);',
+ [
+ 'export function CallButton({ bot }: { bot: Bot }) {',
+ '  const [calling, setCalling] = useState(false);',
+ '  const beginCall = async () => {',
+ '    // Request mic access from the actual click, before async lease claim.',
+ '    if (!window.bloks && navigator.mediaDevices?.getUserMedia) {',
+ '      try {',
+ '        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });',
+ '        stream.getTracks().forEach((track) => track.stop());',
+ '      } catch {',
+ '        // Call overlay reports any remaining microphone error.',
+ '      }',
+ '    }',
+ '    setCalling(true);',
+ '  };',
+ ].join("\n"),
+ "prime mobile microphone permission on call tap");
+const callTitle='        title={' + String.fromCharCode(96) + 'Call $' + '{bot.name}' + String.fromCharCode(96) + '}\n        aria-label={' + String.fromCharCode(96) + 'Call $' + '{bot.name}' + String.fromCharCode(96) + '}\n';
+replaceOnce(voice,
+ callTitle + '        onClick={() => setCalling(true)}',
+ callTitle + '        onClick={() => void beginCall()}',
+ "wire call button to mobile mic permission");
