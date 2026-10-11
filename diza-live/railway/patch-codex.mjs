@@ -40,12 +40,12 @@ once(panel,
   'import { CodexWebviewAuth } from "./CodexWebviewAuth";',
   "inline Codex component import");
 once(panel,
-  '      {provider.auth === "cli" && (!provider.connected || provider.needsSignIn) && (',
-  '      {provider.auth === "cli" && provider.kind !== "codex" && (!provider.connected || provider.needsSignIn) && (',
+  '      {provider.auth === "cli" && (!provider.connected || provider.needsSignIn) && (\n        <div className="pl-10">',
+  '      {provider.auth === "cli" && provider.kind !== "codex" && (!provider.connected || provider.needsSignIn) && (\n        <div className="pl-10">',
   "replace generic Codex CLI setup in Railway WebView");
 once(panel,
-  '      {provider.auth === "cli" && (!provider.connected || provider.needsSignIn) && (',
-  '      {provider.auth === "cli" && provider.kind !== "codex" && (!provider.connected || provider.needsSignIn) && (',
+  '      {provider.auth === "cli" && (!provider.connected || provider.needsSignIn) && (\n        <div className="mt-1.5 pl-10 text-[11.5px] leading-relaxed text-muted-foreground">',
+  '      {provider.auth === "cli" && provider.kind !== "codex" && (!provider.connected || provider.needsSignIn) && (\n        <div className="mt-1.5 pl-10 text-[11.5px] leading-relaxed text-muted-foreground">',
   "replace generic Codex CLI hint");
 once(panel,
   '      {provider.auth === "cli" && provider.connected && (',
