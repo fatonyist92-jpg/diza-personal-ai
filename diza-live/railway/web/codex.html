@@ -11,11 +11,16 @@
 <p id="state" role="status">Memeriksa status Codex...</p>
 <button id="start" type="button">Buat kode perangkat</button>
 <div class="tip" id="authorization" hidden>
-<div class="tip-title">Kode perangkat</div>
-<h2 id="code"></h2>
-<a id="open" href="https://auth.openai.com/codex/device" target="_blank" rel="noopener noreferrer">Buka halaman resmi otorisasi OpenAI</a>
-<p>Masukkan kode di halaman resmi, lalu kembali ke sini.</p>
+<div class="tip-title">Kode perangkat sementara</div>
+<h2 id="code" style="letter-spacing:2px;user-select:text"></h2>
+<button id="copy" type="button" style="margin:0 0 10px;background:#30393a;color:#fff;min-height:42px">Salin kode</button>
+<p>Salin kode di atas, lalu buka login OpenAI menggunakan tombol berikut.</p>
 </div>
+<a id="open" href="https://auth.openai.com/codex/device" rel="noreferrer"
+   style="display:block;text-align:center;background:#d4e9da;color:#16261e;border-radius:12px;padding:14px 16px;text-decoration:none;font-weight:800;font-size:14px;margin:12px 0">
+   Buka OpenAI untuk Login ↗
+</a>
+<p class="subtitle" style="margin:2px 0 15px">Link dibuka pada halaman yang sama supaya kompatibel dengan Android WebView. Setelah login, tekan tombol Kembali di HP untuk kembali ke Bloks. Bila WebView memblokirnya, buka link resmi dari chat ini di Chrome.</p>
 <p id="problem" role="status"></p>
 <button id="refresh" type="button">Periksa status</button>
 <p><a href="/">Kembali ke Bloks</a></p>
