@@ -78,7 +78,7 @@ def _generate(text):
         ref_file=str(REFERENCE), ref_text=REF_TEXT, gen_text=text,
         nfe_step=16, speed=1.0,
         show_info=lambda *_args, **_kwargs: None,
-        progress=lambda iterable: iterable,
+        progress=lambda iterable, **_kwargs: iterable,
         file_wave=None,
     )
     audio = np.asarray(wav, dtype=np.float32).reshape(-1)
