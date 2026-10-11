@@ -5,16 +5,17 @@ import { mkdtemp, readFile, writeFile, rm, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 const ROOT = "/home/node/.bloks";
-const REPORT = join(ROOT, "sherpa-zipformer2-id-v1-smoke.json");
+const REPORT = join(ROOT, "sherpa-zipformer2-id-v2-smoke.json");
 const MAX_AGE = 12 * 60 * 60 * 1000;
 async function once(bin, args, input, timeout) {
   return await new Promise((resolve) => {
     const child = spawn(bin, args, {
       cwd: "/home/node",
       stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env, HF_HUB_OFFLINE: "1", OMP_NUM_THREADS: "2", OPENBLAS_NUM_THREADS: "2" },
+      env: { ...process.env, STT_SYNTHETIC_TEST: "1", HF_HUB_OFFLINE: "1", OMP_NUM_THREADS: "2", OPENBLAS_NUM_THREADS: "2" },
     });
     let chunks = [];
+    let diagnostic = "";
     let size = 0;
     let failed = false;
     let done = false;
@@ -22,7 +23,7 @@ async function once(bin, args, input, timeout) {
       if (done) return;
       done = true;
       clearTimeout(timer);
-      resolve({ ok: exit === 0 && !failed, bytes: Buffer.concat(chunks) });
+      resolve({ ok: exit === 0 && !failed, bytes: Buffer.concat(chunks), diagnostic });
     };
     const timer = setTimeout(() => {
       failed = true;
@@ -39,7 +40,7 @@ async function once(bin, args, input, timeout) {
       }
       chunks.push(data);
     });
-    child.stderr.resume();
+    child.stderr.on("data", (buf) => { diagnostic = (diagnostic + buf.toString()).slice(-1024); });
     child.on("error", () => finish(null));
     child.on("close", finish);
     child.stdin.on("error", () => {});
@@ -80,6 +81,7 @@ if (recent) {
         ["/opt/diza-live/stt-zipformer.py", file], null, 70_000);
       if (!words.ok) {
         failedAt="ZIPFORMER_MODEL_PROCESS_FAILED";
+        console.log("ZIPFORMER_SYNTHETIC_DIAGNOSTIC=" + String(words.diagnostic || "[none]").replace(/[\r\n]+/g," ").slice(0,260));
         break;
       }
       const heard=words.bytes.toString("utf8").toLowerCase()
