@@ -32,6 +32,10 @@ console.log("DIZA_PERSISTENT_VOLUME=YES");
 console.log("DIZA_PAIRING_CODE=" + pairing.code);
 console.log("DIZA_PAIRING_EXPIRES_IN_SEC=300");
 await import("/opt/bloks/server/index.ts");
+// Check live neural audio in background; never block UI/chat startup.
+void import("/opt/diza-live/neural-smoke.mjs").catch(() => {
+  console.log("NEURAL_VOICE_TEST=FAILED_TO_START");
+});
 // One bounded smoke test, non-blocking: Bloks remains online even if
 // OpenCode/Zen is unreachable or rejects third-party ACP clients.
 void import("/opt/diza-live/muse-smoke.mjs")

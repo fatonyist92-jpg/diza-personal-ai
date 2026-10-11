@@ -2,9 +2,13 @@
 # Functional Source License FSL-1.1-MIT applies to official upstream Bloks.
 FROM node:22-bookworm-slim
 RUN apt-get update \
- && apt-get install -y --no-install-recommends git ca-certificates gosu \
+ && apt-get install -y --no-install-recommends git ca-certificates gosu python3 python3-venv \
  && rm -rf /var/lib/apt/lists/* \
  && npm install -g pnpm@10
+# Neural voices use remote Edge read-aloud synthesis, not a heavy local model.
+# Package installs at build time only. No Microsoft API key or billing.
+RUN python3 -m venv /opt/diza-live/tts-venv \
+ && /opt/diza-live/tts-venv/bin/pip install --no-cache-dir edge-tts==7.2.8
 WORKDIR /opt/bloks
 RUN git init . \
  && git remote add origin https://github.com/hamedgitty/bloks.git \
@@ -24,13 +28,16 @@ COPY diza-live/railway/patch-webview.mjs /opt/diza-live/patch-webview.mjs
 COPY diza-live/railway/patch-codex.mjs /opt/diza-live/patch-codex.mjs
 # Opt-in official Meta Model API provider, no key and no auto-billing.
 COPY diza-live/railway/patch-muse.mjs /opt/diza-live/patch-muse.mjs
+COPY diza-live/railway/patch-neural-voice.mjs /opt/diza-live/patch-neural-voice.mjs
 # Inject the Codex auth widget into upstream Bloks Engines panel before Vite build.
 COPY diza-live/railway/CodexWebviewAuth.tsx /opt/bloks/src/components/CodexWebviewAuth.tsx
 COPY diza-live/railway/codex-login.ts /opt/bloks/server/codex-login.ts
-RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && node /opt/diza-live/patch-muse.mjs && pnpm exec vite build
+RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && node /opt/diza-live/patch-muse.mjs && node /opt/diza-live/patch-neural-voice.mjs && pnpm exec vite build
 COPY diza-live/railway/web/ /opt/bloks/dist/
 COPY diza-live/railway/entrypoint.sh /opt/diza-live/entrypoint.sh
 COPY diza-live/railway/boot.mjs /opt/diza-live/boot.mjs
+COPY diza-live/railway/tts-neural.py /opt/diza-live/tts-neural.py
+COPY diza-live/railway/neural-smoke.mjs /opt/diza-live/neural-smoke.mjs
 COPY diza-live/railway/muse-smoke.mjs /opt/diza-live/muse-smoke.mjs
 COPY diza-live/railway/muse-acp-smoke.mjs /opt/diza-live/muse-acp-smoke.mjs
 RUN chmod +x /opt/diza-live/entrypoint.sh \
