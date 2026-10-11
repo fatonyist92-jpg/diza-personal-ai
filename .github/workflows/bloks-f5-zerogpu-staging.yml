@@ -34,6 +34,12 @@ jobs:
       - name: Confirm feature is disabled by default
         run: |
           if grep -E '^ENV F5_ZEROGPU_ENABLED=1|^ENV F5_ZEROGPU_HF_TOKEN=' diza-live/railway/Dockerfile; then exit 1; fi
+      - name: Package import-ready noncommercial ZeroGPU Space source
+        uses: actions/upload-artifact@v4
+        with:
+          name: bloks-f5-indonesian-zerogpu-space
+          path: diza-live/f5-zerogpu-space/
+          retention-days: 7
   full-bloks-docker:
     needs: provider-and-space-static
     runs-on: ubuntu-latest
