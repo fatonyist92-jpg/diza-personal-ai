@@ -12,6 +12,9 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+# Avoid notebook-specific interactive matplotlib backend leaking into GPU worker.
+os.environ["MPLBACKEND"] = "Agg"
+
 import numpy as np
 import soundfile as sf
 import torch
