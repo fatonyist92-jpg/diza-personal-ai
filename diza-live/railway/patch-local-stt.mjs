@@ -1,4 +1,4 @@
-// Activate verified local Whisper voice capture AFTER the upstream browser
+// Enable opt-in cloud speech capture AFTER the upstream browser
 // patch, without touching original Bloks desktop/agent/paid provider behavior.
 // All private STT routes inherit the existing token/cookie authorization.
 import { readFileSync, writeFileSync } from "node:fs";
@@ -22,7 +22,7 @@ const server="/opt/bloks/server/index.ts";
 put(server,
  'import * as speech from "./speech.ts";',
  'import * as speech from "./speech.ts";\nimport { transcribeBrowserAudio } from "./browser-stt.ts";',
- "import authenticated local audio recognizer");
+ "import private Gladia speech recognizer");
 put(server,
  '    // ── voices: how agents sound ──',
  [
@@ -34,12 +34,12 @@ put(server,
  '    }',
  '    // ── voices: how agents sound ──',
  ].join("\n"),
- "private authenticated binary transcription endpoint");
+ "private authenticated Gladia STT endpoint");
 
 put(composer,
  'import Mic from "lucide-react/dist/esm/icons/mic.mjs";',
  'import Mic from "lucide-react/dist/esm/icons/mic.mjs";\nimport { startBrowserMic, type BrowserMicSession } from "@/lib/browserMic";',
- "use local browser recorder, not Google Web Speech");
+ "use browser MediaRecorder, not Google Web Speech");
 put(composer,
  '  const browserSpeech = useRef<any>(null);',
  [
@@ -101,21 +101,21 @@ put(composer,
  '      return;',
  '    }',
  ].join("\n"),
- "use real Chrome mic capture and local speech recognition in Composer");
+ "use Chrome MediaRecorder with opt-in Gladia STT");
 
 put(composer,
  '      {speechError && (',
  [
  '      {transcribingAudio && (',
  '        <div className="mx-auto mb-2 max-w-[760px] px-3 text-[12px] text-muted-foreground">',
- '          Sedang mengubah rekaman menjadi teks dengan Whisper lokal…',
+ '          Sedang mengubah rekaman menjadi teks melalui Gladia…',
  '        </div>',
  '      )}',
  '      {speechError && (',
  ].join("\n"),
  "show speech transcription progress, not a false recording state");
 
-// Call mode uses the same private local Whisper path. This replaces Chrome's
+// Call mode uses the same private opt-in Gladia path. This replaces Chrome's
 // flaky SpeechRecognition in WebView, while keeping the original desktop
 // bridge fallback.
 put(voice,
@@ -158,7 +158,7 @@ put(voice,
  '  const Recognition =',
  '    (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;',
  ].join("\n"),
- "Call uses MediaRecorder and Railway Whisper, no Chrome SpeechRecognition");
+ "Call uses MediaRecorder and Gladia, not Chrome SpeechRecognition");
 
 putFirstDuplicate(voice,
  '      onFinal: (text) => finishUtterance(text),\n      onSilence: () => listen(),\n      onError: (message) => setError(message),',
