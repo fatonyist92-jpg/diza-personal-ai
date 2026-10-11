@@ -19,12 +19,12 @@ const reducer = "/opt/bloks/src/state/reducer.ts";
 // Both Voice and BotVoice must accept a neural selection, but only through
 // the existing private /api/bots/:id voice setter (no public endpoints).
 swap(server,
-  'provider: "elevenlabs" | "openai" | "system";',
-  'provider: "elevenlabs" | "openai" | "system" | "neural";',
+  'export interface Voice {\n  provider: "elevenlabs" | "openai" | "system";',
+  'export interface Voice {\n  provider: "elevenlabs" | "openai" | "system" | "neural";',
   "list voice type");
 swap(server,
-  'provider: "elevenlabs" | "openai" | "system";',
-  'provider: "elevenlabs" | "openai" | "system" | "neural";',
+  'export interface BotVoice {\n  provider: "elevenlabs" | "openai" | "system";',
+  'export interface BotVoice {\n  provider: "elevenlabs" | "openai" | "system" | "neural";',
   "bot voice type");
 
 swap(server,
