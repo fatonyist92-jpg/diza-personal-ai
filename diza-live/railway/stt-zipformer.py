@@ -71,7 +71,11 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except Exception:
-        # Do not echo user speech, file names or upstream error data.
-        print("Local Zipformer STT unavailable", file=sys.stderr)
+    except Exception as exc:
+        # Diagnostics are ONLY enabled for fixed synthetic tests, never for
+        # actual microphone recordings or API requests.
+        if os.environ.get("STT_SYNTHETIC_TEST") == "1":
+            print("SHERPA_TEST_ERROR=" + type(exc).__name__ + ":" + str(exc)[:240], file=sys.stderr)
+        else:
+            print("Local Zipformer STT unavailable", file=sys.stderr)
         sys.exit(2)
