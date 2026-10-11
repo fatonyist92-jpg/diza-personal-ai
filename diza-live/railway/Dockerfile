@@ -32,6 +32,7 @@ COPY diza-live/railway/web/ /opt/bloks/dist/
 COPY diza-live/railway/entrypoint.sh /opt/diza-live/entrypoint.sh
 COPY diza-live/railway/boot.mjs /opt/diza-live/boot.mjs
 COPY diza-live/railway/muse-smoke.mjs /opt/diza-live/muse-smoke.mjs
+COPY diza-live/railway/muse-acp-smoke.mjs /opt/diza-live/muse-acp-smoke.mjs
 RUN chmod +x /opt/diza-live/entrypoint.sh \
  && mkdir -p /home/node/.bloks \
  && chown -R node:node /home/node /opt/bloks /opt/diza-live
