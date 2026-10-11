@@ -50,6 +50,30 @@ if (process.env.GEMINI_TTS_ENABLED === "1") {
   console.log("GEMINI_TTS_SMOKE=OFF");
 }
 
+// Streaming smoke uses a fixed synthetic line, never a customer transcript.
+// Performance telemetry contains only timing, output bytes and status.
+if (process.env.GEMINI_TTS_STREAM_ENABLED === "1") {
+  void import("/opt/bloks/server/gemini-fast-stream.mjs")
+    .then(async ({ streamGeminiNaturalVoice }) => {
+      const began = Date.now();
+      const result = await streamGeminiNaturalVoice(
+        "Halo! Sekarang suara Diza bisa mulai bicara lebih cepat.",
+        "id-ID-GadisNeural");
+      if (!result) { console.log("GEMINI_TTS_STREAM_SMOKE=FALLBACK"); return; }
+      let bytes = 0;
+      let firstMs = -1;
+      for await (const pcm of result.stream) {
+        if (firstMs < 0) firstMs = Date.now() - began;
+        bytes += pcm.length;
+      }
+      console.log("GEMINI_TTS_STREAM_SMOKE=" + (bytes >= 1000 ? "PASS" : "FAIL"));
+      console.log("GEMINI_TTS_STREAM_FIRST_PCM_MS=" + firstMs);
+      console.log("GEMINI_TTS_STREAM_TOTAL_MS=" + (Date.now() - began));
+    }).catch(() => console.log("GEMINI_TTS_STREAM_SMOKE=ERROR"));
+} else {
+  console.log("GEMINI_TTS_STREAM_SMOKE=OFF");
+}
+
 // Check live neural audio in background; never block UI/chat startup.
 void import("/opt/diza-live/neural-smoke.mjs").catch(() => {
   console.log("NEURAL_VOICE_TEST=FAILED_TO_START");
