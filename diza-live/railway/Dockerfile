@@ -9,11 +9,6 @@ RUN apt-get update \
 # Package installs at build time only. No Microsoft API key or billing.
 RUN python3 -m venv /opt/diza-live/tts-venv \
  && /opt/diza-live/tts-venv/bin/pip install --no-cache-dir edge-tts==7.2.8
-# CPU-only multilingual Whisper base for improved Indonesian accuracy (no STT API), baked
-# into image so audio never leaves this server for transcription.
-RUN python3 -m venv /opt/diza-live/stt-venv \
- && /opt/diza-live/stt-venv/bin/pip install --no-cache-dir faster-whisper==1.2.1 \
- && /opt/diza-live/stt-venv/bin/python -c 'from huggingface_hub import snapshot_download; snapshot_download(repo_id="Systran/faster-whisper-base", local_dir="/opt/diza-live/models/whisper-base", allow_patterns=["*.bin", "*.json", "*.txt"])'
 WORKDIR /opt/bloks
 RUN git init . \
  && git remote add origin https://github.com/hamedgitty/bloks.git \
@@ -46,8 +41,6 @@ COPY diza-live/railway/web/ /opt/bloks/dist/
 COPY diza-live/railway/entrypoint.sh /opt/diza-live/entrypoint.sh
 COPY diza-live/railway/boot.mjs /opt/diza-live/boot.mjs
 COPY diza-live/railway/tts-neural.py /opt/diza-live/tts-neural.py
-COPY diza-live/railway/stt-whisper.py /opt/diza-live/stt-whisper.py
-COPY diza-live/railway/stt-smoke.mjs /opt/diza-live/stt-smoke.mjs
 COPY diza-live/railway/neural-smoke.mjs /opt/diza-live/neural-smoke.mjs
 COPY diza-live/railway/muse-smoke.mjs /opt/diza-live/muse-smoke.mjs
 COPY diza-live/railway/muse-acp-smoke.mjs /opt/diza-live/muse-acp-smoke.mjs
