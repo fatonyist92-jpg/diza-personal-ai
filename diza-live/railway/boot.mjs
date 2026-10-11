@@ -36,6 +36,11 @@ await import("/opt/bloks/server/index.ts");
 void import("/opt/diza-live/neural-smoke.mjs").catch(() => {
   console.log("NEURAL_VOICE_TEST=FAILED_TO_START");
 });
+// Prove local Whisper transcribes actual Indonesian speech, not just MP3 generation.
+// Never log the recording or transcript. Nonblocking and cached 12h.
+void import("/opt/diza-live/stt-smoke.mjs").catch(() => {
+  console.log("LOCAL_WHISPER_STT_TEST=FAILED_TO_START");
+});
 // One bounded smoke test, non-blocking: Bloks remains online even if
 // OpenCode/Zen is unreachable or rejects third-party ACP clients.
 void import("/opt/diza-live/muse-smoke.mjs")
