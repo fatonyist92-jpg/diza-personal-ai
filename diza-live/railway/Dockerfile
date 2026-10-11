@@ -37,6 +37,10 @@ COPY diza-live/railway/patch-codex.mjs /opt/diza-live/patch-codex.mjs
 # Opt-in official Meta Model API provider, no key and no auto-billing.
 COPY diza-live/railway/patch-muse.mjs /opt/diza-live/patch-muse.mjs
 COPY diza-live/railway/patch-neural-voice.mjs /opt/diza-live/patch-neural-voice.mjs
+# Gemini TTS is strictly opt-in and uses the existing server-only Gemini API key.
+COPY diza-live/railway/gemini-natural-tts.mjs /opt/bloks/server/gemini-natural-tts.mjs
+COPY diza-live/railway/gemini-natural-tts.test.mjs /opt/bloks/server/gemini-natural-tts.test.mjs
+RUN node --test /opt/bloks/server/gemini-natural-tts.test.mjs
 COPY diza-live/railway/patch-local-stt.mjs /opt/diza-live/patch-local-stt.mjs
 COPY diza-live/railway/browser-stt.ts /opt/bloks/server/browser-stt.ts
 COPY diza-live/railway/browserMic.ts /opt/bloks/src/lib/browserMic.ts

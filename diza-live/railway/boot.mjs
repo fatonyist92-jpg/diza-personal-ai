@@ -38,6 +38,18 @@ console.log("GEMINI_STT_STATUS=" +
     ? (process.env.GEMINI_API_KEY?.trim() ? "ENABLED" : "ENABLED_MISSING_KEY")
     : "OFF_LOCAL_ZIPFORMER_ACTIVE"));
 
+// Optional zero-user-data synthetic smoke test for the new expressive voice.
+// Runs only after the explicit TTS feature flag is enabled.
+if (process.env.GEMINI_TTS_ENABLED === "1") {
+  void import("/opt/bloks/server/gemini-natural-tts.mjs")
+    .then(({ generateGeminiNaturalVoice }) =>
+      generateGeminiNaturalVoice("Halo, ini uji suara percakapan bahasa Indonesia.", "id-ID-GadisNeural"))
+    .then((clip) => console.log("GEMINI_TTS_SMOKE=" + (clip ? "PASS" : "FALLBACK")))
+    .catch(() => console.log("GEMINI_TTS_SMOKE=ERROR"));
+} else {
+  console.log("GEMINI_TTS_SMOKE=OFF");
+}
+
 // Check live neural audio in background; never block UI/chat startup.
 void import("/opt/diza-live/neural-smoke.mjs").catch(() => {
   console.log("NEURAL_VOICE_TEST=FAILED_TO_START");
