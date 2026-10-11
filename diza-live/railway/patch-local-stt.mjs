@@ -8,6 +8,13 @@ function put(file, from, to, label) {
   writeFileSync(file,s.slice(0,i)+to+s.slice(i+from.length));
   console.log("local voice patched: "+label);
 }
+function putFirstDuplicate(file, from, to, label) {
+  const text=readFileSync(file,"utf8");
+  if(text.split(from).length-1!==2) throw Error("local voice patch (expected two original Call implementations): "+label);
+  const index=text.indexOf(from);
+  writeFileSync(file,text.slice(0,index)+to+text.slice(index+from.length));
+  console.log("local voice patched first Call only: "+label);
+}
 const composer="/opt/bloks/src/components/Composer.tsx";
 const voice="/opt/bloks/src/components/Voice.tsx";
 const server="/opt/bloks/server/index.ts";
@@ -153,7 +160,7 @@ put(voice,
  ].join("\n"),
  "Call uses MediaRecorder and Railway Whisper, no Chrome SpeechRecognition");
 
-put(voice,
+putFirstDuplicate(voice,
  '      onFinal: (text) => finishUtterance(text),\n      onSilence: () => listen(),\n      onError: (message) => setError(message),',
  [
  '      onFinal: (text) => finishUtterance(text),',
@@ -168,7 +175,7 @@ put(voice,
  '      ? heard || "Listening…"\n      : callState === "transcribing"\n        ? "Mengubah suara menjadi teks…"\n      : callState === "thinking"',
  "Call displays transcription state");
 
-put(voice,
+putFirstDuplicate(voice,
  '          {needsManualFinish && callState === "listening" && (',
  [
  '          {callState === "idle" && live.current && (',
