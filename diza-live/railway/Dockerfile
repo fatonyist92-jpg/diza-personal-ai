@@ -40,10 +40,12 @@ COPY diza-live/railway/patch-neural-voice.mjs /opt/diza-live/patch-neural-voice.
 # Gemini TTS is strictly opt-in and uses the existing server-only Gemini API key.
 COPY diza-live/railway/gemini-natural-tts.mjs /opt/bloks/server/gemini-natural-tts.mjs
 COPY diza-live/railway/gemini-fast-stream.mjs /opt/bloks/server/gemini-fast-stream.mjs
+COPY diza-live/railway/gemini-fast-stream.test.mjs /opt/bloks/server/gemini-fast-stream.test.mjs
 COPY diza-live/railway/pcmStreamAudio.ts /opt/bloks/src/lib/pcmStreamAudio.ts
 COPY diza-live/railway/patch-fast-voice.mjs /opt/diza-live/patch-fast-voice.mjs
 COPY diza-live/railway/gemini-natural-tts.test.mjs /opt/bloks/server/gemini-natural-tts.test.mjs
 RUN node --test /opt/bloks/server/gemini-natural-tts.test.mjs
+RUN node --test /opt/bloks/server/gemini-fast-stream.test.mjs
 COPY diza-live/railway/patch-local-stt.mjs /opt/diza-live/patch-local-stt.mjs
 COPY diza-live/railway/browser-stt.ts /opt/bloks/server/browser-stt.ts
 COPY diza-live/railway/browserMic.ts /opt/bloks/src/lib/browserMic.ts
