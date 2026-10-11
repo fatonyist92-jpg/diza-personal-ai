@@ -13,8 +13,11 @@ RUN git init . \
  && test "$(git rev-parse HEAD)" = "ba36e7604e5c283bbebed4e4f99d3273f92ec0ec"
 RUN pnpm install --frozen-lockfile
 # Codex CLI is required by the upstream Bloks Codex app-server driver.
-# Pin CLI to a published stable version, not an alpha or an unbounded latest.
+# Pin CLI to published stable versions, not alphas or an unbounded latest.
 RUN npm install -g @openai/codex@0.162.1 && codex --version
+# Native OpenCode ACP engine is already supported by upstream Bloks.
+# Install its binary at image-build time (remote in-app installers are disabled).
+RUN npm install -g opencode-ai@1.18.35 && opencode --version
 # Keep the original Bloks React UI, add host-only secure browser pairing,
 # and fail the build if any pinned upstream source anchor has changed.
 COPY diza-live/railway/patch-webview.mjs /opt/diza-live/patch-webview.mjs
@@ -34,6 +37,8 @@ ENV PORT=10000
 ENV BLOKS_STATIC_DIR=/opt/bloks/dist
 # Share auth safely across Railway redeploys; never add an API billing key.
 ENV CODEX_HOME=/home/node/.bloks/codex
+# Disable CLI self-updates during runtime; upgrade only through versioned Docker builds.
+ENV OPENCODE_DISABLE_AUTOUPDATE=1
 EXPOSE 10000
 # Railway volumes are mounted root-owned. Start briefly as root, then
 # drop privileges to node before the server handles any network request.
