@@ -34,4 +34,15 @@ if [ -e /home/node/.config/opencode ] && [ ! -L /home/node/.config/opencode ]; t
 fi
 ln -sfn "$STORE/opencode/data" /home/node/.local/share/opencode
 ln -sfn "$STORE/opencode/config" /home/node/.config/opencode
+# Prefer Muse Spark Contributor Free for newly initialized OpenCode only.
+# Never override user-maintained config, credentials, existing defaults,
+# or switch to paid Meta Model API if this free model is unavailable.
+if [ ! -e "$STORE/opencode/config/opencode.json" ] && [ ! -e "$STORE/opencode/config/opencode.jsonc" ]; then
+  printf '%s\n' '{"$schema":"https://opencode.ai/config.json","model":"opencode/muse-spark-1.3-contributor-free"}' > "$STORE/opencode/config/opencode.json"
+  chown node:node "$STORE/opencode/config/opencode.json"
+  chmod 600 "$STORE/opencode/config/opencode.json"
+  echo "MUSE_SPARK_FREE_DEFAULT=SET"
+else
+  echo "MUSE_SPARK_FREE_DEFAULT=EXISTING_CONFIG_PRESERVED"
+fi
 exec gosu node node /opt/diza-live/boot.mjs

@@ -32,3 +32,8 @@ console.log("DIZA_PERSISTENT_VOLUME=YES");
 console.log("DIZA_PAIRING_CODE=" + pairing.code);
 console.log("DIZA_PAIRING_EXPIRES_IN_SEC=300");
 await import("/opt/bloks/server/index.ts");
+// One bounded smoke test, non-blocking: Bloks remains online even if
+// OpenCode/Zen is unreachable or rejects third-party ACP clients.
+void import("/opt/diza-live/muse-smoke.mjs").catch(() => {
+  console.log("MUSE_SPARK_FREE_TEST=FAILED_TO_START");
+});
