@@ -1,12 +1,12 @@
 // One privacy-safe REAL local Indonesian speech-to-text test:
-// produce a fixed synthetic Gadis Neural MP3, transcribe it entirely on
-// Railway with Whisper tiny, and log only outcome codes, never audio/text.
+// test two exact short Indonesian phrases and a longer sentence using
+// neural voices, with Whisper base. Log no audio or transcripts.
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, writeFile, rm, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 const ROOT = "/home/node/.bloks";
-const REPORT = join(ROOT, "local-whisper-stt-smoke.json");
+const REPORT = join(ROOT, "whisper-base-stt-accuracy-v2.json");
 const MAX_AGE = 12 * 60 * 60 * 1000;
 async function once(bin, args, input, timeout) {
   return await new Promise((resolve) => {
@@ -60,21 +60,42 @@ if (recent) {
   const tmp = await mkdtemp(join(tmpdir(), "bloks-stt-check-"));
   let status = "FAILED", reason = "LOCAL_STT_UNAVAILABLE";
   try {
-    const audio = await once("/opt/diza-live/tts-venv/bin/python",
-      ["/opt/diza-live/tts-neural.py", "id-ID-GadisNeural"],
-      "Halo Diza, coba dengarkan ucapan bahasa Indonesia ini.", 32_000);
-    if (!audio.ok || audio.bytes.length < 500) {
-      reason = "SYNTHETIC_VOICE_SOURCE_UNAVAILABLE";
+    const cases = [
+      { voice: "id-ID-GadisNeural", line: "Tes satu dua tiga.", expected: "tes satu dua tiga" },
+      { voice: "id-ID-ArdiNeural", line: "Tes satu dua tiga.", expected: "tes satu dua tiga" },
+      { voice: "id-ID-GadisNeural", line: "Halo Diza, saya sedang mencoba mikrofon.", expected: "halo diza saya sedang mencoba mikrofon" },
+    ];
+    let passes = 0;
+    let failedAt = null;
+    for (let i=0; i<cases.length; i++) {
+      const item=cases[i];
+      const audio=await once("/opt/diza-live/tts-venv/bin/python",
+        ["/opt/diza-live/tts-neural.py", item.voice], item.line, 32_000);
+      if (!audio.ok || audio.bytes.length < 500) {
+        failedAt="SYNTHETIC_VOICE_SOURCE_UNAVAILABLE";
+        break;
+      }
+      const file=join(tmp, "test-"+i+".mp3");
+      await writeFile(file, audio.bytes, { mode: 0o600 });
+      const words=await once("/opt/diza-live/stt-venv/bin/python",
+        ["/opt/diza-live/stt-whisper.py", file], null, 70_000);
+      if (!words.ok) {
+        failedAt="BASE_MODEL_PROCESS_FAILED";
+        break;
+      }
+      const normalized=words.bytes.toString("utf8").toLowerCase()
+        .normalize("NFKC").replace(/[^a-z0-9]+/g," ").trim();
+      if (!normalized.includes(item.expected)) {
+        failedAt = i<2 ? "SHORT_NUMBER_PHRASE_MISMATCH" : "LONG_INDONESIAN_PHRASE_MISMATCH";
+        break;
+      }
+      passes++;
+    }
+    if (passes===cases.length) {
+      status="PASS";
+      reason="EXACT_3_OF_3_INDONESIAN_TRANSCRIPT_TESTS";
     } else {
-      const path = join(tmp, "test.mp3");
-      await writeFile(path, audio.bytes, { mode: 0o600 });
-      const words = await once("/opt/diza-live/stt-venv/bin/python",
-        ["/opt/diza-live/stt-whisper.py", path], null, 70_000);
-      if (!words.ok) reason = "LOCAL_WHISPER_PROCESS_FAILED";
-      else if (/\b(halo|diza|coba|dengarkan)\b/i.test(words.bytes.toString("utf8"))) {
-        status = "PASS";
-        reason = "REAL_LOCAL_INDONESIAN_AUDIO_TRANSCRIBED";
-      } else reason = "NO_RECOGNIZABLE_INDONESIAN_TRANSCRIPT";
+      reason=failedAt || "ACCURACY_TEST_FAILED";
     }
   } catch {
     reason = "LOCAL_STT_SMOKE_ERROR";
