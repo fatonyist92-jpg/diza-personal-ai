@@ -181,6 +181,6 @@ put(voice,
  "allow manual mic retry without closing Call");
 
 put(voice,
- '    if (!window.bloks && navigator.mediaDevices?.getUserMedia) {',
- '    if (false && !window.bloks && navigator.mediaDevices?.getUserMedia) {',
- "do not briefly capture and release Android microphone twice before Call");
+ '  const beginCall = async () => {\n    // Request mic access from the actual click, before async lease claim.\n    if (!window.bloks && navigator.mediaDevices?.getUserMedia) {\n      try {\n        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });\n        stream.getTracks().forEach((track) => track.stop());\n      } catch {\n        // Call overlay reports any remaining microphone error.\n      }\n    }\n    setCalling(true);\n  };',
+ '  const beginCall = async () => {\n    // CallOverlay will request and retain its own microphone stream.\n    setCalling(true);\n  };',
+ "avoid opening and releasing microphone twice before Call");
