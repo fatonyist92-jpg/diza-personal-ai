@@ -142,3 +142,95 @@ replaceOnce(voice,
  callTitle + '        onClick={() => setCalling(true)}',
  callTitle + '        onClick={() => void beginCall()}',
  "wire call button to mobile mic permission");
+
+
+// Upstream desktop recording effect erroneously resets recording=false
+// immediately after Chrome Android starts SpeechRecognition. That kills
+// the browser recognizer and surfaces the "aborted" error.
+replaceOnce(composer,
+ '    const bridge = window.bloks;\n    if (!bridge) {\n      setRecording(false);\n      return;\n    }',
+ '    const bridge = window.bloks;\n    if (!bridge) return; // Chrome has its own recognizer.',
+ "keep desktop recording hook from stopping Chrome recording");
+
+// Treat deliberate stop/final transcription as success, not "aborted".
+replaceOnce(composer,
+ '  const browserSpeech = useRef<any>(null);',
+ '  const browserSpeech = useRef<any>(null);\n  const browserSpeechStopRequested = useRef(false);',
+ "track intentional Android microphone stops");
+replaceOnce(composer,
+ '      const session=browserSpeech.current;\n      browserSpeech.current=null;\n      try { session.stop(); } catch {}',
+ '      const session=browserSpeech.current;\n      browserSpeech.current=null;\n      browserSpeechStopRequested.current = true;\n      try { session.stop(); } catch {}',
+ "flag cleanup before browser recognizer stop");
+replaceOnce(composer,
+ '      browserSpeech.current?.stop?.();\n      setRecording(false);',
+ '      browserSpeechStopRequested.current = true;\n      browserSpeech.current?.stop?.();\n      setRecording(false);',
+ "flag tap-to-stop");
+replaceOnce(composer,
+ '      const recog = new Recognition();',
+ '      browserSpeechStopRequested.current = false;\n      const recog = new Recognition();',
+ "reset Android microphone stop state");
+replaceOnce(composer,
+ '        if (finalResult) {\n          try { recog.stop(); } catch {}\n          setRecording(false);\n        }',
+ '        if (finalResult) {\n          browserSpeechStopRequested.current = true;\n          try { recog.stop(); } catch {}\n          setRecording(false);\n        }',
+ "do not report successful final recognition as aborted");
+replaceOnce(composer,
+ '        const code = String(event.error ?? "unknown");\n        if (code === "not-allowed"',
+ '        const code = String(event.error ?? "unknown");\n        if (code === "aborted" && browserSpeechStopRequested.current) return;\n        if (code === "not-allowed"',
+ "suppress intentionally cancelled microphone errors");
+
+// Browser Call must wait until a recognition session has ended before
+// retrying on silence, and must still send a usable partial transcript
+// if the platform ends before marking a result final.
+replaceOnce(voice,
+ '    recog.onresult = (event: any) => {\n      const result = event.results[event.results.length - 1];\n      handlers.onPartial(result[0].transcript);\n      if (result.isFinal) {\n        recog.stop();\n        handlers.onFinal(result[0].transcript);\n      }\n    };',
+ [
+ '    let lastWords = "";',
+ '    let finished = false;',
+ '    let deliberateStop = false;',
+ '    let noSpeech = false;',
+ '    let unexpectedAbort = false;',
+ '    recog.onresult = (event: any) => {',
+ '      const result = event.results[event.results.length - 1];',
+ '      const words = String(result?.[0]?.transcript ?? "").trim();',
+ '      if (words) {',
+ '        lastWords = words;',
+ '        handlers.onPartial(words);',
+ '      }',
+ '      if (result?.isFinal && words && !finished) {',
+ '        finished = true;',
+ '        deliberateStop = true;',
+ '        try { recog.stop(); } catch {}',
+ '        handlers.onFinal(words);',
+ '      }',
+ '    };',
+ ].join("\n"),
+ "send Android Call's recognized words to agent without double-stop");
+const tick=String.fromCharCode(96);
+const errOld=[
+ '    recog.onerror = (event: any) => {',
+ '      if (event.error === "no-speech") handlers.onSilence();',
+ '      else handlers.onError(' + tick + 'microphone: ' + String.fromCharCode(36) + '{event.error}' + tick + ');',
+ '    };',
+].join("\n");
+replaceOnce(voice,errOld,[
+ '    recog.onerror = (event: any) => {',
+ '      if (finished || deliberateStop) return;',
+ '      const code = String(event.error ?? "unknown");',
+ '      if (code === "no-speech") { noSpeech = true; return; }',
+ '      if (code === "aborted") { unexpectedAbort = true; return; }',
+ '      finished = true;',
+ '      handlers.onError("microphone: " + code);',
+ '    };',
+ '    recog.onend = () => {',
+ '      if (finished || deliberateStop) return;',
+ '      finished = true;',
+ '      if (lastWords) handlers.onFinal(lastWords);',
+ '      else if (noSpeech) handlers.onSilence();',
+ '      else if (unexpectedAbort) handlers.onError("Pengenalan suara terputus. Tekan mikrofon dan coba lagi.");',
+ '      else handlers.onSilence();',
+ '    };',
+].join("\n"),"complete Chrome Call session before listening again");
+replaceOnce(voice,
+ '      return { stop: () => recog.stop(), needsManualFinish: false };',
+ '      return { stop: () => { deliberateStop = true; try { recog.stop(); } catch {} }, needsManualFinish: false };',
+ "avoid ghost transcript after user hangs up");
