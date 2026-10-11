@@ -38,9 +38,10 @@ console.log("GEMINI_STT_STATUS=" +
     ? (process.env.GEMINI_API_KEY?.trim() ? "ENABLED" : "ENABLED_MISSING_KEY")
     : "OFF_LOCAL_ZIPFORMER_ACTIVE"));
 
-// Optional zero-user-data synthetic smoke test for the new expressive voice.
-// Runs only after the explicit TTS feature flag is enabled.
-if (process.env.GEMINI_TTS_ENABLED === "1") {
+// Google TTS is metered. Do NOT spend scarce per-day voice requests on startup.
+// Run synthetic real-provider checks only with a separately enabled test flag.
+console.log("GEMINI_TTS_STATUS=" + (process.env.GEMINI_TTS_ENABLED === "1" ? "ENABLED" : "OFF"));
+if (process.env.GEMINI_TTS_SMOKE_ON_BOOT === "1" && process.env.GEMINI_TTS_ENABLED === "1") {
   void import("/opt/bloks/server/gemini-natural-tts.mjs")
     .then(({ generateGeminiNaturalVoice }) =>
       generateGeminiNaturalVoice("Halo, ini uji suara percakapan bahasa Indonesia.", "id-ID-GadisNeural"))
@@ -50,9 +51,10 @@ if (process.env.GEMINI_TTS_ENABLED === "1") {
   console.log("GEMINI_TTS_SMOKE=OFF");
 }
 
-// Streaming smoke uses a fixed synthetic line, never a customer transcript.
-// Performance telemetry contains only timing, output bytes and status.
-if (process.env.GEMINI_TTS_STREAM_ENABLED === "1") {
+// Optional real-provider benchmark. Off by default to preserve quota.
+// Offline mock verification remains mandatory during every Docker build.
+console.log("GEMINI_TTS_STREAM_STATUS=" + (process.env.GEMINI_TTS_STREAM_ENABLED === "1" ? "ENABLED" : "OFF"));
+if (process.env.GEMINI_TTS_STREAM_SMOKE_ON_BOOT === "1" && process.env.GEMINI_TTS_STREAM_ENABLED === "1") {
   void import("/opt/bloks/server/gemini-fast-stream.mjs")
     .then(async ({ streamGeminiNaturalVoice }) => {
       const began = Date.now();
