@@ -13,7 +13,7 @@ RUN python3 -m venv /opt/diza-live/tts-venv \
 # Download quantized model only during Docker build; never at runtime.
 # Runtime memory and license footprint are far smaller than Whisper Small.
 RUN python3 -m venv /opt/diza-live/stt-venv \
- && /opt/diza-live/stt-venv/bin/pip install --no-cache-dir sherpa-onnx==1.13.8 huggingface-hub==0.36.0 \
+ && /opt/diza-live/stt-venv/bin/pip install --no-cache-dir sherpa-onnx==1.13.8 huggingface-hub==0.36.0 numpy==1.26.4 \
  && /opt/diza-live/stt-venv/bin/python -c 'from huggingface_hub import snapshot_download; snapshot_download(repo_id="spacewave/sherpa-onnx-streaming-zipformer2-id", revision="44e21d5e554a360c4ae0c3cdc57ec30811011ab6", local_dir="/opt/diza-live/models/sherpa-id", allow_patterns=["*.int8.onnx", "tokens.txt"])' \
  && test -s /opt/diza-live/models/sherpa-id/encoder-iter-100000-avg-15-chunk-32-left-256.int8.onnx \
  && test -s /opt/diza-live/models/sherpa-id/tokens.txt
