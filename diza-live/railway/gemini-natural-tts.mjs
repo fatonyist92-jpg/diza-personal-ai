@@ -22,6 +22,21 @@ export function geminiTtsAvailable(voiceId) {
   return process.env.GEMINI_TTS_ENABLED === '1' && voiceId === TARGET_VOICE;
 }
 
+/** Shared conservative quota and concurrency ceiling for streaming and unary TTS. */
+export function reserveGeminiTtsRequest() {
+  if (dateUTC() !== countDate) { countDate = dateUTC(); attemptsToday = 0; }
+  if (attemptsToday >= DAILY_LIMIT || inFlight >= 2) {
+    console.warn('GEMINI_TTS=FALLBACK_LOCAL_LIMIT');
+    return null;
+  }
+  attemptsToday++;
+  inFlight++;
+  let released = false;
+  return () => {
+    if (!released) { released = true; inFlight = Math.max(0, inFlight - 1); }
+  };
+}
+
 /** @returns {Promise<{audio: Buffer, mime: 'audio/wav'} | null>} */
 export async function generateGeminiNaturalVoice(text, voiceId) {
   if (!geminiTtsAvailable(voiceId)) return null;
@@ -30,14 +45,8 @@ export async function generateGeminiNaturalVoice(text, voiceId) {
     console.warn('GEMINI_TTS=FALLBACK_MISSING_KEY');
     return null;
   }
-  if (dateUTC() !== countDate) { countDate = dateUTC(); attemptsToday = 0; }
-  // Conservative ceiling for an experimental feature, not a Google billing guarantee.
-  if (attemptsToday >= DAILY_LIMIT || inFlight >= 2) {
-    console.warn('GEMINI_TTS=FALLBACK_LOCAL_LIMIT');
-    return null;
-  }
-  attemptsToday++;
-  inFlight++;
+  const release = reserveGeminiTtsRequest();
+  if (!release) return null;
   try {
     const response = await fetch(TTS_ENDPOINT, {
       method: 'POST', redirect: 'error', cache: 'no-store',
@@ -78,6 +87,6 @@ export async function generateGeminiNaturalVoice(text, voiceId) {
     console.warn('GEMINI_TTS=FALLBACK_UPSTREAM_ERROR');
     return null;
   } finally {
-    inFlight--;
+    release();
   }
 }
