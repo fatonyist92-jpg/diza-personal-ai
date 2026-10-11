@@ -11,7 +11,7 @@ const speech="/opt/bloks/server/speech.ts";
 const voice="/opt/bloks/src/components/Voice.tsx";
 swap(speech,
   'import { generateGeminiNaturalVoice } from "./gemini-natural-tts.mjs";',
-  'import { generateGeminiNaturalVoice } from "./gemini-natural-tts.mjs";\nimport { streamGeminiNaturalVoice } from "./gemini-fast-stream.mjs";',
+  'import { generateGeminiNaturalVoice, geminiTtsAvailable, geminiTtsState } from "./gemini-natural-tts.mjs";\nimport { streamGeminiNaturalVoice } from "./gemini-fast-stream.mjs";',
   "server-only Google PCM streaming import");
 swap(speech,
   '    const realistic = await generateGeminiNaturalVoice(clipped, voice.id);',
@@ -21,6 +21,26 @@ swap(speech,
   '    const realistic = await generateGeminiNaturalVoice(clipped, voice.id);',
   ].join("\n"),
   "stream Gemini ahead of existing verified WAV and Edge fallback");
+swap(speech,
+  '    if (realistic) return { stream: Readable.toWeb(Readable.from([realistic.audio])) as ReadableStream<Uint8Array>, mime: realistic.mime };',
+  [
+    '    if (realistic) return { stream: Readable.toWeb(Readable.from([realistic.audio])) as ReadableStream<Uint8Array>, mime: realistic.mime };',
+    '    // The user selected lifelike Gemini voice: never switch it to robotic Edge.',
+    '    if (geminiTtsAvailable(voice.id)) {',
+    '      const state = geminiTtsState();',
+    '      const message = state === "GOOGLE_429"',
+    '        ? "Suara Gemini sedang dibatasi Google (429). Coba lagi sebentar."',
+    '        : state === "LOCAL_DAILY_LIMIT"',
+    '          ? "Batas penggunaan suara Gemini hari ini tercapai. Suara robot tidak digunakan."',
+    '          : "Suara natural Gemini sementara tidak tersedia. Coba ulang beberapa saat.";',
+    '      throw new Error(message);',
+    '    }',
+  ].join("\n"),
+  "never silently downgrade natural Gadis voice to robotic Edge");
+swap(voice,
+  '        setError(e.message);\n        if (live.current) listen();',
+  '        setError(e.message);\n        if (live.current) setCallState("idle");',
+  "keep Gemini rate-limit message visible and let Call retry manually");
 swap(voice,
   'import { startBrowserMic, type BrowserMicSession } from "@/lib/browserMic";',
   'import { startBrowserMic, type BrowserMicSession } from "@/lib/browserMic";\nimport { PcmStreamAudio } from "@/lib/pcmStreamAudio";',
