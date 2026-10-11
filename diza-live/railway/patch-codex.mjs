@@ -35,15 +35,22 @@ once(upstream,
   "owner-only Codex status and device auth routes");
 const panel="/opt/bloks/src/components/EnginesPanel.tsx";
 once(panel,
+  'import { EngineSetupActions, EngineUpdateNote } from "./EngineSetup";',
+  'import { EngineSetupActions, EngineUpdateNote } from "./EngineSetup";\n' +
+  'import { CodexWebviewAuth } from "./CodexWebviewAuth";',
+  "inline Codex component import");
+once(panel,
+  '      {provider.auth === "cli" && (!provider.connected || provider.needsSignIn) && (',
+  '      {provider.auth === "cli" && provider.kind !== "codex" && (!provider.connected || provider.needsSignIn) && (',
+  "replace generic Codex CLI setup in Railway WebView");
+once(panel,
+  '      {provider.auth === "cli" && (!provider.connected || provider.needsSignIn) && (',
+  '      {provider.auth === "cli" && provider.kind !== "codex" && (!provider.connected || provider.needsSignIn) && (',
+  "replace generic Codex CLI hint");
+once(panel,
   '      {provider.auth === "cli" && provider.connected && (',
   [
-    '      {provider.kind === "codex" && (',
-    '        <div className="mt-2 pl-10">',
-    '          <a href="/codex.html" className="text-[12px] font-medium text-primary underline underline-offset-2">',
-    '            Hubungkan / periksa Codex lewat ChatGPT',
-    '          </a>',
-    '        </div>',
-    '      )}',
+    '      {provider.kind === "codex" && <CodexWebviewAuth onChanged={refresh} />}',
     '      {provider.auth === "cli" && provider.connected && (',
   ].join("\n"),
-  "original Bloks engine settings link");
+  "embed Codex login controls in original Engines page");
