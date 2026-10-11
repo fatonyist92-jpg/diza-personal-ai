@@ -1,0 +1,28 @@
+name: Bloks F5 Persistent GPU Benchmark - source validation
+on:
+  push:
+    branches: [bloks-f5-colab-persistent-20261012]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Colab script without GPU or downloads
+        run: |
+          python3 -m py_compile diza-live/f5-colab/f5_persistent_benchmark.py
+          python3 - <<'PY'
+          import ast
+          p='diza-live/f5-colab/f5_persistent_benchmark.py'
+          s=open(p).read(); tree=ast.parse(s)
+          assert 'F5TTS(' in s
+          assert s.count('engine = F5TTS(')==1
+          assert 'nfe_step=nfe' in s
+          assert 'model_id' in s
+          assert 'F5_PERSISTENT_' in s
+          assert 'POST' not in s and 'server' in s
+          print('PASS: persistent F5 single-process benchmark static validation')
+          PY
