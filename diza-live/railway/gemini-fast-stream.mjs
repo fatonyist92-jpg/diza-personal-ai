@@ -3,7 +3,7 @@
  * The browser receives PCM through the existing authenticated /speak route.
  * Raw text, tokens and Google responses are never logged or retained.
  */
-import { geminiTtsAvailable, reserveGeminiTtsRequest } from './gemini-natural-tts.mjs';
+import { geminiTtsAvailable, reserveGeminiTtsRequest, markGeminiTtsRateLimited, noteGeminiTtsSuccess } from './gemini-natural-tts.mjs';
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/interactions';
 const MAX_AUDIO_BYTES = 11_000_000;
 const MAX_EVENT_CHARS = 5_000_000;
@@ -44,6 +44,7 @@ export async function streamGeminiNaturalVoice(text, voiceId) {
       }),
     });
     if (!response.ok || !response.body) {
+      if (response.status === 429) markGeminiTtsRateLimited(response.headers.get('retry-after'));
       console.warn('GEMINI_TTS_STREAM=FALLBACK_HTTP_' + response.status);
       cleanup();
       return null;
@@ -91,6 +92,7 @@ export async function streamGeminiNaturalVoice(text, voiceId) {
             if (next.done) {
               done = true; cleanup();
               if (!gotAudio) throw Error('provider returned no audio');
+              noteGeminiTtsSuccess();
               controller.close();
               return;
             }
