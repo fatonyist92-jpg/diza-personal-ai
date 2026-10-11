@@ -5,7 +5,7 @@ import { mkdtemp, readFile, writeFile, rm, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 const ROOT = "/home/node/.bloks";
-const REPORT = join(ROOT, "sherpa-zipformer2-id-v2-smoke.json");
+const REPORT = join(ROOT, "sherpa-zipformer2-id-padded-v3-smoke.json");
 const MAX_AGE = 12 * 60 * 60 * 1000;
 async function once(bin, args, input, timeout) {
   return await new Promise((resolve) => {
