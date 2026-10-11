@@ -2,18 +2,21 @@
 # Functional Source License FSL-1.1-MIT applies to official upstream Bloks.
 FROM node:22-bookworm-slim
 RUN apt-get update \
- && apt-get install -y --no-install-recommends git ca-certificates gosu python3 python3-venv \
+ && apt-get install -y --no-install-recommends git ca-certificates gosu python3 python3-venv ffmpeg \
  && rm -rf /var/lib/apt/lists/* \
  && npm install -g pnpm@10
 # Neural voices use remote Edge read-aloud synthesis, not a heavy local model.
 # Package installs at build time only. No Microsoft API key or billing.
 RUN python3 -m venv /opt/diza-live/tts-venv \
  && /opt/diza-live/tts-venv/bin/pip install --no-cache-dir edge-tts==7.2.8
-# CPU-only multilingual Whisper base for improved Indonesian accuracy (no STT API), baked
-# into image so audio never leaves this server for transcription.
+# Non-Whisper, native Indonesian Zipformer2 transducer with MIT weights.
+# Download quantized model only during Docker build; never at runtime.
+# Runtime memory and license footprint are far smaller than Whisper Small.
 RUN python3 -m venv /opt/diza-live/stt-venv \
- && /opt/diza-live/stt-venv/bin/pip install --no-cache-dir faster-whisper==1.2.1 \
- && /opt/diza-live/stt-venv/bin/python -c 'from huggingface_hub import snapshot_download; snapshot_download(repo_id="Systran/faster-whisper-base", local_dir="/opt/diza-live/models/whisper-base", allow_patterns=["*.bin", "*.json", "*.txt"])'
+ && /opt/diza-live/stt-venv/bin/pip install --no-cache-dir sherpa-onnx==1.13.8 huggingface-hub==0.36.0 \
+ && /opt/diza-live/stt-venv/bin/python -c 'from huggingface_hub import snapshot_download; snapshot_download(repo_id="spacewave/sherpa-onnx-streaming-zipformer2-id", revision="44e21d5e554a360c4ae0c3cdc57ec30811011ab6", local_dir="/opt/diza-live/models/sherpa-id", allow_patterns=["*.int8.onnx", "tokens.txt"])' \
+ && test -s /opt/diza-live/models/sherpa-id/encoder-iter-100000-avg-15-chunk-32-left-256.int8.onnx \
+ && test -s /opt/diza-live/models/sherpa-id/tokens.txt
 WORKDIR /opt/bloks
 RUN git init . \
  && git remote add origin https://github.com/hamedgitty/bloks.git \
@@ -46,7 +49,7 @@ COPY diza-live/railway/web/ /opt/bloks/dist/
 COPY diza-live/railway/entrypoint.sh /opt/diza-live/entrypoint.sh
 COPY diza-live/railway/boot.mjs /opt/diza-live/boot.mjs
 COPY diza-live/railway/tts-neural.py /opt/diza-live/tts-neural.py
-COPY diza-live/railway/stt-whisper.py /opt/diza-live/stt-whisper.py
+COPY diza-live/railway/stt-zipformer.py /opt/diza-live/stt-zipformer.py
 COPY diza-live/railway/stt-smoke.mjs /opt/diza-live/stt-smoke.mjs
 COPY diza-live/railway/neural-smoke.mjs /opt/diza-live/neural-smoke.mjs
 COPY diza-live/railway/muse-smoke.mjs /opt/diza-live/muse-smoke.mjs
