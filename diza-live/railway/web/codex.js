@@ -34,5 +34,21 @@ byId("start").addEventListener("click", async () => {
   finally { pending = false; await refresh(); }
 });
 byId("refresh").addEventListener("click", refresh);
+byId("copy").addEventListener("click", async () => {
+  const code = byId("code").textContent.trim();
+  if (!code) return;
+  try {
+    await navigator.clipboard.writeText(code);
+    byId("copy").textContent = "Kode tersalin ✓";
+  } catch {
+    // Some embedded Android WebViews deny clipboard writes: select for manual copy.
+    const range = document.createRange();
+    range.selectNodeContents(byId("code"));
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    byId("problem").textContent = "Kode disorot. Tekan dan tahan untuk menyalin.";
+  }
+});
 refresh();
 setInterval(refresh, 5000);
