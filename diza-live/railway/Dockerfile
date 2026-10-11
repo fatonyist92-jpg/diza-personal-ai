@@ -19,6 +19,8 @@ RUN npm install -g @openai/codex@0.162.1 && codex --version
 # and fail the build if any pinned upstream source anchor has changed.
 COPY diza-live/railway/patch-webview.mjs /opt/diza-live/patch-webview.mjs
 COPY diza-live/railway/patch-codex.mjs /opt/diza-live/patch-codex.mjs
+# Inject the Codex auth widget into upstream Bloks Engines panel before Vite build.
+COPY diza-live/railway/CodexWebviewAuth.tsx /opt/bloks/src/components/CodexWebviewAuth.tsx
 COPY diza-live/railway/codex-login.ts /opt/bloks/server/codex-login.ts
 RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && pnpm exec vite build
 COPY diza-live/railway/web/ /opt/bloks/dist/
