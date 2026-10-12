@@ -28,8 +28,13 @@ test('token comparison rejects unauthenticated input',()=>{
   assert.equal(validToken(undefined,token),false);
 });
 test('real HTTP proxy accepts existing Bloks request and sends standard PCM16',async()=>{
-  let calls=0;
+  let calls=0, nativeReady=false;
   const nativeFetch=async(url,options)=>{
+    if (url==='http://127.0.0.1:8080/health')
+      return new Response(JSON.stringify({ready:nativeReady}),{
+        status:nativeReady?200:503,
+        headers:{'content-type':'application/json'}
+      });
     calls++;
     assert.equal(url,'http://127.0.0.1:8080/v1/audio/speech');
     assert.deepEqual(JSON.parse(options.body),{
@@ -42,6 +47,12 @@ test('real HTTP proxy accepts existing Bloks request and sends standard PCM16',a
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   try{
     const endpoint='http://127.0.0.1:'+server.address().port;
+    const healthCold=await fetch(endpoint+'/health');
+    assert.equal(healthCold.status,503,'gateway must not report ready before C++ model');
+    nativeReady=true;
+    const healthWarm=await fetch(endpoint+'/health');
+    assert.equal(healthWarm.status,200,'gateway becomes healthy when C++ responds');
+    assert.equal((await healthWarm.json()).ready,true);
     const body=JSON.stringify({text:'Halo, aku Diza.',language:'id',voice:'female'});
     const headers={'content-type':'application/json','authorization':'Bearer '+token};
     const response=await fetch(endpoint+'/v1/tts',{method:'POST',headers,body});
