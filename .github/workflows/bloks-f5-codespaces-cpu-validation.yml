@@ -1,0 +1,33 @@
+name: Bloks F5 Codespaces CPU - source validation
+on:
+  push:
+    branches:
+      - bloks-f5-codespaces-cpu-20261012
+    paths:
+      - ".devcontainer/**"
+      - "diza-live/f5-codespaces-cpu/**"
+      - ".github/workflows/bloks-f5-codespaces-cpu-validation.yml"
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Syntax checks, no GPU/model downloads
+        run: |
+          python -m py_compile diza-live/f5-codespaces-cpu/benchmark.py
+          bash -n diza-live/f5-codespaces-cpu/setup.sh
+          python -m json.tool .devcontainer/devcontainer.json > /dev/null
+      - name: Verify approved user voice settings and safe defaults
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s = Path("diza-live/f5-codespaces-cpu/benchmark.py").read_text()
+          assert 'nfe_step=16, speed=0.85' in s
+          assert 'device="cpu"' in s
+          assert 'progress=None' in s
+          assert 'FastAPI' not in s and 'uvicorn' not in s
+          PY
