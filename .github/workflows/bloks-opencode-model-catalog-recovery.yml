@@ -1,0 +1,39 @@
+name: Restore OpenCode Model List without Login Reset
+on:
+  push:
+    branches: [bloks-opencode-model-catalog-recovery-20261012]
+    paths:
+      - "diza-live/railway/Dockerfile"
+      - "diza-live/railway/patch-opencode-model-catalog.mjs"
+      - ".github/workflows/bloks-opencode-model-catalog-recovery.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Validate model recovery patch and preserve existing protected stack
+        run: |
+          node --check diza-live/railway/patch-opencode-model-catalog.mjs
+          grep -Fq 'opencode-ai@1.19.0' diza-live/railway/Dockerfile
+          grep -Fq '@openai/codex@0.162.1' diza-live/railway/Dockerfile
+          grep -Fq 'COPY diza-live/railway/warm-zipformer.py' diza-live/railway/Dockerfile
+          grep -Fq 'COPY diza-live/railway/streamedMp3Audio.ts' diza-live/railway/Dockerfile
+      - name: Compile original pinned Bloks with isolated real-model fallback
+        run: docker build --progress=plain -f diza-live/railway/Dockerfile -t bloks-muse-model-recovery:lab .
+      - name: Assert shipped ACP server model choices and Node syntax
+        run: |
+          docker run --rm --entrypoint /bin/sh bloks-muse-model-recovery:lab -ec '
+            node --experimental-strip-types --check /opt/bloks/server/drivers/acp.ts
+            grep -Fq "BLOKS_VERIFIED_OPENCODE_FREE" /opt/bloks/server/drivers/acp.ts
+            grep -Fq "openCodeCliCatalog" /opt/bloks/server/drivers/acp.ts
+            grep -Fq "opencode/muse-spark-1.3-contributor-free" /opt/bloks/server/drivers/acp.ts
+            grep -Fq "options: [{ id: \"auto\", label: \"Auto\" }, BLOKS_VERIFIED_OPENCODE_FREE]" /opt/bloks/server/drivers/acp.ts
+            grep -Fq "MUSE_SPARK_FREE_DEFAULT=EXISTING_CONFIG_PRESERVED" /opt/diza-live/entrypoint.sh || grep -Fq "EXISTING_CONFIG_PRESERVED" /opt/diza-live/entrypoint.sh
+            echo "BLOKS_OPENCODE_MODEL_RECOVERY_AND_AUTH_PRESERVATION=PASS"
+          '
