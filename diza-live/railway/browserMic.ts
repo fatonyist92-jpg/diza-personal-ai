@@ -12,6 +12,8 @@ type Hooks = {
   onSilence: () => void;
   onError: (message: string) => void;
   onProcessing?: () => void;
+  /** Fired only after MediaRecorder actually starts capturing, never on permission request. */
+  onReady?: () => void;
 };
 export interface BrowserMicSession {
   stop(): void;
@@ -20,12 +22,16 @@ export interface BrowserMicSession {
 
 const MAX_MS = 18_000;
 // Don't shorten user speech to chase latency. Keep natural inter-word pauses.
-const SPEECH_SILENCE_MS = 1_050;
+const SPEECH_SILENCE_MS = 1_150;
+const MIN_LISTEN_WINDOW_MS = 2_600;
+const STARTUP_TRANSIENT_MS = 650;
+const MIC_READY_DELAY_MS = 200;
 const START_SILENCE_MS = 10_000;
 // Android mics may be quieter than laptop/desktop; 0.017 filtered real
 // conversation as silence, while a single transient could trigger too early.
 const SPEECH_RMS_THRESHOLD = 0.009;
-const MIN_SPEECH_FRAMES = 2;
+const MIN_SPEECH_FRAMES = 3;
+const STARTUP_MIN_SPEECH_FRAMES = 5;
 
 /** Conservative, non-recording local VAD. This only detects WHEN to finish.
  * Speech content is never stored here or logged. */
@@ -34,10 +40,15 @@ export function createMicrophoneActivityDetector() {
   let heard = false;
   let lastVoice = 0;
   return {
-    update(rms: number, now: number) {
+    update(rms: number, now: number, elapsedMs = Number.POSITIVE_INFINITY) {
+      // Android opens its automatic gain/noise-suppression chain with short
+      // transients. Two loud analyser ticks are NOT proof of user speech.
+      // Keep recording those first bytes, but don't close on the click.
       if (Number.isFinite(rms) && rms >= SPEECH_RMS_THRESHOLD) {
         consecutive++;
-        if (consecutive >= MIN_SPEECH_FRAMES) {
+        const required = elapsedMs < STARTUP_TRANSIENT_MS
+          ? STARTUP_MIN_SPEECH_FRAMES : MIN_SPEECH_FRAMES;
+        if (consecutive >= required) {
           heard = true;
           lastVoice = now;
         }
@@ -124,6 +135,7 @@ async function startRecordedBrowserMic(hooks: Hooks, autoStop: boolean): Promise
   let audioContext: AudioContext | null = null;
   let frameTimer: ReturnType<typeof setInterval> | null = null;
   let ceilingTimer: ReturnType<typeof setTimeout> | null = null;
+  let readyTimer: ReturnType<typeof setTimeout> | null = null;
   let closed = false;
   let cancelled = false;
   let completed = false;
@@ -136,8 +148,10 @@ async function startRecordedBrowserMic(hooks: Hooks, autoStop: boolean): Promise
   const dispose = () => {
     if (frameTimer) clearInterval(frameTimer);
     if (ceilingTimer) clearTimeout(ceilingTimer);
+    if (readyTimer) clearTimeout(readyTimer);
     frameTimer = null;
     ceilingTimer = null;
+    readyTimer = null;
     stream.getTracks().forEach((track) => track.stop());
     if (audioContext) void audioContext.close().catch(() => {});
     audioContext = null;
@@ -168,6 +182,13 @@ async function startRecordedBrowserMic(hooks: Hooks, autoStop: boolean): Promise
       ...(type ? { mimeType: type } : {}),
       audioBitsPerSecond: 64_000,
     });
+    // Do not display "Listening" until the real recorder started. Captured
+    // bytes are retained during the short mic warmup (no speech is discarded).
+    recorder.onstart = () => {
+      readyTimer = setTimeout(() => {
+        if (!closed && !cancelled) hooks.onReady?.();
+      }, MIC_READY_DELAY_MS);
+    };
     recorder.ondataavailable = (event) => {
       if (event.data.size) blobs.push(event.data);
     };
@@ -223,6 +244,11 @@ async function startRecordedBrowserMic(hooks: Hooks, autoStop: boolean): Promise
     if (autoStop) {
       try {
         audioContext = new AudioContext();
+        // Some Android WebViews initialize the AudioContext suspended after
+        // permission UI. Resume it or the VAD only sees zeros.
+        if (audioContext.state === "suspended") {
+          void audioContext.resume().catch(() => {});
+        }
         const source = audioContext.createMediaStreamSource(stream);
         const analyser = audioContext.createAnalyser();
         analyser.fftSize = 1024;
@@ -239,10 +265,10 @@ async function startRecordedBrowserMic(hooks: Hooks, autoStop: boolean): Promise
           }
           const rms = Math.sqrt(power / buf.length);
           const now = performance.now();
-          const activity = detector.update(rms, now);
+          const activity = detector.update(rms, now, now - started);
           heardSpeech = activity.heardSpeech;
           if (activity.lastLoud) lastLoud = activity.lastLoud;
-          if (heardSpeech && now - lastLoud > SPEECH_SILENCE_MS && now - started > 1_350) {
+          if (heardSpeech && now - lastLoud > SPEECH_SILENCE_MS && now - started > MIN_LISTEN_WINDOW_MS) {
             finish();
           } else if (!heardSpeech && now - started >= START_SILENCE_MS) {
             finish();

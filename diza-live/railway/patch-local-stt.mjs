@@ -192,3 +192,49 @@ put(voice,
  '  const beginCall = async () => {\n    // Request mic access from the actual click, before async lease claim.\n    if (!window.bloks && navigator.mediaDevices?.getUserMedia) {\n      try {\n        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });\n        stream.getTracks().forEach((track) => track.stop());\n      } catch {\n        // Call overlay reports any remaining microphone error.\n      }\n    }\n    setCalling(true);\n  };',
  '  const beginCall = async () => {\n    // CallOverlay will request and retain its own microphone stream.\n    setCalling(true);\n  };',
  "avoid opening and releasing microphone twice before Call");
+
+
+// Fix first-utterance race: show "listening" only AFTER MediaRecorder has
+// actually started. The previous Call UI advertised listening while Android
+// was still waiting for getUserMedia permission/initialisation.
+put(voice,
+ 'type CallState = "listening" | "transcribing" | "thinking" | "speaking" | "idle";',
+ 'type CallState = "arming" | "listening" | "transcribing" | "thinking" | "speaking" | "idle";',
+ "separate Android mic arming from active recording");
+put(voice,
+ '  onProcessing?: () => void;\n}): { stop: () => void; needsManualFinish: boolean } | null {',
+ '  onProcessing?: () => void;\n  onReady?: () => void;\n}): { stop: () => void; needsManualFinish: boolean } | null {',
+ "allow recorder readiness callback");
+put(voice,
+ '      onProcessing: handlers.onProcessing,\n    }, true).then((session) => {',
+ '      onProcessing: handlers.onProcessing,\n      onReady: handlers.onReady,\n    }, true).then((session) => {',
+ "wire real capture start, not button press");
+put(voice,
+ '    setCallState("listening");\n    const session = startRecognition({',
+ '    setCallState(window.bloks ? "listening" : "arming");\n    const session = startRecognition({',
+ "agent Call waits for physical mic");
+put(voice,
+ '      onFinal: (text) => finishUtterance(text),\n      // Recognition may return empty audio once as Chrome initializes; keep Call hands-free.',
+ '      onReady: () => { if (live.current) setCallState("listening"); },\n      onFinal: (text) => finishUtterance(text),\n      // Recognition may return empty audio once as Chrome initializes; keep Call hands-free.',
+ "agent Call reacts to actual recorder start");
+put(voice,
+ '      onSilence: () => { if (live.current) listen(); },',
+ '      onSilence: () => { if (live.current) setTimeout(() => { if (live.current) listen(); }, 180); },',
+ "release Android capture before retrying an empty first utterance");
+put(voice,
+ '    setCallState("listening");\n    callStateRef.current = "listening";',
+ '    setCallState(window.bloks ? "listening" : "arming");\n    callStateRef.current = window.bloks ? "listening" : "arming";',
+ "room Call waits for physical mic");
+put(voice,
+ '      onFinal: (text) => finishUtterance(text),\n      onSilence: () => listen(),\n      onError: (message) => setError(message),',
+ '      onReady: () => { if (live.current) { setCallState("listening"); callStateRef.current = "listening"; } },\n      onFinal: (text) => finishUtterance(text),\n      onSilence: () => { if (live.current) setTimeout(() => { if (live.current) listen(); }, 180); },\n      onError: (message) => { setError(message); setCallState("idle"); },',
+ "room Call ready handshake and safe automatic retry");
+// Only textual status label changes; UI layout, agents and theme remain locked.
+putFirstDuplicate(voice,
+ '  const stateLabel =\n    callState === "listening"',
+ '  const stateLabel =\n    callState === "arming"\n      ? "Menyiapkan mikrofon…"\n      : callState === "listening"',
+ "agent Call says arming, not false Listening");
+put(voice,
+ '  const stateLabel =\n    callState === "listening"',
+ '  const stateLabel =\n    callState === "arming"\n      ? "Menyiapkan mikrofon…"\n      : callState === "listening"',
+ "room Call says arming, not false Listening");
