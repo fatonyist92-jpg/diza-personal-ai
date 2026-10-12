@@ -38,9 +38,9 @@ one("            models.options = catalog.options;\n            models.default =
 one("              models.options = catalog.options;\n              models.default = catalog.default;",
   '              models.options = spec.kind === "opencode" ? openCodeCatalogWithVerifiedFree(catalog).options : catalog.options;\n              models.default = catalog.default;',
   "turn model list");
-one('      default: "auto",\n      options: [{ id: "auto", label: "Auto" }],',
-  '      default: "auto",\n      options: [{ id: "auto", label: "Auto" }, BLOKS_VERIFIED_OPENCODE_FREE],',
-  "always show verified free choice");
+one('    // opencode depends entirely on which providers are connected\n    probeModels: true,\n    models: {\n      default: "auto",\n      options: [{ id: "auto", label: "Auto" }],',
+  '    // opencode depends entirely on which providers are connected\n    probeModels: true,\n    models: {\n      default: "auto",\n      options: [{ id: "auto", label: "Auto" }, BLOKS_VERIFIED_OPENCODE_FREE],',
+  "always show verified free choice for OpenCode only");
 // Previously a real OpenCode model was ignored whenever an incomplete
 // ACP session omitted it, even after the model picker displayed it from
 // OpenCode's authoritative CLI list. An explicitly chosen, verified model
