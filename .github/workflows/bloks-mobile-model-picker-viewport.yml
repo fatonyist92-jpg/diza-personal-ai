@@ -1,0 +1,39 @@
+name: Bloks Mobile Engine Picker Viewport Fix
+on:
+  push:
+    branches: [bloks-mobile-modelpicker-viewport-20261012]
+    paths:
+      - "diza-live/railway/Dockerfile"
+      - "diza-live/railway/patch-mobile-model-picker.mjs"
+      - "diza-live/railway/test-mobile-model-picker-browser.mjs"
+      - ".github/workflows/bloks-mobile-model-picker-viewport.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  viewport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate isolated mobile patch syntax
+        run: node --check diza-live/railway/patch-mobile-model-picker.mjs
+      - name: Build locked Bloks Docker with only narrow-screen ModelPicker layout patch
+        run: |
+          docker build --progress=plain -f diza-live/railway/Dockerfile -t bloks-viewport-lab .
+          CID=$(docker create bloks-viewport-lab)
+          docker cp "$CID:/opt/bloks/dist" ./bloks-build-dist
+          docker cp "$CID:/opt/bloks/src/components/ModelPicker.tsx" ./model-picker-patched.tsx
+          docker rm "$CID"
+          grep -Fq 'max-sm:inset-x-3' model-picker-patched.tsx
+          grep -Fq 'max-sm:w-auto' model-picker-patched.tsx
+          grep -Fq 'max-sm:max-h-[calc(77dvh-1rem)]' model-picker-patched.tsx
+          echo 'MODEL_PICKER_LAYOUT_PATCH_COMPILED=PASS'
+      - name: Test true Chromium mobile viewport bounds and model scroll
+        run: |
+          command -v google-chrome || command -v google-chrome-stable
+          npm install --no-save --ignore-scripts playwright-core@1.55.1
+          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable)" node diza-live/railway/test-mobile-model-picker-browser.mjs
