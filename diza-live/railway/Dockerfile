@@ -78,6 +78,8 @@ COPY diza-live/railway/entrypoint.sh /opt/diza-live/entrypoint.sh
 COPY diza-live/railway/boot.mjs /opt/diza-live/boot.mjs
 COPY diza-live/railway/tts-neural.py /opt/diza-live/tts-neural.py
 COPY diza-live/railway/stt-zipformer.py /opt/diza-live/stt-zipformer.py
+COPY diza-live/railway/warm-zipformer.py /opt/diza-live/warm-zipformer.py
+COPY diza-live/railway/warm-stt.mjs /opt/diza-live/warm-stt.mjs
 COPY diza-live/railway/stt-smoke.mjs /opt/diza-live/stt-smoke.mjs
 COPY diza-live/railway/neural-smoke.mjs /opt/diza-live/neural-smoke.mjs
 COPY diza-live/railway/muse-smoke.mjs /opt/diza-live/muse-smoke.mjs
