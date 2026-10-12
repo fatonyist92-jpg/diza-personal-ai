@@ -1,0 +1,6 @@
+# Never commit approved reporter reference, temporary tokens, downloaded weights, audio.
+.local/
+*.wav
+*.mp3
+__pycache__/
+*.pyc
