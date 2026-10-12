@@ -15,7 +15,7 @@ git -C "$WORK/native-src" checkout -q 3ed176a2b238b7ddb62b4aea4e7469ae4bcc3489
 echo "NATIVE_SOURCE_SHA=$(git -C "$WORK/native-src" rev-parse HEAD)"
 
 echo "NATIVE_SETUP=fetch published Indonesian ONNX INT8 model"
-export WORK
+export WORK OUT
 python - <<'PY'
 import os,shutil
 from pathlib import Path
