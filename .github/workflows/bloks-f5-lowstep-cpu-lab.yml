@@ -1,0 +1,36 @@
+name: Bloks F5 - lower NFE CPU verification (isolated)
+on:
+  push:
+    branches: [bloks-call-fastcpu-lab-20261012]
+    paths:
+      - "diza-live/fastcpu-lab/f5_lowstep_cpu.py"
+      - ".github/workflows/bloks-f5-lowstep-cpu-lab.yml"
+  workflow_dispatch:
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install F5 Indo V2 on free CPU
+        run: bash diza-live/f5-codespaces-cpu/setup.sh
+      - name: Benchmark low NFE with approved female F5 voice reference, no prod change
+        env:
+          MPLBACKEND: Agg
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          OMP_NUM_THREADS: "4"
+          TOKENIZERS_PARALLELISM: "false"
+        run: python -u diza-live/fastcpu-lab/f5_lowstep_cpu.py
+      - name: Upload experimental F5 audio results (not deployed)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: F5-IndoV2-CPU-low-NFE-experimental
+          path: diza-live/fastcpu-lab/outputs-f5/
+          retention-days: 7
+          if-no-files-found: error
