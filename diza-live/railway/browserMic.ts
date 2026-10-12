@@ -5,6 +5,8 @@
  *
  * Audio leaves the browser only for this same-origin, paired Bloks server.
  */
+import { startNativeIndonesianSpeech } from "./browserSpeechNative";
+
 type Hooks = {
   onFinal: (text: string) => void;
   onSilence: () => void;
@@ -31,6 +33,34 @@ function description(error: unknown): string {
   return error instanceof Error && error.message ? error.message : "Perekaman suara gagal. Coba lagi.";
 }
 export async function startBrowserMic(hooks: Hooks, autoStop: boolean): Promise<BrowserMicSession> {
+  let cancelled = false;
+  let recorderFallback: BrowserMicSession | null = null;
+  const native = startNativeIndonesianSpeech({
+    onFinal: hooks.onFinal,
+    onSilence: hooks.onSilence,
+    onError: hooks.onError,
+    onFallback: () => {
+      if (cancelled) return;
+      // Chrome speech backend unavailable. Automatically use offline
+      // Indonesian Zipformer, never Gemini, without changing the UI.
+      void startRecordedBrowserMic(hooks, autoStop).then(session => {
+        if (cancelled) session.cancel();
+        else recorderFallback = session;
+      }).catch(err => {
+        if (!cancelled) hooks.onError(description(err));
+      });
+    }
+  });
+  if (native) {
+    return {
+      stop() { recorderFallback?.stop(); native.stop(); },
+      cancel() { cancelled = true; recorderFallback?.cancel(); native.cancel(); },
+    };
+  }
+  return startRecordedBrowserMic(hooks, autoStop);
+}
+
+async function startRecordedBrowserMic(hooks: Hooks, autoStop: boolean): Promise<BrowserMicSession> {
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
     throw new Error("Mikrofon browser membutuhkan HTTPS dan izin situs.");
   }
