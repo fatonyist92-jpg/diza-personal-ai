@@ -41,7 +41,7 @@ RUN pnpm install --frozen-lockfile
 RUN npm install -g @openai/codex@0.162.1 && codex --version
 # Native OpenCode ACP engine is already supported by upstream Bloks.
 # Install its binary at image-build time (remote in-app installers are disabled).
-RUN npm install -g opencode-ai@1.18.35 && opencode --version
+RUN npm install -g opencode-ai@1.19.0 && test "$(opencode --version)" = "1.19.0"
 # Keep the original Bloks React UI, add host-only secure browser pairing,
 # and fail the build if any pinned upstream source anchor has changed.
 COPY diza-live/railway/patch-webview.mjs /opt/diza-live/patch-webview.mjs
