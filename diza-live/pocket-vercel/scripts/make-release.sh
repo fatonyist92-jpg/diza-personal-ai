@@ -30,10 +30,7 @@ for item in files:
         filename="onnx/"+item,revision=rev)
     shutil.copyfile(source,Path(os.environ["BUNDLE_MODELS"])/item)
     print("BUNDLE_MODEL_ADDED",item,flush=True)
-ref=hf_hub_download(repo_id="Eempostor/F5-TTS-INDO-FINETUNE-V2",
-    filename="ref_reporter.mp3")
-shutil.copyfile(ref,Path(os.environ["BUNDLE_VOICES"])/"ref_reporter.mp3")
-print("BUNDLE_VOICE=PUBLIC_REPORTER_REFERENCE",flush=True)
+print("VOICE_SAMPLE_NOT_REDISTRIBUTED_IN_PUBLIC_RELEASE",flush=True)
 PY
 cat > "$TMP/bundle/ATTRIBUTION.txt" <<'TXT'
 Pocket Indonesian ONNX weights: https://huggingface.co/anak10thn/pocket-tts-indonesian
