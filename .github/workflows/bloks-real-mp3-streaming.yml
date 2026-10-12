@@ -43,9 +43,10 @@ jobs:
           echo 'BLOKS_STREAMING_ROUTE_COMPILED=YES'
       - name: Test actual Chrome chunk playback with 3.5s artificial network delay
         run: |
-          command -v ffmpeg
           command -v google-chrome
-          ffmpeg -hide_banner -loglevel error -f lavfi -i "sine=frequency=440:duration=6" -ac 1 -ar 44100 -b:a 128k -y /tmp/bloks-test-stream.mp3
+          # Ubuntu runner has no ffmpeg; pinned Bloks image contains exact ffmpeg.
+          docker run --rm --entrypoint ffmpeg bloks-stream-test -hide_banner -loglevel error -f lavfi -i "sine=frequency=440:duration=6" -ac 1 -ar 44100 -b:a 128k -f mp3 pipe:1 > /tmp/bloks-test-stream.mp3
+          test -s /tmp/bloks-test-stream.mp3
           npm install --no-save --ignore-scripts playwright-core@1.55.1 typescript@5.9.2
           CHROME_BIN="$(command -v google-chrome)" node diza-live/railway/streamedMp3Audio.browser.test.mjs
           echo 'CHROME_REAL_PROGRESSIVE_AUDIO_BEFORE_FULL_DOWNLOAD=PASS'
