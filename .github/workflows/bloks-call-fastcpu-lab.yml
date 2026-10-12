@@ -1,0 +1,46 @@
+name: Bloks Call - Supertonic 3 CPU benchmark (isolated)
+on:
+  push:
+    branches: [bloks-call-fastcpu-lab-20261012]
+    paths:
+      - "diza-live/fastcpu-lab/**"
+      - ".github/workflows/bloks-call-fastcpu-lab.yml"
+  workflow_dispatch:
+jobs:
+  benchmark:
+    name: CPU ONNX Indonesian natural voice benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: CPU characteristics
+        run: |
+          python -c "import os; print('CPU',os.cpu_count())"
+          free -h
+      - name: Download archived public code and install CPU ONNX dependencies
+        run: |
+          git clone --quiet --depth 1 https://github.com/supertone-oss-archive/supertonic.git supertonic-archive
+          python -m pip install --quiet -r supertonic-archive/py/requirements.txt "huggingface_hub[cli]>=0.30"
+      - name: Download pinned Supertonic 3 ONNX, no authentication
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+        run: |
+          hf download supertone-oss-archive/supertonic-3 --revision aafc6e32416a594460b32413efc49d7fe4ce6d46 --local-dir supertonic-archive/assets
+      - name: Synthesize eight Indonesian audio examples on CPU at tempo 0.85
+        env:
+          OMP_NUM_THREADS: "4"
+        run: |
+          python -u diza-live/fastcpu-lab/benchmark_supertonic3.py
+      - name: Upload offline comparison audio and measurements
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supertonic3-cpu-indonesian-female-comparison
+          path: diza-live/fastcpu-lab/outputs/
+          retention-days: 7
+          if-no-files-found: error
