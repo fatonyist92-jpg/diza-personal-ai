@@ -28,7 +28,7 @@ jobs:
         run: |
           docker run --rm --memory=1024m --memory-swap=1024m --cpus=2 --entrypoint /bin/sh bloks-opencode-1190:lab -ec '
             [ "$(opencode --version)" = "1.19.0" ]
-            timeout 20s opencode acp --help > /tmp/opencode-acp-help
+            timeout 20s opencode acp --help > /tmp/opencode-acp-help 2>&1
             test -s /tmp/opencode-acp-help
             grep -q -i acp /tmp/opencode-acp-help
             echo "OPENCODE_1190_VERSION_AND_ACP_PASS"
