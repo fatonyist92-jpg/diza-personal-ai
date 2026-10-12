@@ -19,9 +19,35 @@ export interface BrowserMicSession {
 }
 
 const MAX_MS = 18_000;
-// Call end-of-utterance pause. Avoid cutting natural inter-word gaps (<1s).
+// Don't shorten user speech to chase latency. Keep natural inter-word pauses.
 const SPEECH_SILENCE_MS = 1_050;
-const START_SILENCE_MS = 9_000;
+const START_SILENCE_MS = 10_000;
+// Android mics may be quieter than laptop/desktop; 0.017 filtered real
+// conversation as silence, while a single transient could trigger too early.
+const SPEECH_RMS_THRESHOLD = 0.009;
+const MIN_SPEECH_FRAMES = 2;
+
+/** Conservative, non-recording local VAD. This only detects WHEN to finish.
+ * Speech content is never stored here or logged. */
+export function createMicrophoneActivityDetector() {
+  let consecutive = 0;
+  let heard = false;
+  let lastVoice = 0;
+  return {
+    update(rms: number, now: number) {
+      if (Number.isFinite(rms) && rms >= SPEECH_RMS_THRESHOLD) {
+        consecutive++;
+        if (consecutive >= MIN_SPEECH_FRAMES) {
+          heard = true;
+          lastVoice = now;
+        }
+      } else {
+        consecutive = 0;
+      }
+      return { heardSpeech: heard, lastLoud: lastVoice };
+    },
+  };
+}
 
 function description(error: unknown): string {
   const name = error instanceof Error ? error.name : "";
@@ -173,6 +199,12 @@ async function startRecordedBrowserMic(hooks: Hooks, autoStop: boolean): Promise
           });
           const data = await r.json() as { text?: string; error?: string };
           if (cancelled) return;
+          // Zipformer 422 means no recognizable words, not a microphone
+          // permission or network failure. Keep hands-free Call listening.
+          if (r.status === 422) {
+            hooks.onSilence();
+            return;
+          }
           if (!r.ok) throw new Error(data.error || "Gagal mengubah rekaman menjadi teks.");
           const text = (data.text ?? "").trim();
           if (text) hooks.onFinal(text);
@@ -196,6 +228,7 @@ async function startRecordedBrowserMic(hooks: Hooks, autoStop: boolean): Promise
         analyser.fftSize = 1024;
         source.connect(analyser);
         const buf = new Uint8Array(analyser.fftSize);
+        const detector = createMicrophoneActivityDetector();
         frameTimer = setInterval(() => {
           if (closed || cancelled) return;
           analyser.getByteTimeDomainData(buf);
@@ -206,11 +239,10 @@ async function startRecordedBrowserMic(hooks: Hooks, autoStop: boolean): Promise
           }
           const rms = Math.sqrt(power / buf.length);
           const now = performance.now();
-          if (rms >= 0.017) {
-            heardSpeech = true;
-            lastLoud = now;
-          }
-          if (heardSpeech && now - lastLoud > SPEECH_SILENCE_MS && now - started > 1_200) {
+          const activity = detector.update(rms, now);
+          heardSpeech = activity.heardSpeech;
+          if (activity.lastLoud) lastLoud = activity.lastLoud;
+          if (heardSpeech && now - lastLoud > SPEECH_SILENCE_MS && now - started > 1_350) {
             finish();
           } else if (!heardSpeech && now - started >= START_SILENCE_MS) {
             finish();
