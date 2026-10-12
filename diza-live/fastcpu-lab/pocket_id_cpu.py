@@ -43,8 +43,7 @@ def main():
     results=[]
     for name,sentence in samples:
         t0=time.monotonic()
-        with torch.inference_mode():
-            audio=model.generate_audio(state,sentence)
+        audio=model.generate_audio(state,sentence)
         generate_s=time.monotonic()-t0
         samples_np=audio.detach().cpu().numpy().reshape(-1).astype(np.float32)
         duration_s=len(samples_np)/model.sample_rate
