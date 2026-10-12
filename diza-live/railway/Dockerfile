@@ -57,6 +57,7 @@ COPY diza-live/railway/supertonic3-local-tts.test.mjs /opt/bloks/server/superton
 RUN node --test /opt/bloks/server/supertonic3-local-tts.test.mjs
 COPY diza-live/railway/gemini-fast-stream.test.mjs /opt/bloks/server/gemini-fast-stream.test.mjs
 COPY diza-live/railway/pcmStreamAudio.ts /opt/bloks/src/lib/pcmStreamAudio.ts
+COPY diza-live/railway/streamedMp3Audio.ts /opt/bloks/src/lib/streamedMp3Audio.ts
 COPY diza-live/railway/patch-fast-voice.mjs /opt/diza-live/patch-fast-voice.mjs
 COPY diza-live/railway/gemini-natural-tts.test.mjs /opt/bloks/server/gemini-natural-tts.test.mjs
 RUN node --test /opt/bloks/server/gemini-natural-tts.test.mjs
