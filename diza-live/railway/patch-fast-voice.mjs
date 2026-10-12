@@ -140,6 +140,6 @@ swap(voice,
 // AudioRef in Group Call may point to a paused clip, but a Promise can
 // still be awaiting playback. Unblock it on barge-in or hang-up.
 swap(voice,
-  '  const [needsManualFinish, setNeedsManualFinish] = useState(false);\n  const audioRef = useRef<HTMLAudioElement | null>(null);',
-  '  const [needsManualFinish, setNeedsManualFinish] = useState(false);\n  const audioRef = useRef<HTMLAudioElement | null>(null);',
-  "preserve unchanged Group overlay ref shape");
+  '  const stopAudio = () => {\\n    audioRef.current?.pause();\\n    audioRef.current = null;\\n  };',
+  '  const stopAudio = () => {\\n    groupPlaybackStopRef.current?.();\\n    groupPlaybackStopRef.current = null;\\n    audioRef.current?.pause();\\n    audioRef.current = null;\\n  };',
+  "room Call stop releases pending playback and duplicate speaker");
