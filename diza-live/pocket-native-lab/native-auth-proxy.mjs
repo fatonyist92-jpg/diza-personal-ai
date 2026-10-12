@@ -81,8 +81,17 @@ export function makeProxy({
     res.setHeader('cache-control','no-store');
     res.setHeader('x-content-type-options','nosniff');
     if (req.method === 'GET' && req.url === '/health') {
-      res.writeHead(200,{'content-type':'application/json'});
-      res.end(JSON.stringify({ready:true,busy}));return;
+      // Do not claim ready until the real C++ server responds.
+      // A cold native model can take a moment to load.
+      let ready=false;
+      try {
+        const status=await nativeFetch(upstream.origin+'/health',{
+          method:'GET',signal:AbortSignal.timeout(1200)
+        });
+        ready=status.ok;
+      } catch {}
+      res.writeHead(ready?200:503,{'content-type':'application/json'});
+      res.end(JSON.stringify({ready,busy}));return;
     }
     if(req.method !== 'POST' || req.url !== '/v1/tts') {
       res.writeHead(404);res.end();return;
