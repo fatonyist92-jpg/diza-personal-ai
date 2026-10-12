@@ -44,9 +44,9 @@ def main():
     )
     tts = sherpa_onnx.OfflineTts(config)
     opts = sherpa_onnx.GenerationConfig()
-    opts.sid = 4  # F5: calmer female voice in model voice catalog
+    opts.sid = 0  # F1: female voice, from model voice catalog
     opts.num_steps = 8
-    opts.speed = 0.85  # softer, slower delivery as requested
+    opts.speed = 1.04
     opts.extra["lang"] = "id"
     speech = tts.generate(text, opts)
     pcm = np.asarray(speech.samples, dtype=np.float32).reshape(-1)
