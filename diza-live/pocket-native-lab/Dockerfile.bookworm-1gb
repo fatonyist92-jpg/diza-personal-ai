@@ -1,0 +1,33 @@
+FROM python:3.11-bookworm AS pocket-compile
+ARG NATIVE_SHA=3ed176a2b238b7ddb62b4aea4e7469ae4bcc3489
+RUN apt-get update && apt-get install -y --no-install-recommends git build-essential curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir 'cmake>=3.30,<5'
+RUN git clone --quiet https://github.com/netai369/PocketTTS.cpp-multilingual /src \
+ && cd /src && git checkout --quiet "$NATIVE_SHA" \
+ && cmake -S /src -B /src/.build -DCMAKE_BUILD_TYPE=Release \
+ && cmake --build /src/.build --parallel 2
+# This bundle holds only the public Indonesian ONNX INT8 model and binaries,
+# never a private user's recording, text, credentials, or third-party voice.
+RUN mkdir -p /models /voices \
+ && curl -fL --retry 2 \
+ 'https://github.com/fatonyist92-jpg/diza-personal-ai/releases/download/bloks-pocket-onnx-id-v1/pocket-cpu-id-v1.tar.gz' \
+ -o /tmp/pocket.tar.gz \
+ && tar -xzf /tmp/pocket.tar.gz -C /models \
+ && mv /models/models /tmp/models-onnx \
+ && mv /tmp/models-onnx /models/onnx \
+ && test -s /models/onnx/flow_lm_main_int8.onnx \
+ && curl -fL --retry 2 \
+ 'https://huggingface.co/Eempostor/F5-TTS-INDO-FINETUNE-V2/resolve/main/ref_reporter.mp3' \
+ -o /voices/ref_reporter.mp3 \
+ && test -s /voices/ref_reporter.mp3
+
+FROM node:22-bookworm-slim
+COPY --from=pocket-compile /src/pocket-tts /opt/pocket/pocket-tts
+COPY --from=pocket-compile /src/libonnxruntime.so /opt/pocket/libonnxruntime.so
+COPY --from=pocket-compile /models/onnx /opt/pocket/models
+COPY --from=pocket-compile /voices/ref_reporter.mp3 /opt/pocket/voices/ref_reporter.mp3
+ENV LD_LIBRARY_PATH=/opt/pocket
+ENV OMP_NUM_THREADS=1
+WORKDIR /opt/pocket
+CMD ["/opt/pocket/pocket-tts","--help"]
