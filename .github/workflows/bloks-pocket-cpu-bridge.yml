@@ -1,0 +1,25 @@
+name: Bloks Pocket CPU staging adapter security contract
+on:
+  push:
+    branches: [bloks-call-fastcpu-lab-20261012]
+    paths:
+      - "diza-live/pocket-bridge/**"
+      - ".github/workflows/bloks-pocket-cpu-bridge.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  adapter-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify isolated client with no live changes
+        run: |
+          node --check diza-live/pocket-bridge/pocket-remote-tts.mjs
+          node --test diza-live/pocket-bridge/pocket-remote-tts.test.mjs
+          test -f diza-live/railway/f5-remote-tts.mjs
+          echo "Pocket staging only. Railway, UI and main untouched."
