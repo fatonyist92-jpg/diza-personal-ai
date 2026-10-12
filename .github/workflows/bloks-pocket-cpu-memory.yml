@@ -1,0 +1,26 @@
+name: Bloks Pocket CPU resource envelope (no production changes)
+on:
+  push:
+    branches: [bloks-call-fastcpu-lab-20261012]
+    paths:
+      - "diza-live/pocket-cpu/measure_resources.py"
+      - ".github/workflows/bloks-pocket-cpu-memory.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install exact staging CPU runtime
+        run: bash diza-live/pocket-cpu/setup_codespace.sh
+      - name: Measure actual RSS and peak memory during two voice generations
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          OMP_NUM_THREADS: "2"
+        run: python -u diza-live/pocket-cpu/measure_resources.py
