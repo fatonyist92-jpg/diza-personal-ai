@@ -1,0 +1,24 @@
+name: Bloks Android Call mic real recorder regression (isolated)
+on:
+  push:
+    branches: [bloks-stt-android-recorder-hotfix-20261012]
+    paths:
+      - "diza-live/railway/browserMic.ts"
+      - "diza-live/railway/browserMic.android.test.mjs"
+      - ".github/workflows/bloks-stt-android-recorder-hotfix.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android-audio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test actual microphone recorder to local transcription endpoint
+        run: |
+          node --experimental-strip-types --test diza-live/railway/browserMic.android.test.mjs
+          echo 'BLOKS_ANDROID_MEDIARECORDER_LOCAL_STT=PASS'
