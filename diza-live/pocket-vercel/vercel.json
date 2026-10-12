@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "regions": ["sin1"],
+  "rewrites": [
+    { "source": "/v1/tts", "destination": "/api/tts" },
+    { "source": "/health", "destination": "/api/health" }
+  ],
+  "functions": {
+    "api/tts.js": {
+      "maxDuration": 50,
+      "includeFiles": "api/voice-assets/**"
+    },
+    "api/health.js": {
+      "maxDuration": 10,
+      "includeFiles": "api/voice-assets/**"
+    }
+  }
+}
