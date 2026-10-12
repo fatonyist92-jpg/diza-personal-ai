@@ -6,8 +6,8 @@ import { writeFileSync } from 'node:fs';
 
 const reservation = Buffer.alloc(256 * 1024 * 1024, 0x7f);
 const tests=[
-  {text:'Halo, aku Diza. Gimana kabar kamu?',out:'/tmp/pocket-shorts.wav'},
-  {text:'Halo, aku Diza. Sekarang kita bisa ngobrol santai. Ceritain apa yang kamu pikirkan hari ini.',out:'/tmp/pocket-longs.wav'}
+  {text:'Halo, aku Diza. Gimana kabar kamu?',out:'/tmp/voice-output/pocket-shorts.wav'},
+  {text:'Halo, aku Diza. Sekarang kita bisa ngobrol santai. Ceritain apa yang kamu pikirkan hari ini.',out:'/tmp/voice-output/pocket-longs.wav'}
 ];
 for(const t of tests){
   const began=Date.now();
