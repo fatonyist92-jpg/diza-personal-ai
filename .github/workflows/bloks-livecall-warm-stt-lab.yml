@@ -1,0 +1,34 @@
+name: Bloks Live-Call Warm STT 1GB Synthetic Feasibility
+on:
+  push:
+    branches: [bloks-livecall-warm-stt-lab-20261012]
+    paths:
+      - "diza-live/railway/warm-zipformer.py"
+      - "diza-live/railway/warm-stt.mjs"
+      - "diza-live/railway/warm-stt-benchmark.mjs"
+      - "diza-live/railway/Dockerfile"
+      - ".github/workflows/bloks-livecall-warm-stt-lab.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 29
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test syntax without user audio
+        run: |
+          node --check diza-live/railway/warm-stt.mjs
+          node --check diza-live/railway/warm-stt-benchmark.mjs
+          python -m py_compile diza-live/railway/warm-zipformer.py
+      - name: Build original pinned Railway Bloks with extra isolated warm STT files
+        run: |
+          docker build --progress=plain -f diza-live/railway/Dockerfile -t bloks-warm-stt-lab .
+      - name: Benchmark cold vs warm ONNX under 1GB RAM/2 CPU
+        run: |
+          docker run --rm --memory=1024m --memory-swap=1024m --cpus=2 \
+            --entrypoint /usr/bin/node \
+            -v "$PWD/diza-live/railway/warm-stt-benchmark.mjs:/opt/diza-live/warm-stt-benchmark.mjs:ro" \
+            bloks-warm-stt-lab /opt/diza-live/warm-stt-benchmark.mjs
+          echo 'WARM_LOCAL_STT_1GB_PASS=YES'
