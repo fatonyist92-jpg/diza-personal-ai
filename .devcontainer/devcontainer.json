@@ -1,0 +1,16 @@
+{
+  "name": "Bloks F5 Indo V2 CPU Benchmark (Codespaces)",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "postCreateCommand": "bash diza-live/f5-codespaces-cpu/setup.sh",
+  "remoteEnv": {
+    "MPLBACKEND": "Agg",
+    "HF_HUB_DISABLE_TELEMETRY": "1"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      }
+    }
+  }
+}
