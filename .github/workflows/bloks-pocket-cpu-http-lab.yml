@@ -4,6 +4,7 @@ on:
     branches: [bloks-call-fastcpu-lab-20261012]
     paths:
       - "diza-live/pocket-cpu/**"
+      - "diza-live/pocket-bridge/**"
       - ".devcontainer/pocket-voice/**"
       - ".github/workflows/bloks-pocket-cpu-http-lab.yml"
   workflow_dispatch:
@@ -31,8 +32,8 @@ jobs:
           bash diza-live/pocket-cpu/start_codespace.sh > /tmp/pocket-voice-api.log 2>&1 &
           worker_pid=$!
           trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
-          if ! python -u diza-live/pocket-cpu/http_smoke.py; then
-            echo "HTTP voice test failed. Recent safe worker logs:"
+          if ! (python -u diza-live/pocket-cpu/http_smoke.py && node diza-live/pocket-bridge/pocket-real-bridge-smoke.mjs); then
+            echo "HTTP/real-bridge test failed. Recent safe worker logs:"
             tail -50 /tmp/pocket-voice-api.log
             exit 1
           fi
