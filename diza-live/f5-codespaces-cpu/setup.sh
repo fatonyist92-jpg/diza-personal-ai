@@ -7,6 +7,6 @@ echo "[Bloks F5 CPU] Installing CPU-only PyTorch..."
 python -m pip install --upgrade pip
 python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch==2.5.1" "torchaudio==2.5.1"
 echo "[Bloks F5 CPU] Installing F5-TTS in isolated Codespace..."
-python -m pip install "f5-tts==1.1.22" "huggingface-hub>=0.26" "soundfile"
+python -m pip install "f5-tts==1.1.22" "transformers==4.47.1" "huggingface-hub>=0.26,<1.0" "soundfile"
 echo "[Bloks F5 CPU] Dependencies installed; run:"
 echo "python diza-live/f5-codespaces-cpu/benchmark.py"
