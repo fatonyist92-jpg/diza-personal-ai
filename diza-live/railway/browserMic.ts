@@ -32,7 +32,22 @@ function description(error: unknown): string {
   if (name === "NotReadableError") return "Mikrofon sedang dipakai aplikasi lain. Tutup perekam lain lalu coba.";
   return error instanceof Error && error.message ? error.message : "Perekaman suara gagal. Coba lagi.";
 }
+/** Android Chrome/WebView can expose SpeechRecognition but never emit a result,
+ * error, or end event. In that case no audio reaches /api/bloks-stt/transcribe.
+ * Use direct microphone capture on Android; leave optional native Web Speech
+ * available elsewhere without modifying UI, agent, or production secrets.
+ */
+export function useDirectAndroidRecorder(userAgent: string): boolean {
+  return /Android/i.test(userAgent);
+}
+
 export async function startBrowserMic(hooks: Hooks, autoStop: boolean): Promise<BrowserMicSession> {
+  // Direct getUserMedia + MediaRecorder always sends actual bytes to the
+  // authenticated Railway Zipformer STT endpoint, even when Chrome's own
+  // speech service hangs forever. No Gemini, Google key, or Whisper involved.
+  if (useDirectAndroidRecorder(typeof navigator === "undefined" ? "" : navigator.userAgent ?? "")) {
+    return startRecordedBrowserMic(hooks, autoStop);
+  }
   let cancelled = false;
   let recorderFallback: BrowserMicSession | null = null;
   const native = startNativeIndonesianSpeech({
