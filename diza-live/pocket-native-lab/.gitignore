@@ -1,0 +1,8 @@
+# Native ONNX model weights and C++ build outputs should never be committed.
+.work/
+outputs/
+*.wav
+*.mp3
+*.so
+*.onnx
+*.npy
