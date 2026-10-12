@@ -1,0 +1,32 @@
+name: Pocket Indonesian CPU 1GB RAM reality test (isolated)
+on:
+  push:
+    branches: [bloks-call-fastcpu-lab-20261012]
+    paths:
+      - "diza-live/pocket-native-lab/Dockerfile.bookworm-1gb"
+      - "diza-live/pocket-native-lab/test-1gb.mjs"
+      - ".github/workflows/bloks-pocket-1gb-railway-lab.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-1gb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 29
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build model on Debian 12, same libc ABI as Railway
+        run: docker build --progress=plain -t pocket-id-1gb:lab -f diza-live/pocket-native-lab/Dockerfile.bookworm-1gb .
+      - name: Test two real Indonesian voice samples, 1GB RAM, 2 CPU
+        run: |
+          mkdir -p /tmp/voice-output
+          docker run --rm --memory=1024m --memory-swap=1024m --cpus=2 \
+            -v "$PWD/diza-live/pocket-native-lab/test-1gb.mjs:/opt/pocket/test-1gb.mjs:ro" \
+            -v /tmp/voice-output:/tmp/voice-output \
+            pocket-id-1gb:lab node /opt/pocket/test-1gb.mjs
+          echo "POCKET_NATIVE_BLOKS_1GB_PASS=YES"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pocket-native-id-1gb-reality-samples
+          path: /tmp/voice-output/*.wav
+          retention-days: 7
