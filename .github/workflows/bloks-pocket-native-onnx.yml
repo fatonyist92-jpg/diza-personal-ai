@@ -3,7 +3,7 @@ on:
   push:
     branches: [bloks-call-fastcpu-lab-20261012]
     paths:
-      - "diza-live/pocket-native-lab/**"
+      - "diza-live/pocket-native-lab/probe_native.sh"
       - ".github/workflows/bloks-pocket-native-onnx.yml"
   workflow_dispatch:
 permissions:
