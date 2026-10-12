@@ -13,17 +13,20 @@ import { dirname } from "node:path";
 const MODEL = "opencode/muse-spark-1.3-contributor-free";
 const RESULT_FILE = "/home/node/.bloks/opencode/muse-spark-free-test.json";
 const ONE_TEST_PER_MS = 12 * 60 * 60 * 1000;
+// Auth probes predating OpenCode 1.19.0 cannot confirm this deployment.
+const PROBE_EPOCH = "after-opencode-1.19.0-validity-check-20261012";
 
 function readLastResult() {
   try {
     const result = JSON.parse(readFileSync(RESULT_FILE, "utf8"));
-    if (result.model === MODEL && Date.now() - Date.parse(result.checkedAt) < ONE_TEST_PER_MS) {
+    if (result.model === MODEL && result.probeEpoch === PROBE_EPOCH && Date.now() - Date.parse(result.checkedAt) < ONE_TEST_PER_MS) {
       return result;
     }
   } catch {}
   return null;
 }
 function diagnostic(output) {
+  if (/Upstream request failed: Invalid credential|Invalid credential/i.test(output)) return "OPENCODE_ZEN_CREDENTIAL_REJECTED";
   if (/only be used from within OpenCode|FreeTierError/i.test(output)) return "FREE_TIER_CLIENT_RESTRICTED";
   if (/not available in your country|RegionError|not available in your region/i.test(output)) return "REGION_RESTRICTED";
   if (/insufficient credits|billing|payment required|requires payment/i.test(output)) return "PAYMENT_REQUIRED";
@@ -72,7 +75,7 @@ function hasActualText(stdout) {
   return false;
 }
 function save(result) {
-  const data = { model: MODEL, checkedAt: new Date().toISOString(), ...result };
+  const data = { model: MODEL, probeEpoch: PROBE_EPOCH, checkedAt: new Date().toISOString(), ...result };
   mkdirSync(dirname(RESULT_FILE), { recursive: true, mode: 0o700 });
   writeFileSync(RESULT_FILE, JSON.stringify(data), { mode: 0o600 });
   console.log("MUSE_SPARK_FREE_TEST=" + data.status);
