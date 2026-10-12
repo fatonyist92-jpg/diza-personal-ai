@@ -1,0 +1,43 @@
+name: Bloks F5 GPU Voice Bridge - isolated CI
+on:
+  push:
+    branches: [bloks-f5-remote-voice-staging-20261012]
+    paths:
+      - "diza-live/railway/f5-remote-tts.mjs"
+      - "diza-live/railway/f5-remote-tts.test.mjs"
+      - "diza-live/railway/patch-f5-voice.mjs"
+      - "diza-live/railway/Dockerfile"
+      - ".github/workflows/bloks-f5-remote-voice-staging.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  voice-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate syntax
+        run: |
+          node --check diza-live/railway/f5-remote-tts.mjs
+          node --check diza-live/railway/f5-remote-tts.test.mjs
+          node --check diza-live/railway/patch-f5-voice.mjs
+      - name: Unit checks for backend routing and fail closed behavior
+        run: node --test diza-live/railway/f5-remote-tts.test.mjs
+      - name: Ensure no accidental runtime enabling or UI changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R -E '^ENV F5_REMOTE_TTS_ENABLED=1|^ENV F5_REMOTE_TTS_TOKEN=' diza-live/railway/Dockerfile; then exit 1; fi
+          test -s diza-live/railway/f5-remote-tts.mjs
+          test -s diza-live/railway/f5-remote-tts.test.mjs
+          grep -q 'patch-f5-voice.mjs' diza-live/railway/Dockerfile
+          test ! -e diza-live/railway/.f5-remote-secret
+  docker-smoke:
+    needs: voice-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build fully pinned Bloks Core with opt-in voice integration
+        run: docker build -f diza-live/railway/Dockerfile -t bloks-f5:ci .
