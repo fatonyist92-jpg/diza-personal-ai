@@ -143,3 +143,25 @@ swap(voice,
   '  const stopAudio = () => {\n    audioRef.current?.pause();\n    audioRef.current = null;\n  };',
   '  const stopAudio = () => {\n    groupPlaybackStopRef.current?.();\n    groupPlaybackStopRef.current = null;\n    audioRef.current?.pause();\n    audioRef.current = null;\n  };',
   "room Call stop releases pending playback and duplicate speaker");
+
+// ElevenLabs already sends streamed MP3 from the upstream API to Railway.
+// Browser used to await res.blob(), however, delaying playback until fully
+// downloaded. Feed compressed MP3 chunks directly to Chrome MediaSource;
+// keep existing blob playback on browsers without native MPEG support.
+swap(voice,
+  'import { playCallAudio } from "@/lib/callPlayback";',
+  'import { playCallAudio } from "@/lib/callPlayback";\nimport { streamedMp3Audio } from "@/lib/streamedMp3Audio";',
+  "import safe progressive MP3 player");
+
+swap(voice,
+  '  const url = URL.createObjectURL(await res.blob());',
+  [
+    '  // Return immediately with an audio element backed by progressive',
+    '  // MediaSource. No waiting for ElevenLabs to finish the MP3 first.',
+    '  if (res.body && (res.headers.get("content-type") ?? "").startsWith("audio/mpeg")) {',
+    '    const progressive = streamedMp3Audio(res.body);',
+    '    if (progressive) return progressive;',
+    '  }',
+    '  const url = URL.createObjectURL(await res.blob());',
+  ].join("\n"),
+  "ElevenLabs and OpenAI MP3 chunked browser playback; blob fallback");
