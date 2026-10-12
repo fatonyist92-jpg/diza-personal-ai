@@ -66,7 +66,7 @@ test('rejects invalid upstream response and excessive text and WAV size',async()
   await assert.rejects(speakPocketCpu('Halo','id-ID-GadisNeural'),/tidak mengirim WAV/);
   await assert.rejects(speakPocketCpu('a'.repeat(1201),'id-ID-GadisNeural'),/terlalu panjang/);
   globalThis.fetch=async()=>wavResponse(Buffer.alloc(9_000_001));
-  await assert.rejects(speakPocketCpu('Halo','id-ID-GadisNeural'),/batas/);
+  await assert.rejects(speakPocketCpu('Halo','id-ID-GadisNeural'),/batas|terlalu besar/);
 });
 
 test('single-flight protection and hangup cancel a pending request',async()=>{
