@@ -20,6 +20,7 @@ jobs:
       - name: CPU and ffmpeg
         run: |
           python -c 'import os; print("CPU count",os.cpu_count())'
+          if ! command -v ffmpeg >/dev/null 2>&1; then sudo apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg; fi
           ffmpeg -version | head -1
       - name: Install CPU-only PyTorch and Indonesian Pocket TTS
         run: |
