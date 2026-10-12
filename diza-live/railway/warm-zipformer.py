@@ -61,6 +61,7 @@ def main():
     recognizer = create_recognizer()
     respond(ready=True)
     for raw in sys.stdin:
+        item = None
         try:
             item = json.loads(raw)
             path = item["path"]
