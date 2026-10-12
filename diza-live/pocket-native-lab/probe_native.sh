@@ -85,10 +85,10 @@ echo "NATIVE_HTTP_STAGE=start isolated native C++ model and protected PCM16 gate
 export POCKET_NATIVE_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(42))')"
 "$BIN" --server --port 8080 --models-dir "$WORK/models" --voices-dir "$WORK/voices" --tokenizer "$WORK/models/tokenizer.model" --threads 2 --eos-threshold -6.0 > "$WORK/native-http.log" 2>&1 &
 native_pid=$!
-node "$OUT/../native-auth-proxy.mjs" > "$WORK/native-proxy.log" 2>&1 &
+node "$(realpath "$OUT/../native-auth-proxy.mjs")" > "$WORK/native-proxy.log" 2>&1 &
 proxy_pid=$!
 trap 'kill "$proxy_pid" "$native_pid" 2>/dev/null || true' EXIT
-if ! node "$OUT/../native-real-http-smoke.mjs"; then
+if ! node "$(realpath "$OUT/../native-real-http-smoke.mjs")"; then
   echo "NATIVE_HTTP_STAGE=FAIL (showing non-sensitive startup diagnostics)"
   tail -30 "$WORK/native-http.log" || true
   tail -30 "$WORK/native-proxy.log" || true
