@@ -38,6 +38,14 @@ console.log("GEMINI_STT_STATUS=" +
     ? (process.env.GEMINI_API_KEY?.trim() ? "ENABLED" : "ENABLED_MISSING_KEY")
     : "OFF_LOCAL_ZIPFORMER_ACTIVE"));
 
+// Warm the non-Whisper, no-quota Zipformer model after the server starts.
+// Fail open: old validated per-request inference remains available.
+// No user audio or private text in this synthetic-free warmup.
+void import("/opt/bloks/server/warm-stt.mjs")
+  .then(({ warmUpZipformer }) => warmUpZipformer())
+  .then(() => console.log("WARM_ZIPFORMER_STT=READY"))
+  .catch(() => console.log("WARM_ZIPFORMER_STT=FALLBACK"));
+
 // Optional zero-user-data synthetic smoke test for the new expressive voice.
 // Runs only after the explicit TTS feature flag is enabled.
 if (process.env.GEMINI_TTS_ENABLED === "1") {
