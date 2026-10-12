@@ -78,7 +78,7 @@ def main():
                     speed=1.0,
                     file_wave=None,
                     show_info=lambda *a, **kw: None,
-                    progress=lambda iterable, **kw: iterable,
+                    progress=None,  # F5 utils expect module.progress.tqdm, not tqdm.auto class/callable.
                 )
             torch.cuda.synchronize()
             generation_seconds = time.monotonic() - t0
