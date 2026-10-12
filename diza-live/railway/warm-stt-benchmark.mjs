@@ -40,3 +40,6 @@ try {
 }finally{
   await rm(prefix,{recursive:true,force:true});
 }
+
+// Synthetic benchmark ends the isolated test process; Docker stops its worker.
+process.exit(0);
