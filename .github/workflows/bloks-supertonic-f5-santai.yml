@@ -1,0 +1,40 @@
+name: Bloks F5 calmer Indonesian female voice (isolated sample)
+on:
+  push:
+    branches: [bloks-supertonic-f5-santai-20261012]
+    paths:
+      - "diza-live/railway/tts-supertonic3.py"
+      - ".github/workflows/bloks-supertonic-f5-santai.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  f5-sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate selected voice and relaxed tempo
+        run: |
+          grep -q 'opts.sid = 4' diza-live/railway/tts-supertonic3.py
+          grep -q 'opts.speed = 0.85' diza-live/railway/tts-supertonic3.py
+          grep -q 'opts.num_steps = 8' diza-live/railway/tts-supertonic3.py
+      - name: Build fully pinned Bloks production Docker in isolation
+        run: docker build --progress=plain -f diza-live/railway/Dockerfile -t bloks-f5-lab .
+      - name: Actually synthesize private-free Indonesian sentence through same binary
+        run: |
+          docker run --rm --entrypoint /bin/sh bloks-f5-lab -lc \
+            'printf "Halo, aku Diza. Sekarang aku bicara pelan dan santai. Gimana kabar kamu hari ini?" | /opt/diza-live/stt-venv/bin/python /opt/diza-live/tts-supertonic3.py' \
+            > bloks_f5_santai.wav
+          python - <<'PY'
+          import wave
+          with wave.open("bloks_f5_santai.wav","rb") as w:
+            duration=w.getnframes()/w.getframerate()
+            assert w.getnchannels()==1 and w.getsampwidth()==2 and duration>2.0 and duration<30, duration
+            print("F5_REAL_INDONESIAN_TTS_PASS duration_s=",round(duration,2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bloks-f5-santai-real-indonesian-voice
+          path: bloks_f5_santai.wav
+          retention-days: 7
