@@ -41,5 +41,16 @@ one("              models.options = catalog.options;\n              models.defau
 one('      default: "auto",\n      options: [{ id: "auto", label: "Auto" }],',
   '      default: "auto",\n      options: [{ id: "auto", label: "Auto" }, BLOKS_VERIFIED_OPENCODE_FREE],',
   "always show verified free choice");
+// Previously a real OpenCode model was ignored whenever an incomplete
+// ACP session omitted it, even after the model picker displayed it from
+// OpenCode's authoritative CLI list. An explicitly chosen, verified model
+// must be sent through ACP instead of silently running the Auto default.
+one('            if (turn.model && turn.model !== catalog?.default && catalog?.options.some((m) => m.id === turn.model)) {',
+  [
+    '            const inRealOpenCodeCatalog = spec.kind === "opencode" && models.options.some((m) => m.id === turn.model);',
+    '            if (turn.model && !(spec.kind === "opencode" && turn.model === "auto") &&',
+    '              turn.model !== catalog?.default && (catalog?.options.some((m) => m.id === turn.model) || inRealOpenCodeCatalog)) {',
+  ].join("\n"),
+  "explicit OpenCode model must actually be passed to ACP");
 writeFileSync(path,c);
 console.log("BLOKS_OPENCODE_CATALOG_RECOVERY=APPLIED");
