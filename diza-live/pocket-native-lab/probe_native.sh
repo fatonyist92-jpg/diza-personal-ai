@@ -64,10 +64,18 @@ cd "$WORK"
 echo "NATIVE_BENCH_DONE"
 python - <<'PY'
 from pathlib import Path
-import wave,os
+import numpy as np
+import soundfile as sf
+import os
 path=Path(os.environ["OUT"])/"pocket_native_santai.wav"
-with wave.open(str(path),"rb") as f:
-    duration=f.getnframes()/f.getframerate()
-    print(f"NATIVE_AUDIO_VALID duration_s={duration:.3f} samplerate={f.getframerate()} bytes={path.stat().st_size}",flush=True)
-    assert 0.5 < duration < 25
+audio,sr=sf.read(str(path),dtype="float32")
+duration=len(audio)/sr
+assert np.isfinite(audio).all() and np.max(np.abs(audio)) > 0.001
+assert 0.5 < duration < 25
+print(f"NATIVE_AUDIO_VALID duration_s={duration:.3f} samplerate={sr} bytes={path.stat().st_size}",flush=True)
+# Native engine emits IEEE-float WAV (type 3), which Python's stdlib
+# wave module does not parse. Convert the audition artifact to PCM16 WAV,
+# compatible with the existing Bloks Call voice transport.
+sf.write(str(path),audio,sr,format="WAV",subtype="PCM_16")
+print("NATIVE_AUDIO_PCM16=PASS",flush=True)
 PY
