@@ -5,6 +5,7 @@ import { execFile } from "node:child_process";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { transcribeWarmZipformer } from "./warm-stt.mjs";
 
 
 /**
@@ -130,25 +131,30 @@ export async function transcribeBrowserAudio(req: IncomingMessage): Promise<{
     temp = await mkdtemp(join(tmpdir(), "bloks-voice-"));
     const file = join(temp, "speech.webm");
     await writeFile(file, Buffer.concat(chunks), { mode: 0o600 });
-    const output = await new Promise<string>((resolve, reject) => {
-      execFile(
-        "/opt/diza-live/stt-venv/bin/python",
-        ["/opt/diza-live/stt-zipformer.py", file],
-        {
-          cwd: "/home/node",
-          timeout: 45_000,
-          maxBuffer: 16_384,
-          env: {
-            ...process.env,
-            HF_HUB_OFFLINE: "1",
-            HF_HUB_DISABLE_TELEMETRY: "1",
-            OMP_NUM_THREADS: "2",
-            OPENBLAS_NUM_THREADS: "2",
+    // Warm model stays in RAM between Call turns (~1.3s saved per fixed
+    // synthetic benchmark). If unavailable, preserve the old verified
+    // one-shot transcriber without changing the endpoint or user audio.
+    const output = await transcribeWarmZipformer(file).catch(() =>
+      new Promise<string>((resolve, reject) => {
+        execFile(
+          "/opt/diza-live/stt-venv/bin/python",
+          ["/opt/diza-live/stt-zipformer.py", file],
+          {
+            cwd: "/home/node",
+            timeout: 45_000,
+            maxBuffer: 16_384,
+            env: {
+              ...process.env,
+              HF_HUB_OFFLINE: "1",
+              HF_HUB_DISABLE_TELEMETRY: "1",
+              OMP_NUM_THREADS: "2",
+              OPENBLAS_NUM_THREADS: "2",
+            },
           },
-        },
-        (err, stdout) => err ? reject(err) : resolve(String(stdout ?? "").trim()),
-      );
-    });
+          (err, stdout) => err ? reject(err) : resolve(String(stdout ?? "").trim()),
+        );
+      }),
+    );
     if (!output) return { status: 422, body: { error: "Belum terdengar kata-kata. Coba bicara lebih dekat ke mikrofon." } };
     return { status: 200, body: { text: output.slice(0, 1800) } };
   } catch {
