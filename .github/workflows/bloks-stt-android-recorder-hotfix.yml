@@ -20,5 +20,9 @@ jobs:
           node-version: '22'
       - name: Test actual microphone recorder to local transcription endpoint
         run: |
-          node --experimental-strip-types --test diza-live/railway/browserMic.android.test.mjs
+          # Node ESM needs .ts extensions; the production Vite resolver does not.
+          # Create CI-only harness copies, leaving shipping code untouched.
+          sed 's#from "./browserSpeechNative"#from "./browserSpeechNative.ts"#' diza-live/railway/browserMic.ts > diza-live/railway/browserMic.ci-harness.ts
+          sed 's#browserMic.ts#browserMic.ci-harness.ts#' diza-live/railway/browserMic.android.test.mjs > diza-live/railway/browserMic.android.ci-harness.test.mjs
+          node --experimental-strip-types --test diza-live/railway/browserMic.android.ci-harness.test.mjs
           echo 'BLOKS_ANDROID_MEDIARECORDER_LOCAL_STT=PASS'
