@@ -7,6 +7,8 @@ on:
       - "diza-live/railway/warm-stt.mjs"
       - "diza-live/railway/warm-stt-benchmark.mjs"
       - "diza-live/railway/Dockerfile"
+      - "diza-live/railway/browser-stt.ts"
+      - "diza-live/railway/boot.mjs"
       - ".github/workflows/bloks-livecall-warm-stt-lab.yml"
   workflow_dispatch:
 permissions:
@@ -25,6 +27,16 @@ jobs:
       - name: Build original pinned Railway Bloks with extra isolated warm STT files
         run: |
           docker build --progress=plain -f diza-live/railway/Dockerfile -t bloks-warm-stt-lab .
+      - name: Assert private server STT uses warm inference with cold fallback
+        run: |
+          CID=$(docker create bloks-warm-stt-lab)
+          docker cp "$CID:/opt/bloks/server/browser-stt.ts" /tmp/bloks-warm-server-stt.ts
+          docker cp "$CID:/opt/bloks/server/warm-stt.mjs" /tmp/bloks-warm-client.mjs
+          docker rm "$CID"
+          grep -Fq 'await transcribeWarmZipformer(file).catch(' /tmp/bloks-warm-server-stt.ts
+          grep -Fq 'stt-zipformer.py' /tmp/bloks-warm-server-stt.ts
+          grep -Fq 'WARM_ZIPFORMER_STT=READY' diza-live/railway/boot.mjs
+          echo 'BLOKS_RESIDENT_STT_WITH_BACKUP=PASS'
       - name: Benchmark cold vs warm ONNX under 1GB RAM/2 CPU
         run: |
           docker run --rm --memory=1024m --memory-swap=1024m --cpus=2 \
