@@ -67,10 +67,11 @@ COPY diza-live/railway/browserMic.ts /opt/bloks/src/lib/browserMic.ts
 COPY diza-live/railway/callPlayback.ts /opt/bloks/src/lib/callPlayback.ts
 COPY diza-live/railway/browserSpeechNative.ts /opt/bloks/src/lib/browserSpeechNative.ts
 COPY diza-live/railway/patch-browser-speech.mjs /opt/diza-live/patch-browser-speech.mjs
+COPY diza-live/railway/patch-mobile-model-picker.mjs /opt/diza-live/patch-mobile-model-picker.mjs
 # Inject the Codex auth widget into upstream Bloks Engines panel before Vite build.
 COPY diza-live/railway/CodexWebviewAuth.tsx /opt/bloks/src/components/CodexWebviewAuth.tsx
 COPY diza-live/railway/codex-login.ts /opt/bloks/server/codex-login.ts
-RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && node /opt/diza-live/patch-muse.mjs && node /opt/diza-live/patch-neural-voice.mjs && node /opt/diza-live/patch-browser-speech.mjs && node /opt/diza-live/patch-local-stt.mjs && node /opt/diza-live/patch-fast-voice.mjs && pnpm exec vite build
+RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && node /opt/diza-live/patch-muse.mjs && node /opt/diza-live/patch-neural-voice.mjs && node /opt/diza-live/patch-browser-speech.mjs && node /opt/diza-live/patch-local-stt.mjs && node /opt/diza-live/patch-fast-voice.mjs && node /opt/diza-live/patch-mobile-model-picker.mjs && pnpm exec vite build
 COPY diza-live/railway/web/ /opt/bloks/dist/
 COPY diza-live/railway/entrypoint.sh /opt/diza-live/entrypoint.sh
 COPY diza-live/railway/boot.mjs /opt/diza-live/boot.mjs
