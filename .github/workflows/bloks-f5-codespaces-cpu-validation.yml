@@ -31,3 +31,33 @@ jobs:
           assert 'progress=None' in s
           assert 'FastAPI' not in s and 'uvicorn' not in s
           PY
+
+  cpu-f5-voice:
+    name: Actual F5 Indo V2 CPU speech synthesis test
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Public free runner CPU/RAM information
+        run: |
+          python -c "import os; print('CPU count:',os.cpu_count())"
+          free -h
+          df -h .
+      - name: Install F5-TTS using CPU-only PyTorch
+        run: bash diza-live/f5-codespaces-cpu/setup.sh
+      - name: Generate Indonesian female voice at approved native tempo 0.85 and 16 NFE
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          MPLBACKEND: Agg
+          HF_HUB_ENABLE_HF_TRANSFER: "0"
+          OMP_NUM_THREADS: "4"
+          TOKENIZERS_PARALLELISM: "false"
+        run: |
+          python -u diza-live/f5-codespaces-cpu/benchmark.py
+      - name: Confirm no model or recording was committed
+        if: always()
+        run: |
+          git status --short | head -30
