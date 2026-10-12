@@ -1,0 +1,23 @@
+name: Bloks STT Chrome native full Docker compatibility (isolated)
+on:
+  push:
+    branches: [bloks-stt-chrome-lab-20261012]
+    paths:
+      - "diza-live/railway/browserSpeechNative.ts"
+      - "diza-live/railway/browserMic.ts"
+      - "diza-live/railway/Dockerfile"
+      - ".github/workflows/bloks-stt-chrome-docker.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify locked UI + production branch source compile together
+        run: |
+          docker build --progress=plain -f diza-live/railway/Dockerfile -t bloks-chrome-id-stt-ci:lab .
+          echo "CHROME_INDONESIAN_STT_DOCKER_BUILD=PASS"
+          echo "RAILWAY_MAIN_AND_UI_UNTOUCHED=YES"
