@@ -1,0 +1,33 @@
+name: Bloks Pocket Indonesian native model release (isolated)
+on:
+  push:
+    branches: [bloks-call-fastcpu-lab-20261012]
+    paths:
+      - "diza-live/pocket-vercel/scripts/make-release.sh"
+      - ".github/workflows/bloks-pocket-onnx-release.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Package reviewed source and model without API keys
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+        run: bash diza-live/pocket-vercel/scripts/make-release.sh
+      - name: Publish isolated immutable release asset for Vercel voice project
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create bloks-pocket-onnx-id-v1 \
+            diza-live/pocket-vercel/.out/pocket-cpu-id-v1.tar.gz \
+            --repo "${{ github.repository }}" \
+            --target "${{ github.sha }}" \
+            --title "Bloks Pocket Indonesian CPU model bundle v1" \
+            --notes "Experimental CPU ONNX Indonesian voice-only model bundle. Model license CC-BY-4.0. C++ runtime MIT. Public release excludes speaker audio, all user data and secrets. Railway and main untouched."
