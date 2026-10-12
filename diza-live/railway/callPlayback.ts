@@ -34,7 +34,7 @@ export function playCallAudio(
     if (settled) return;
     try { audio.pause(); } catch {}
     complete();
-  }, Math.min(120_000, Math.max(12_000, maxDurationMs)));
+  }, Math.min(120_000, Math.max(100, maxDurationMs)));
   try {
     void Promise.resolve(audio.play()).catch(complete);
   } catch {
