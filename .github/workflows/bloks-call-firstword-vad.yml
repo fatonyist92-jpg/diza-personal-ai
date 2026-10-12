@@ -1,0 +1,42 @@
+name: Bloks Call First Word and Turn Latency Hotfix CI
+on:
+  push:
+    branches: [bloks-call-vad-firstword-20261012]
+    paths:
+      - "diza-live/railway/browserMic.ts"
+      - "diza-live/railway/browserMic.firstword.test.mjs"
+      - "diza-live/railway/patch-local-stt.mjs"
+      - ".github/workflows/bloks-call-firstword-vad.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  phone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Regression test quiet voice, first-turn 422 and real mic audio
+        run: |
+          sed 's#from "./browserSpeechNative"#from "./browserSpeechNative.ts"#' diza-live/railway/browserMic.ts > diza-live/railway/browserMic.ci-harness.ts
+          sed 's#browserMic.ts#browserMic.ci-harness.ts#' diza-live/railway/browserMic.firstword.test.mjs > diza-live/railway/browserMic.firstword.ci.test.mjs
+          node --experimental-strip-types --test diza-live/railway/browserMic.firstword.ci.test.mjs
+          echo 'BLOKS_FIRST_UTTERANCE_REGRESSION=PASS'
+      - name: Verify Call no longer demands retry tap after empty speech
+        run: |
+          grep -F 'onSilence: () => { if (live.current) listen(); }' diza-live/railway/patch-local-stt.mjs
+          grep -F 'if (r.status === 422)' diza-live/railway/browserMic.ts
+          echo 'BLOKS_CALL_AUTOMATIC_RELISTEN=PASS'
+  full-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 29
+    needs: phone
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm pinned Bloks Docker still builds with unchanged locked UI
+        run: |
+          docker build --progress=plain -f diza-live/railway/Dockerfile -t bloks-android-call-firstword:lab .
+          echo 'BLOKS_FULL_DOCKER_NO_UI_CHANGE=PASS'
