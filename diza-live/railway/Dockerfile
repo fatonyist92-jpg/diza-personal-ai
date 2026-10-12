@@ -64,6 +64,7 @@ RUN node --test /opt/bloks/server/gemini-fast-stream.test.mjs
 COPY diza-live/railway/patch-local-stt.mjs /opt/diza-live/patch-local-stt.mjs
 COPY diza-live/railway/browser-stt.ts /opt/bloks/server/browser-stt.ts
 COPY diza-live/railway/browserMic.ts /opt/bloks/src/lib/browserMic.ts
+COPY diza-live/railway/callPlayback.ts /opt/bloks/src/lib/callPlayback.ts
 COPY diza-live/railway/browserSpeechNative.ts /opt/bloks/src/lib/browserSpeechNative.ts
 COPY diza-live/railway/patch-browser-speech.mjs /opt/diza-live/patch-browser-speech.mjs
 # Inject the Codex auth widget into upstream Bloks Engines panel before Vite build.

@@ -63,3 +63,83 @@ swap(voice,
   '        if (!live.current) return;\n        audioRef.current = audio;',
   '        if (!live.current) { audio.pause(); return; }\n        audioRef.current = audio;',
   "abort streamed Call audio after hang-up");
+
+// Audio lifecycle fixes run AFTER all original fast voice replacements and
+// only touch behavior, never visual layout, provider selections or secret data.
+function firstOfTwo(path, before, after, label) {
+  const content=readFileSync(path,"utf8");
+  if(content.split(before).length!==3)throw Error("Call first-of-two mismatch: "+label);
+  writeFileSync(path,content.replace(before,after));
+  console.log("Call playback fixed:",label);
+}
+swap(voice,
+  'import { PcmStreamAudio } from "@/lib/pcmStreamAudio";',
+  'import { PcmStreamAudio } from "@/lib/pcmStreamAudio";\nimport { playCallAudio } from "@/lib/callPlayback";',
+  "single shared bounded playback helper");
+
+swap(voice,
+  'export function setCallActive(on: boolean) {\n  callActive = on;\n}',
+  'export function setCallActive(on: boolean) {\n  callActive = on;\n  if (on) { autoAudio?.pause(); autoAudio = null; }\n}',
+  "stop auto playback when Call takes the audio output");
+
+// Eager claim of speaker ownership prevents a normal chat auto-read voice
+// racing against the newly opened Call overlay.
+swap(voice,
+  '  const beginCall = async () => {\n    // CallOverlay will request and retain its own microphone stream.\n    setCalling(true);\n  };',
+  '  const beginCall = async () => {\n    setCallActive(true);\n    // CallOverlay will request and retain its own microphone stream.\n    setCalling(true);\n  };',
+  "Call owns speaker before overlay starts");
+
+firstOfTwo(voice,
+  '  const audioRef = useRef<HTMLAudioElement | null>(null);',
+  '  const audioRef = useRef<HTMLAudioElement | null>(null);\n  const playbackStopRef = useRef<(() => void) | null>(null);\n  const lastSpokenReplyId = useRef<string | null>(null);',
+  "single-agent playback state and duplicate-turn gate");
+
+firstOfTwo(voice,
+  '  const stopAudio = () => {\n    audioRef.current?.pause();\n    audioRef.current = null;\n  };',
+  '  const stopAudio = () => {\n    playbackStopRef.current?.();\n    playbackStopRef.current = null;\n    audioRef.current?.pause();\n    audioRef.current = null;\n  };',
+  "single Call stop cleans watchdog on hangup or barge-in");
+
+swap(voice,
+  '    if (!reply || bot.busy) return;\n    setCallState("speaking");',
+  '    if (!reply || bot.busy || lastSpokenReplyId.current === reply.id) return;\n    lastSpokenReplyId.current = reply.id;\n    setCallState("speaking");',
+  "at most one TTS request per completed agent reply");
+
+swap(voice,
+  '        audioRef.current = audio;\n        audio.addEventListener("ended", () => live.current && listen(), { once: true });\n        return audio.play();',
+  [
+  '        audioRef.current = audio;',
+  '        playbackStopRef.current = playCallAudio(audio, () => {',
+  '          if (audioRef.current === audio) audioRef.current = null;',
+  '          playbackStopRef.current = null;',
+  '          if (live.current) listen();',
+  '        }, Math.min(120_000, Math.max(25_000, reply.text.length * 125 + 8_000)));',
+  '        return;',
+  ].join("\n"),
+  "Speaking always resolves on ended, error or bounded timeout");
+
+// Room Call can otherwise await an audio "ended" event forever, blocking
+// the FIFO and preventing the microphone from reopening.
+swap(voice,
+  '  const [speakingId, setSpeakingId] = useState<string | null>(null);',
+  '  const [speakingId, setSpeakingId] = useState<string | null>(null);\n  const groupPlaybackStopRef = useRef<(() => void) | null>(null);',
+  "room-call playback watchdog state");
+
+swap(voice,
+  '              await new Promise<void>((resolve) => {\n                audio.addEventListener("ended", () => resolve(), { once: true });\n                audio.addEventListener("error", () => resolve(), { once: true });\n                void audio.play().catch(() => resolve());\n              });',
+  [
+  '              await new Promise<void>((resolve) => {',
+  '                const release = playCallAudio(audio, () => {',
+  '                  groupPlaybackStopRef.current = null;',
+  '                  resolve();',
+  '                }, Math.min(120_000, Math.max(25_000, message.text!.length * 125 + 8_000)));',
+  '                groupPlaybackStopRef.current = () => { release(); resolve(); };',
+  '              });',
+  ].join("\n"),
+  "room Call queue never blocks on missing audio-ended events");
+
+// AudioRef in Group Call may point to a paused clip, but a Promise can
+// still be awaiting playback. Unblock it on barge-in or hang-up.
+swap(voice,
+  '  const stopAudio = () => {\n    audioRef.current?.pause();\n    audioRef.current = null;\n  };',
+  '  const stopAudio = () => {\n    groupPlaybackStopRef.current?.();\n    groupPlaybackStopRef.current = null;\n    audioRef.current?.pause();\n    audioRef.current = null;\n  };',
+  "room Call stop releases pending playback and duplicate speaker");
