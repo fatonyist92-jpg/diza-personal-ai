@@ -79,9 +79,9 @@ async def health():
 def _generate(text):
     wav, sample_rate, _spec = MODEL.infer(
         ref_file=str(REFERENCE), ref_text=REF_TEXT, gen_text=text,
-        nfe_step=16, speed=1.0,
+        nfe_step=16, speed=0.85,
         show_info=lambda *_args, **_kwargs: None,
-        progress=lambda iterable, **_kwargs: iterable,
+        progress=None,  # F5 internal tqdm interface expects a module; no progress avoids crash.
         file_wave=None,
     )
     audio = np.asarray(wav, dtype=np.float32).reshape(-1)
