@@ -1,0 +1,44 @@
+name: Bloks OpenCode 1.19.0 Safe Upgrade
+on:
+  push:
+    branches: [bloks-opencode-1190-upgrade-20261012]
+    paths:
+      - "diza-live/railway/Dockerfile"
+      - ".github/workflows/bloks-opencode-1190-upgrade.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 29
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify pin, prevent accidental engine/auth/UI changes
+        run: |
+          grep -Fq 'opencode-ai@1.19.0' diza-live/railway/Dockerfile
+          grep -Fq 'RUN npm install -g @openai/codex@0.162.1' diza-live/railway/Dockerfile
+          grep -Fq 'OPENCODE_DISABLE_AUTOUPDATE=1' diza-live/railway/Dockerfile
+          grep -Fq 'COPY diza-live/railway/patch-mobile-model-picker.mjs' diza-live/railway/Dockerfile
+          grep -Fq 'COPY diza-live/railway/warm-zipformer.py' diza-live/railway/Dockerfile
+          echo 'OPEN_CODE_PIN_AND_OTHER_ENGINE_GUARDS=PASS'
+      - name: Full pinned Bloks Docker build, including all current voice/engine code
+        run: docker build --progress=plain -f diza-live/railway/Dockerfile -t bloks-opencode-1190:lab .
+      - name: Verify OpenCode CLI version and ACP command in same 1GB image
+        run: |
+          docker run --rm --memory=1024m --memory-swap=1024m --cpus=2 --entrypoint /bin/sh bloks-opencode-1190:lab -ec '
+            [ "$(opencode --version)" = "1.19.0" ]
+            timeout 20s opencode acp --help > /tmp/opencode-acp-help
+            test -s /tmp/opencode-acp-help
+            grep -q -i acp /tmp/opencode-acp-help
+            echo "OPENCODE_1190_VERSION_AND_ACP_PASS"
+          '
+      - name: Verify persistent OpenCode authentication and locked source remain intact
+        run: |
+          docker run --rm --entrypoint /bin/sh bloks-opencode-1190:lab -ec '
+            grep -Fq "opencode/config" /opt/diza-live/entrypoint.sh
+            grep -Fq "opencode/data" /opt/diza-live/entrypoint.sh
+            test -s /opt/diza-live/muse-acp-smoke.mjs
+            test -s /opt/bloks/src/components/ModelPicker.tsx
+            echo "BLOKS_VOLUME_UI_AUTH_PRESERVED=PASS"
+          '
