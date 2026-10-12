@@ -1,0 +1,44 @@
+name: Bloks Pocket CPU - real HTTP voice acceptance (lab only)
+on:
+  push:
+    branches: [bloks-call-fastcpu-lab-20261012]
+    paths:
+      - "diza-live/pocket-cpu/**"
+      - ".devcontainer/pocket-voice/**"
+      - ".github/workflows/bloks-pocket-cpu-http-lab.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  http-voice-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install CPU runtime (no Railway and no production changes)
+        run: bash diza-live/pocket-cpu/setup_codespace.sh
+      - name: Authenticated HTTP/TTS integration using real Indonesian model
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          OMP_NUM_THREADS: "2"
+          TOKENIZERS_PARALLELISM: "false"
+        run: |
+          set -euo pipefail
+          export POCKET_VOICE_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(42))')"
+          bash diza-live/pocket-cpu/start_codespace.sh > /tmp/pocket-voice-api.log 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true' EXIT
+          if ! python -u diza-live/pocket-cpu/http_smoke.py; then
+            echo "HTTP voice test failed. Recent safe worker logs:"
+            tail -50 /tmp/pocket-voice-api.log
+            exit 1
+          fi
+      - name: Verify no app or voice reference is committed
+        if: always()
+        run: |
+          python -m py_compile diza-live/pocket-cpu/pocket_service.py diza-live/pocket-cpu/http_smoke.py
+          if git ls-files | grep -E '^diza-live/pocket-cpu/\.local/'; then exit 1; fi
+          echo "PASS: live Railway / Bloks UI / main untouched, no secrets in repo"
