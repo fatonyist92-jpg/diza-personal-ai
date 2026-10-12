@@ -28,7 +28,7 @@ jobs:
       - name: Benchmark cold vs warm ONNX under 1GB RAM/2 CPU
         run: |
           docker run --rm --memory=1024m --memory-swap=1024m --cpus=2 \
-            --entrypoint /usr/bin/node \
+            --entrypoint /usr/local/bin/node \
             -v "$PWD/diza-live/railway/warm-stt-benchmark.mjs:/opt/diza-live/warm-stt-benchmark.mjs:ro" \
             bloks-warm-stt-lab /opt/diza-live/warm-stt-benchmark.mjs
           echo 'WARM_LOCAL_STT_1GB_PASS=YES'
