@@ -1,0 +1,51 @@
+name: Bloks ElevenLabs Real Progressive Streaming Test
+on:
+  push:
+    branches: [bloks-call-real-mp3-stream-20261012]
+    paths:
+      - "diza-live/railway/streamedMp3Audio.ts"
+      - "diza-live/railway/streamedMp3Audio.test.mjs"
+      - "diza-live/railway/streamedMp3Audio.browser.test.mjs"
+      - "diza-live/railway/patch-fast-voice.mjs"
+      - "diza-live/railway/Dockerfile"
+      - ".github/workflows/bloks-real-mp3-streaming.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Verify MP3 chunk forwarding, cancel, and unsupported fallback
+        run: |
+          node --experimental-strip-types --test diza-live/railway/streamedMp3Audio.test.mjs
+          node --check diza-live/railway/patch-fast-voice.mjs
+  docker-browser:
+    runs-on: ubuntu-latest
+    needs: unit
+    timeout-minutes: 29
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Full pinned Bloks production Docker
+        run: |
+          docker build --progress=plain -f diza-live/railway/Dockerfile -t bloks-stream-test .
+          CID=$(docker create bloks-stream-test)
+          docker cp "$CID:/opt/bloks/src/components/Voice.tsx" /tmp/bloks-stream-compiled-voice.tsx
+          docker rm "$CID"
+          grep -Fq 'const progressive = streamedMp3Audio(res.body)' /tmp/bloks-stream-compiled-voice.tsx
+          grep -Fq 'if (progressive) return progressive' /tmp/bloks-stream-compiled-voice.tsx
+          echo 'BLOKS_STREAMING_ROUTE_COMPILED=YES'
+      - name: Test actual Chrome chunk playback with 3.5s artificial network delay
+        run: |
+          command -v ffmpeg
+          command -v google-chrome
+          ffmpeg -hide_banner -loglevel error -f lavfi -i "sine=frequency=440:duration=6" -ac 1 -ar 44100 -b:a 128k -y /tmp/bloks-test-stream.mp3
+          npm install --no-save --ignore-scripts playwright-core@1.55.1 typescript@5.9.2
+          CHROME_BIN="$(command -v google-chrome)" node diza-live/railway/streamedMp3Audio.browser.test.mjs
+          echo 'CHROME_REAL_PROGRESSIVE_AUDIO_BEFORE_FULL_DOWNLOAD=PASS'
