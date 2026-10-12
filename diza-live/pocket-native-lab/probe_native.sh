@@ -79,3 +79,19 @@ print(f"NATIVE_AUDIO_VALID duration_s={duration:.3f} samplerate={sr} bytes={path
 sf.write(str(path),audio,sr,format="WAV",subtype="PCM_16")
 print("NATIVE_AUDIO_PCM16=PASS",flush=True)
 PY
+
+
+echo "NATIVE_HTTP_STAGE=start isolated native C++ model and protected PCM16 gateway"
+export POCKET_NATIVE_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(42))')"
+"$BIN" --server --port 8080 --models-dir "$WORK/models" --voices-dir "$WORK/voices" --tokenizer "$WORK/models/tokenizer.model" --threads 2 --eos-threshold -6.0 > "$WORK/native-http.log" 2>&1 &
+native_pid=$!
+node "$OUT/../native-auth-proxy.mjs" > "$WORK/native-proxy.log" 2>&1 &
+proxy_pid=$!
+trap 'kill "$proxy_pid" "$native_pid" 2>/dev/null || true' EXIT
+if ! node "$OUT/../native-real-http-smoke.mjs"; then
+  echo "NATIVE_HTTP_STAGE=FAIL (showing non-sensitive startup diagnostics)"
+  tail -30 "$WORK/native-http.log" || true
+  tail -30 "$WORK/native-proxy.log" || true
+  exit 1
+fi
+echo "NATIVE_HTTP_STAGE=PASS"
