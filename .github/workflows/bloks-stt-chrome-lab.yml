@@ -1,0 +1,27 @@
+name: Bloks STT Chrome Indonesian fallback contract (isolated)
+on:
+  push:
+    branches: [bloks-stt-chrome-lab-20261012]
+    paths:
+      - "diza-live/railway/browserSpeechNative.ts"
+      - "diza-live/railway/browserSpeechNative.test.mjs"
+      - "diza-live/railway/browserMic.ts"
+      - ".github/workflows/bloks-stt-chrome-lab.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chrome-indonesian:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify STT provider switch never uses Gemini paid API or Whisper
+        run: |
+          node --experimental-strip-types --test diza-live/railway/browserSpeechNative.test.mjs
+          test "$(grep -c 'import { startNativeIndonesianSpeech }' diza-live/railway/browserMic.ts)" -eq 1
+          test "$(grep -c 'COPY diza-live/railway/browserSpeechNative.ts' diza-live/railway/Dockerfile)" -eq 1
+          test "$(grep -c 'startRecordedBrowserMic(hooks, autoStop)' diza-live/railway/browserMic.ts)" -eq 2
