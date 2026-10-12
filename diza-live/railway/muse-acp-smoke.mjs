@@ -13,24 +13,27 @@ import { attachRpc } from "/opt/bloks/server/harness/jsonrpc-stdio.ts";
 const MODEL = "opencode/muse-spark-1.3-contributor-free";
 const REPORT = "/home/node/.bloks/opencode/muse-free-acp-test.json";
 const MAX_AGE_MS = 12 * 60 * 60 * 1000;
+// Previous PASS is cached from before OpenCode upgrade; verify live ACP auth.
+const PROBE_EPOCH = "after-opencode-1.19.0-validity-check-20261012";
 const TIMEOUT_MS = 120_000;
 function cached() {
   try {
     const r = JSON.parse(readFileSync(REPORT, "utf8"));
-    if (r.model === MODEL && Date.now() - Date.parse(r.checkedAt) < MAX_AGE_MS) return r;
+    if (r.model === MODEL && r.probeEpoch === PROBE_EPOCH && Date.now() - Date.parse(r.checkedAt) < MAX_AGE_MS) return r;
   } catch {}
   return null;
 }
 function result(status, reason) {
   mkdirSync(dirname(REPORT), { recursive: true, mode: 0o700 });
   writeFileSync(REPORT,
-    JSON.stringify({ model: MODEL, status, reason, checkedAt: new Date().toISOString() }),
+    JSON.stringify({ model: MODEL, probeEpoch: PROBE_EPOCH, status, reason, checkedAt: new Date().toISOString() }),
     { mode: 0o600 });
   console.log("MUSE_SPARK_ACP_TEST=" + status);
   console.log("MUSE_SPARK_ACP_REASON=" + reason);
 }
 function reasonFor(err) {
   const s = String(err?.message ?? err);
+  if (/Upstream request failed: Invalid credential|Invalid credential/i.test(s)) return "OPENCODE_ZEN_CREDENTIAL_REJECTED";
   if (/FreeTierError|only be used from within OpenCode/i.test(s)) return "FREE_TIER_CLIENT_RESTRICTED";
   if (/RegionError|not available in your country/i.test(s)) return "REGION_RESTRICTED";
   if (/payment|billing|credit/i.test(s)) return "PAYMENT_REQUIRED";
