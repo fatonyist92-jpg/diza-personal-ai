@@ -1,0 +1,40 @@
+name: Bloks Call Echo and Speaking Lifecycle isolated
+on:
+  push:
+    branches: [bloks-call-echo-end-latency-20261012]
+    paths:
+      - "diza-live/railway/callPlayback.ts"
+      - "diza-live/railway/callPlayback.test.mjs"
+      - "diza-live/railway/patch-fast-voice.mjs"
+      - "diza-live/railway/Dockerfile"
+      - ".github/workflows/bloks-call-echo-lifecycle.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  behavior:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "22"}
+      - name: Audio ended, canceled, duplicate events, missing ended, timeout
+        run: |
+          node --experimental-strip-types --test diza-live/railway/callPlayback.test.mjs
+          node --check diza-live/railway/patch-fast-voice.mjs
+          echo 'CALL_DUPLICATE_VOICE_AND_SPEAKING_LIFECYCLE_PASS'
+  docker:
+    needs: behavior
+    runs-on: ubuntu-latest
+    timeout-minutes: 29
+    steps:
+      - uses: actions/checkout@v4
+      - name: Full 1GB-production equivalent pinned Bloks Docker
+        run: |
+          docker build --progress=plain -f diza-live/railway/Dockerfile -t bloks-call-echo-fix:lab .
+          docker run --rm --entrypoint /bin/sh bloks-call-echo-fix:lab -lc '
+            grep -Fq "lastSpokenReplyId.current === reply.id" /opt/bloks/src/components/Voice.tsx
+            grep -Fq "playCallAudio(audio" /opt/bloks/src/components/Voice.tsx
+            grep -Fq "if (on) { autoAudio?.pause();" /opt/bloks/src/components/Voice.tsx
+            echo CALL_VOICE_RACE_AND_WATCHDOG_PATCH_COMPILED=YES'
