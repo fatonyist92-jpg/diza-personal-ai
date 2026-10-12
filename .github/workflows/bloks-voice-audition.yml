@@ -1,0 +1,52 @@
+name: Bloks Indonesian Voice Audition (isolated)
+
+on:
+  push:
+    branches: [bloks-indonesian-voice-audition-20261012]
+    paths:
+      - "diza-live/railway/tts-supertonic3.py"
+      - ".github/workflows/bloks-voice-audition.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  five-female-voices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build existing pinned Bloks image with offline voice
+        run: docker build -f diza-live/railway/Dockerfile -t bloks-id-voice-audition:ci .
+      - name: Generate identical Indonesian speech for F1-F5
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p voice-audition
+          for sid in 0 1 2 3 4; do
+            voice="$((sid + 1))"
+            printf '%s' 'Halo! Aku Diza. Kita ngobrol santai aja, ya. Gimana kabar kamu hari ini? Kalau ada masalah, ceritain aja. Aku bantu cari solusinya pelan-pelan, sampai beres.' \
+              | docker run --rm -i \
+                  -e "SUPERTONIC_FEMALE_SID=$sid" \
+                  --entrypoint /opt/diza-live/stt-venv/bin/python \
+                  bloks-id-voice-audition:ci /opt/diza-live/tts-supertonic3.py \
+              > "voice-audition/F$voice.wav"
+            test "$(stat -c %s "voice-audition/F$voice.wav")" -gt 18000
+            python3 - "voice-audition/F$voice.wav" <<'PY'
+          import sys, wave
+          with wave.open(sys.argv[1], "rb") as sound:
+              assert sound.getnchannels() == 1
+              assert sound.getframerate() in (24000, 44100)
+              assert sound.getnframes() > 1000
+              print(f"{sys.argv[1]}: {sound.getnframes()/sound.getframerate():.2f}s")
+          PY
+          done
+          printf '%s\n' "F1-F5: 5 local female model voices; no Google API called" \
+            "The model is experimental: accent/naturalness require native Indonesian listening judgment." \
+            > voice-audition/README.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bloks-five-indonesian-female-tts-previews
+          path: voice-audition/
+          retention-days: 7
