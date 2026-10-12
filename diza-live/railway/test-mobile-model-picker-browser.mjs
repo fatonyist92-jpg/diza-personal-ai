@@ -15,8 +15,11 @@ const browser=await chromium.launch({executablePath,headless:true,args:['--no-sa
 try{
   for (const [width,height] of [[320,640],[360,780],[393,852],[430,932],[1280,900]]) {
     const page=await browser.newPage({viewport:{width,height},deviceScaleFactor:1});
+    // Desktop picker is located near the right side of the header. At 1280px
+    // the original right-aligned menu should remain anchored normally.
+    const triggerLeft = width < 640 ? 142 : width - 180;
     await page.setContent(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style></head><body style="margin:0">
-      <div id="trigger" class="relative" style="position:absolute;left:142px;top:180px;width:90px;height:30px">
+      <div id="trigger" class="relative" style="position:absolute;left:${triggerLeft}px;top:180px;width:90px;height:30px">
         <button>GPT-5.6 Sol</button>
         <div data-model-picker-content id="menu" class="${className}">
           <div class="flex min-h-0 flex-1">
