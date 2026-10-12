@@ -54,8 +54,9 @@ def synthesize(text: str, bridge_secret: str):
         ref_text=REFERENCE_TEXT,
         gen_text=cleaned,
         nfe_step=16,
-        speed=1.0,
+        speed=0.85,
         remove_silence=False,
+        progress=None,  # F5 compatible silent progress
     )
     wave = np.asarray(audio, dtype=np.float32).reshape(-1)
     seconds = wave.size / sample_rate
