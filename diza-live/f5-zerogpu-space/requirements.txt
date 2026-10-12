@@ -1,0 +1,11 @@
+# Hugging Face ZeroGPU: requires a compatible PyTorch version, >=2.8
+# with CUDA emulation managed by the ZeroGPU runtime.
+torch==2.9.1
+torchaudio==2.9.1
+gradio>=5.9.1,<6
+spaces>=0.42,<1
+f5-tts>=1.1.10,<1.2
+huggingface_hub>=0.30,<1
+setuptools==80.9.0
+soundfile>=0.12,<1
+numpy>=1.26,<3

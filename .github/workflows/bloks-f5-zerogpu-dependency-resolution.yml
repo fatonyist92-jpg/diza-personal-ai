@@ -1,0 +1,27 @@
+name: Bloks F5 ZeroGPU Python 3.10 dependency resolution
+on:
+  push:
+    branches: [bloks-f5-zerogpu-gradio-20261012]
+    paths:
+      - 'diza-live/f5-zerogpu-space/requirements.txt'
+      - '.github/workflows/bloks-f5-zerogpu-dependency-resolution.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Resolve all Space dependencies on Python 3.10 without downloading GPU weights
+        run: |
+          uv pip compile diza-live/f5-zerogpu-space/requirements.txt \
+            --python-version 3.10 \
+            --python-platform x86_64-unknown-linux-gnu \
+            -o /tmp/f5-zerogpu-resolved.txt
+          grep -q 'f5-tts==' /tmp/f5-zerogpu-resolved.txt
+          grep -q 'torch==' /tmp/f5-zerogpu-resolved.txt
+          grep -q 'gradio==' /tmp/f5-zerogpu-resolved.txt
+          echo 'Dependency resolution SUCCESS'

@@ -1,0 +1,50 @@
+name: Bloks F5 ZeroGPU Gradio staging validation
+on:
+  push:
+    branches: [bloks-f5-zerogpu-gradio-20261012]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  provider-and-space-static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate ZeroGPU provider and secure queue implementation
+        run: |
+          node --check diza-live/railway/f5-hf-zerogpu-tts.mjs
+          node --check diza-live/railway/patch-f5-zerogpu.mjs
+          node --test diza-live/railway/f5-hf-zerogpu-tts.test.mjs
+      - name: Validate Python space code without running paid GPU
+        run: |
+          python3 -m py_compile diza-live/f5-zerogpu-space/app.py
+          python3 - <<'PY'
+          import ast,pathlib
+          p=pathlib.Path('diza-live/f5-zerogpu-space/app.py')
+          s=p.read_text()
+          t=ast.parse(s)
+          assert any(isinstance(n,ast.FunctionDef) and n.name=='synthesize' for n in ast.walk(t))
+          assert '@spaces.GPU' in s
+          assert 'F5_BRIDGE_SECRET' in s and 'hmac.compare_digest' in s
+          assert 'F5TTS_v1_Base' in s and 'ref_reporter.mp3' in s
+          assert 'nfe_step=16' in s
+          print('Space static PASS, no GPU spend')
+          PY
+      - name: Confirm feature is disabled by default
+        run: |
+          if grep -E '^ENV F5_ZEROGPU_ENABLED=1|^ENV F5_ZEROGPU_HF_TOKEN=' diza-live/railway/Dockerfile; then exit 1; fi
+      - name: Package import-ready noncommercial ZeroGPU Space source
+        uses: actions/upload-artifact@v4
+        with:
+          name: bloks-f5-indonesian-zerogpu-space
+          path: diza-live/f5-zerogpu-space/
+          retention-days: 7
+  full-bloks-docker:
+    needs: provider-and-space-static
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build pinned Bloks production image with feature disabled
+        run: docker build -f diza-live/railway/Dockerfile -t bloks-f5-zerogpu:ci .
