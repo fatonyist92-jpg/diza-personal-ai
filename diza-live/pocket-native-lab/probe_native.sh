@@ -85,6 +85,22 @@ echo "NATIVE_HTTP_STAGE=start isolated native C++ model and protected PCM16 gate
 export POCKET_NATIVE_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(42))')"
 "$BIN" --server --port 8080 --models-dir "$WORK/models" --voices-dir "$WORK/voices" --tokenizer "$WORK/models/tokenizer.model" --threads 2 --eos-threshold -6.0 > "$WORK/native-http.log" 2>&1 &
 native_pid=$!
+# Block test traffic until the native model has finished loading.
+native_healthy=0
+for _ in $(seq 1 80); do
+  if curl --fail --silent --max-time 1 http://127.0.0.1:8080/health > /dev/null; then
+    native_healthy=1
+    break
+  fi
+  sleep 0.2
+done
+if [[ "$native_healthy" != "1" ]]; then
+  tail -30 "$WORK/native-http.log" || true
+  echo "NATIVE_BACKEND_HEALTH=FAIL"
+  kill "$native_pid" 2>/dev/null || true
+  exit 1
+fi
+echo "NATIVE_BACKEND_HEALTH=PASS"
 node "$(realpath "$OUT/../native-auth-proxy.mjs")" > "$WORK/native-proxy.log" 2>&1 &
 proxy_pid=$!
 trap 'kill "$proxy_pid" "$native_pid" 2>/dev/null || true' EXIT
