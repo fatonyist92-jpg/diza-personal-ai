@@ -19,3 +19,13 @@ export function normalizeVoiceTuning(raw) {
   if (Object.keys(raw).some((key) => !Object.hasOwn(LIMITS, key))) return null;
   return result;
 }
+
+/** Same Turbo v2.5 speech body Bloks already sends; override only after Save. */
+export function elevenLabsTtsPayload(text, settings) {
+  const valid = settings === undefined ? null : normalizeVoiceTuning(settings);
+  return {
+    text,
+    model_id: "eleven_turbo_v2_5",
+    ...(valid ? { voice_settings: valid } : {}),
+  };
+}
