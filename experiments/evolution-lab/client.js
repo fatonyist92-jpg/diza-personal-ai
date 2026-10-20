@@ -17,6 +17,14 @@ async function status(){
     connected=true;modelReady=s.realConfigured;realRemaining=s.realUsedToday<s.realDailyLimit;
     setText('access','✅ Terhubung ke server Bloks terautentikasi. Production chat dan data tidak dipakai untuk pengujian.');
     setText('quota','Kuota tes AI: '+s.realUsedToday+'/'+s.realDailyLimit+' hari ini');
+    if(!jobId && Array.isArray(s.latest) && s.latest.length){
+      const latest=s.latest[0];jobId=latest.id;
+      if(latest.state==='complete' && latest.report)renderReport(latest.report);
+      else if(latest.state==='running' || latest.state==='queued'){
+        pollTimer=setInterval(poll,2500);
+        void poll();
+      }
+    }
     availability();
   }catch(e){
     connected=false;setText('access','🔒 '+e.message+'. Silakan buka Bloks dan login/pairing melalui browser yang sama.');
