@@ -40,6 +40,21 @@ function todayRealCount() {
   }catch{}
   return count;
 }
+function latestJobs() {
+  const live=Array.from(jobs.values()).map(publicJob);
+  const known=new Set(live.map(j=>j.id));
+  try {
+    const files=readdirSync(REPORT_DIR).filter(x=>/^[a-f0-9-]{36}\\.json$/.test(x)).slice(-100);
+    for(const file of files){
+      const obj=JSON.parse(readFileSync(join(REPORT_DIR,file),'utf8'));
+      if(!known.has(obj.id)){
+        live.push({id:obj.id,mode:obj.mode,state:'complete',createdAt:obj.createdAt,
+          finishedAt:obj.reviewedAt||obj.createdAt,message:'Stored report',report:obj});
+      }
+    }
+  }catch{}
+  return live.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,5);
+}
 function recordJob(job) {
   jobs.set(job.id,job);
   if(jobs.size>MAX_JOBS) {
@@ -54,7 +69,7 @@ export async function handleEvolutionApi(req,res,method,pathname) {
   if(method==='GET'&&pathname==='/api/evolution-lab/status') {
     return respond(res,200,{version:VERSION, enabled:true, realConfigured:!!process.env.GEMINI_API_KEY?.trim(),
       active:!!active, realUsedToday:todayRealCount(), realDailyLimit:MAX_REAL_RUNS_PER_UTC_DAY,
-      latest:Array.from(jobs.values()).slice(-5).reverse().map(publicJob)});
+      latest:latestJobs()});
   }
   if(method==='POST'&&pathname==='/api/evolution-lab/run'){
     let input;
