@@ -3,7 +3,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 const file=process.env.EVOLUTION_LAB_PATCH_TARGET || '/opt/bloks/server/index.ts';
 const current=readFileSync(file,'utf8');
-const anchor='  try {\n    // ── events stream ──';
+const anchor='    if (method === "GET" && path === "/api/bots") {';
 if (current.split(anchor).length!==2) throw Error('Evolution Lab security anchor missing or duplicate; abort build');
 const insertion=[
   '  // Project X: owner-only experimental API after authentication and member guards.',
