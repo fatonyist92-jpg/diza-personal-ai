@@ -4,7 +4,7 @@
 import { randomUUID } from 'node:crypto';
 import { readdirSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { runLab, reviewReport } from './evolution-lab-runner.mjs';
+import { runLab, reviewReport } from './lab.mjs';
 
 const jobs = new Map();
 let active = null;
