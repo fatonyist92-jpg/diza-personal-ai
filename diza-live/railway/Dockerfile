@@ -52,6 +52,7 @@ COPY diza-live/railway/patch-webview.mjs /opt/diza-live/patch-webview.mjs
 COPY experiments/evolution-lab/lab.mjs /opt/bloks/server/lab.mjs
 COPY experiments/evolution-lab/benchmarks.json /opt/bloks/server/benchmarks.json
 COPY experiments/evolution-lab/lab.test.mjs /opt/bloks/server/lab.test.mjs
+COPY experiments/evolution-lab/evolution-lab-api.test.mjs /opt/bloks/server/evolution-lab-api.test.mjs
 COPY experiments/evolution-lab/evolution-lab-api.mjs /opt/bloks/server/evolution-lab-api.mjs
 COPY experiments/evolution-lab/patch-evolution-lab.mjs /opt/diza-live/patch-evolution-lab.mjs
 ENV EVOLUTION_LAB_REPORT_DIR=/home/node/.bloks/evolution-lab/reports
@@ -89,7 +90,7 @@ COPY diza-live/railway/patch-elevenlabs-tuning-ui.mjs /opt/diza-live/patch-eleve
 # Inject the Codex auth widget into upstream Bloks Engines panel before Vite build.
 COPY diza-live/railway/CodexWebviewAuth.tsx /opt/bloks/src/components/CodexWebviewAuth.tsx
 COPY diza-live/railway/codex-login.ts /opt/bloks/server/codex-login.ts
-RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && node /opt/diza-live/patch-muse.mjs && node /opt/diza-live/patch-neural-voice.mjs && node /opt/diza-live/patch-browser-speech.mjs && node /opt/diza-live/patch-local-stt.mjs && node /opt/diza-live/patch-fast-voice.mjs && node /opt/diza-live/patch-mobile-model-picker.mjs && node /opt/diza-live/patch-opencode-model-catalog.mjs && node /opt/diza-live/patch-elevenlabs-tuning-server.mjs && node /opt/diza-live/patch-elevenlabs-tuning-ui.mjs && node /opt/diza-live/patch-evolution-lab.mjs && node --test /opt/bloks/server/lab.test.mjs && node --test /opt/bloks/server/elevenlabs-voice-tuning.test.mjs && node --test /opt/bloks/src/lib/browserMic.test.mjs && pnpm exec vite build
+RUN node /opt/diza-live/patch-webview.mjs && node /opt/diza-live/patch-codex.mjs && node /opt/diza-live/patch-muse.mjs && node /opt/diza-live/patch-neural-voice.mjs && node /opt/diza-live/patch-browser-speech.mjs && node /opt/diza-live/patch-local-stt.mjs && node /opt/diza-live/patch-fast-voice.mjs && node /opt/diza-live/patch-mobile-model-picker.mjs && node /opt/diza-live/patch-opencode-model-catalog.mjs && node /opt/diza-live/patch-elevenlabs-tuning-server.mjs && node /opt/diza-live/patch-elevenlabs-tuning-ui.mjs && node /opt/diza-live/patch-evolution-lab.mjs && node --test /opt/bloks/server/lab.test.mjs /opt/bloks/server/evolution-lab-api.test.mjs && node --test /opt/bloks/server/elevenlabs-voice-tuning.test.mjs && node --test /opt/bloks/src/lib/browserMic.test.mjs && pnpm exec vite build
 COPY diza-live/railway/web/ /opt/bloks/dist/
 COPY diza-live/railway/entrypoint.sh /opt/diza-live/entrypoint.sh
 COPY diza-live/railway/boot.mjs /opt/diza-live/boot.mjs
