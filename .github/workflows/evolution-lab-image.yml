@@ -1,4 +1,5 @@
 name: Evolution Lab experimental Docker acceptance
+# Gate 2: stable owner-route injection after pinned Bloks auth
 on:
   push:
     branches:
