@@ -44,7 +44,7 @@ function latestJobs() {
   const live=Array.from(jobs.values()).map(publicJob);
   const known=new Set(live.map(j=>j.id));
   try {
-    const files=readdirSync(REPORT_DIR).filter(x=>/^[a-f0-9-]{36}\\.json$/.test(x)).slice(-100);
+    const files=readdirSync(REPORT_DIR).filter(x=>/^[a-f0-9-]{36}\.json$/.test(x)).slice(-100);
     for(const file of files){
       const obj=JSON.parse(readFileSync(join(REPORT_DIR,file),'utf8'));
       if(!known.has(obj.id)){
