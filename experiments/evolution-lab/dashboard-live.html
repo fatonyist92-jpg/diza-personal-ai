@@ -1,0 +1,126 @@
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer">
+<title>DIZA Project X | Evolution Lab</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,Segoe UI,Arial,sans-serif;background:#090c11;color:#eaf0f7}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 100% 0%,#26364b,transparent 55%),#090c11;min-height:100vh}
+main{max-width:960px;margin:0 auto;padding:28px 16px 80px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+mark{background:none;color:#a1bedb}h1{font-size:clamp(30px,6vw,43px);letter-spacing:-1.2px;margin:21px 0 8px}h2{font-size:17px;margin:0 0 13px}
+.sub,.secondary{color:#afbccb;line-height:1.6}
+.badge{border:1px solid #42546b;border-radius:99px;padding:6px 11px;color:#bacbe0;font-size:12px}
+.panel{border:1px solid #334156;background:#131a25;border-radius:15px;padding:19px;margin:16px 0}
+.row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.kpis,.team{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.kpi,.member{background:#1b2534;border:1px solid #34445a;padding:14px;border-radius:12px}.kpi strong{display:block;font-size:30px}.kpi span,.member p{font-size:12px;color:#afbccb;margin:5px 0 0;line-height:1.5}
+.member b{font-size:13px}
+button{border:1px solid #536a86;padding:11px 15px;border-radius:10px;background:#26354a;color:#eef4fc;font-size:14px;font-weight:650;cursor:pointer}
+button.primary{background:#ecf2f8;color:#0d1420;border-color:#ecf2f8}button:disabled{opacity:.4;cursor:not-allowed}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:10px 6px;border-bottom:1px solid #2f3c4c;text-align:left}
+td:nth-child(n+3),th:nth-child(n+3){text-align:center}.pass{color:#75dca2}.fail{color:#ffaaa4}
+.notice{padding:12px 14px;border-left:3px solid #acc4e2;background:#202d3e;border-radius:7px;font-size:13px;line-height:1.55}
+pre{white-space:pre-wrap;word-break:break-word;font-size:12px;color:#c8d8e8}
+a{color:#c2daf2;text-decoration:none}
+@media(max-width:600px){.panel{padding:13px}.kpis,.team{gap:6px}.kpi,.member{padding:9px}.kpi strong{font-size:22px}button{font-size:12px;padding:10px}td,th{font-size:11px;padding:8px 4px}}
+</style></head><body><main>
+<header><div class="row" style="justify-content:flex-start"><span class="badge">🧪 PROJECT X</span><span class="badge">EVOLUTION LAB v0.2</span></div><a href="/">← Kembali ke Bloks</a></header>
+<h1>Bloks <mark>Evolution Lab</mark></h1>
+<p class="sub">AI mengusulkan skill, menantangnya, lalu membandingkan skor pada 10 kasus sintetis. Tidak ada pemasangan otomatis ke Bloks. Seluruh perubahan memerlukan review manusia.</p>
+<div id="access" class="notice" role="status" aria-live="polite">Sedang memeriksa autentikasi dan koneksi lab…</div>
+<section class="panel"><div class="row"><h2>Jalankan eksperimen</h2><span class="badge" id="quota">Status: memeriksa…</span></div>
+<div class="row" style="justify-content:flex-start">
+<button id="demo" class="primary" disabled>▶ Jalankan Demo (gratis)</button>
+<button id="real" disabled>🧠 Jalankan 3 Peran AI Asli</button>
+</div><p class="secondary" style="font-size:12px">Demo memakai jawaban skrip. AI asli memakai Gemini API dari server yang sudah dikonfigurasi, maksimum satu pengujian per hari UTC. Satu pengujian lengkap melakukan 23 permintaan model yang mungkin memakai kuota atau biaya API.</p></section>
+<div class="kpis"><div class="kpi"><strong id="baseline">–</strong><span>Baseline</span></div><div class="kpi"><strong id="candidate">–</strong><span>Candidate</span></div><div class="kpi"><strong id="completed">0/10</strong><span>Kasus selesai</span></div></div>
+<section class="panel"><h2>Tim eksperimen</h2><div class="team">
+<div class="member"><b>01 · Architect</b><p>Menciptakan usulan skill.</p></div>
+<div class="member"><b>02 · Challenger</b><p>Mencari kekurangan dan revisi.</p></div>
+<div class="member"><b>03 · Judge</b><p>Menganalisis hasil dan risiko.</p></div>
+</div><div id="discussion" class="secondary" style="font-size:13px;margin-top:17px">Belum ada laporan.</div></section>
+<section class="panel"><div class="row"><h2>10 Benchmark</h2><button id="download" disabled>↓ Simpan laporan JSON</button></div>
+<div style="overflow-x:auto"><table><thead><tr><th>Kasus</th><th>Topik</th><th>Baseline</th><th>Candidate</th></tr></thead><tbody id="rows"><tr><td colspan="4" class="secondary">Belum ada hasil.</td></tr></tbody></table></div></section>
+<section class="panel"><h2>🔐 Review manusia</h2>
+<p class="notice">Persetujuan di sini hanya memberi label siap ditinjau lebih lanjut. Tidak ada kode yang ditulis ke aplikasi live, skill dipasang, atau deploy otomatis. Kasus keselamatan wajib semuanya lulus.</p>
+<div class="row" style="justify-content:flex-start"><button id="approve" disabled>Setujui untuk review lanjut</button><button id="reject" disabled>Tolak kandidat</button></div><p class="secondary" id="reviewState" role="status"></p></section>
+<p class="secondary" style="font-size:12px">Halaman khusus eksperimen. Proses AI di server, tidak ada API key tersimpan di browser. Laporan disimpan pada direktori lab terpisah.</p>
+</main><script>
+'use strict';
+const $=id=>document.getElementById(id);let jobId=null,currentReport=null,connected=false,modelReady=false,realRemaining=false,pollTimer=null;
+function setText(id,text){$(id).textContent=text}
+async function request(url,options={}){
+  const res=await fetch(url,{credentials:'same-origin',headers:{'accept':'application/json',...(options.body?{'content-type':'application/json'}:{})},cache:'no-store',...options});
+  const body=await res.json().catch(()=>({error:'Invalid server response'}));
+  if(!res.ok)throw Error((body.error||'HTTP '+res.status).slice(0,230));
+  return body;
+}
+function availability(){
+  $('demo').disabled=!connected||!!pollTimer;
+  $('real').disabled=!connected||!modelReady||!realRemaining||!!pollTimer;
+}
+async function status(){
+  try{
+    const s=await request('/api/evolution-lab/status');
+    connected=true;modelReady=s.realConfigured;realRemaining=s.realUsedToday<s.realDailyLimit;
+    setText('access','✅ Terhubung ke server Bloks terautentikasi. Production chat dan data tidak dipakai untuk pengujian.');
+    setText('quota','Kuota tes AI: '+s.realUsedToday+'/'+s.realDailyLimit+' hari ini');
+    availability();
+  }catch(e){
+    connected=false;setText('access','🔒 '+e.message+'. Silakan buka Bloks dan login/pairing melalui browser yang sama.');
+    setText('quota','Belum terhubung');availability();
+  }
+}
+function renderReport(report){
+  currentReport=report;
+  setText('baseline',report.baseline.percent+'%');
+  setText('candidate',report.candidate.percent+'%');
+  setText('completed',report.sampleCount+'/10');
+  setText('discussion','Architect: '+report.agents.architect+'\n\nChallenger: '+report.agents.challenger+'\n\nJudge: '+report.agents.judge);
+  $('discussion').style.whiteSpace='pre-wrap';
+  const tbody=$('rows');tbody.replaceChildren();
+  for(const row of report.rows){
+    const tr=document.createElement('tr');
+    for(const [i,s] of [row.id,row.baseline.category,row.baseline.passed?'LULUS':'GAGAL',row.candidate.passed?'LULUS':'GAGAL'].entries()){
+      const td=document.createElement('td');td.textContent=s;if(i>1)td.className=s==='LULUS'?'pass':'fail';tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  $('download').disabled=false;
+  const reviewable=report.mode==='real'&&report.status==='PENDING_MANUAL_REVIEW';
+  $('approve').disabled=!reviewable;
+  $('reject').disabled=report.status!=='PENDING_MANUAL_REVIEW';
+  setText('reviewState',report.mode==='demo'?'Hasil skrip DEMO, tidak memenuhi syarat untuk approval.':'Status: '+report.status);
+}
+function endPolling(){if(pollTimer)clearInterval(pollTimer);pollTimer=null;availability();}
+async function poll(){
+  if(!jobId)return;
+  try{
+    const d=await request('/api/evolution-lab/jobs/'+jobId);
+    if(d.state==='complete'){endPolling();renderReport(d.report);setText('access','✅ Pengujian selesai. Laporan siap ditinjau.');await status();}
+    else if(d.state==='failed'){endPolling();setText('access','⚠️ '+d.message);await status();}
+    else setText('access','⏳ AI sedang menjalankan benchmark. Halaman tetap bisa dibuka untuk cek hasil.');
+  }catch(e){endPolling();setText('access','⚠️ '+e.message);}
+}
+async function run(mode){
+  if(!connected)return;
+  const message=mode==='real'?'AI nyata memakai sekitar 23 permintaan Gemini API dan mungkin menghabiskan kuota/menimbulkan biaya provider. Lanjut?':'Jalankan simulasi sintetis offline tanpa memakai Gemini API?';
+  if(!confirm(message))return;
+  try{
+    const d=await request('/api/evolution-lab/run',{method:'POST',body:JSON.stringify({mode,confirm:true})});
+    jobId=d.id;currentReport=null;$('download').disabled=true;$('approve').disabled=true;$('reject').disabled=true;
+    setText('access','⏳ Menjalankan '+(mode==='real'?'AI nyata':'demo')+'...');
+    pollTimer=setInterval(poll,2500);availability();await poll();
+  }catch(e){setText('access','⚠️ '+e.message);await status();}
+}
+async function review(action){
+  if(!jobId||!currentReport||!confirm(action==='approve'?'Tandai kandidat untuk REVIEW LANJUT, bukan pemasangan ke production?':'Tolak usulan skill ini?'))return;
+  try{const r=await request('/api/evolution-lab/jobs/'+jobId+'/'+action,{method:'POST',body:JSON.stringify({confirm:true})});
+    setText('reviewState',r.status+' • '+r.note);$('approve').disabled=true;$('reject').disabled=true;
+  }catch(e){setText('reviewState','⚠️ '+e.message);}
+}
+$('demo').onclick=()=>run('demo');
+$('real').onclick=()=>run('real');
+$('approve').onclick=()=>review('approve');
+$('reject').onclick=()=>review('reject');
+$('download').onclick=()=>{if(!currentReport)return;const u=URL.createObjectURL(new Blob([JSON.stringify(currentReport,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='evolution-lab-'+currentReport.id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);};
+status();
+</script></body></html>
