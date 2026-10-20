@@ -30,3 +30,22 @@ jobs:
             grep -q "api/evolution-lab" /opt/bloks/server/index.ts &&
             grep -q "Gemini API" /opt/bloks/dist/evolution-lab/index.html
           '
+      - name: Start real pinned Bloks harness with disposable CI storage and smoke test HTTP
+        run: |
+          mkdir -p /tmp/evolution-lab-data
+          docker run -d --name evolution-lab-smoke \
+            -e RAILWAY_VOLUME_MOUNT_PATH=/home/node/.bloks \
+            -v /tmp/evolution-lab-data:/home/node/.bloks \
+            -p 127.0.0.1:18899:10000 \
+            evolution-lab:acceptance
+          for i in $(seq 1 30); do
+            if curl --silent --fail http://127.0.0.1:18899/api/health >/tmp/evolution-health; then break; fi
+            sleep 2
+          done
+          cat /tmp/evolution-health
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18899/evolution-lab/index.html)" = "200"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18899/evolution-lab/client.js)" = "200"
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:18899/api/evolution-lab/status)" = "401"
+      - name: Stop disposable CI harness
+        if: always()
+        run: docker rm --force evolution-lab-smoke || true
