@@ -54,7 +54,7 @@ function safeText(obj, key, fallback) {
   return value.slice(0, 4000) || fallback;
 }
 
-export async function callGemini(prompt, model = 'gemini-2.5-flash-lite', key = process.env.GEMINI_API_KEY) {
+export async function callGemini(prompt, model = 'gemini-3.1-flash-lite', key = process.env.GEMINI_API_KEY) {
   if (!key) throw new Error('GEMINI_API_KEY not configured. Use demo to test without an API key.');
   if (!/^[a-zA-Z0-9._-]{3,80}$/.test(model)) throw new Error('Invalid model name');
   const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
@@ -129,7 +129,7 @@ function promptFor(test, instruction) {
   return instruction + '\n\nPertanyaan data sintetis:\n' + test.prompt + '\n\nBalas JSON valid tepat {"answer":"..."} tanpa markdown.';
 }
 
-export async function runLab({ mode = 'demo', limit = 10, model = 'gemini-2.5-flash-lite', generate = null, persist = true } = {}) {
+export async function runLab({ mode = 'demo', limit = 10, model = 'gemini-3.1-flash-lite', generate = null, persist = true } = {}) {
   if (!['demo', 'real'].includes(mode)) throw new Error('Unknown mode');
   if (!Number.isInteger(limit) || limit < 1 || limit > 10) throw new Error('Limit must be an integer 1..10');
   const cases = CASES.slice(0, limit);
@@ -209,7 +209,7 @@ async function main() {
     const limitFlag = process.argv.indexOf('--limit');
     const modelFlag = process.argv.indexOf('--model');
     const limit = limitFlag < 0 ? 10 : Number(process.argv[limitFlag + 1]);
-    const model = modelFlag < 0 ? 'gemini-2.5-flash-lite' : process.argv[modelFlag + 1];
+    const model = modelFlag < 0 ? 'gemini-3.1-flash-lite' : process.argv[modelFlag + 1];
     if (cmd === 'real' && !process.argv.includes('--confirm-api')) throw new Error('Real mode requires --confirm-api; API usage may be billable.');
     const run = await runLab({ mode: cmd, limit, model });
     console.log(JSON.stringify({ id: run.id, mode: run.mode, baseline: run.baseline, candidate: run.candidate, status: run.status, report: fileFor(run.id) }, null, 2));
