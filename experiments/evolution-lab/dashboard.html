@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Project X • Evolution Lab</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#0b0d11;color:#f0f2f6}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 80% 0%,#242e3c 0,transparent 44%),#0b0d11}
+main{width:min(960px,94%);margin:0 auto;padding:26px 0 60px}.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill{font-size:11px;border:1px solid #56647a;padding:6px 11px;border-radius:40px;color:#c7d5e7}
+h1{font-size:clamp(28px,5vw,42px);letter-spacing:-1.3px;line-height:1.07;margin:26px 0 8px}
+.sub{color:#a8b1c0;max-width:650px;line-height:1.6;margin:0 0 24px}.panel{background:#141922;border:1px solid #303845;border-radius:16px;padding:20px;margin:15px 0}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+button{border:1px solid #546074;border-radius:11px;color:#e8edf5;background:#263141;padding:11px 14px;font-size:14px;font-weight:650;cursor:pointer}
+button.primary{background:#e4eaf3;color:#111722;border-color:#e4eaf3}button:active{transform:scale(.98)}
+button:disabled{opacity:.45;cursor:not-allowed}.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:19px 0}
+.stat{background:#11161f;border:1px solid #283240;border-radius:13px;padding:15px}
+.stat strong{display:block;font-size:clamp(20px,4vw,34px);letter-spacing:-1px}.stat span{color:#a0acba;font-size:12px}
+.agents{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.agent{border:1px solid #364354;background:#1b2330;border-radius:12px;padding:14px}
+.agent b{font-size:14px}.agent small{display:block;margin:7px 0 0;color:#a8b7ca;line-height:1.4}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:12px 8px;border-bottom:1px solid #2d3643;text-align:left}
+th{color:#99a7bb;font-weight:550}td:nth-child(n+3),th:nth-child(n+3){text-align:center}
+.pass{color:#79d7aa}.fail{color:#ff9f98}.muted{color:#a3b0c0}
+code{background:#222a35;padding:2px 5px;border-radius:5px}h2{font-size:18px;letter-spacing:-.3px}
+.note{padding:12px;border-left:3px solid #93a6be;background:#1b2532;color:#c8d5e5;border-radius:6px;font-size:13px;line-height:1.6}
+.footer{font-size:12px;color:#9baabb;line-height:1.6;margin:24px 0}
+@media(max-width:580px){.panel{padding:14px}.agents{grid-template-columns:1fr}.kpis{gap:6px}.stat{padding:10px}.stat span{font-size:11px}th,td{padding:11px 4px;font-size:11px}button{font-size:12px}}
+</style>
+</head>
+<body><main>
+<div class="top"><span class="pill">🧪 PROJECT X</span><span class="pill">ISOLATED DEMO</span><span class="pill">100% OFFLINE</span></div>
+<h1>Evolution Lab <span style="color:#aabbd0">v0.1</span></h1>
+<p class="sub">Tiga peran agen. Sepuluh benchmark sintetis. Satu gerbang persetujuan. Ini demonstrasi deterministik untuk mencoba alur, bukan eksekusi model AI atau perubahan pada Bloks Railway.</p>
+<div class="row"><div><b id="status">Siap menjalankan simulasi.</b><div class="muted" style="font-size:12px;margin-top:5px">Production Bloks tidak disentuh.</div></div>
+<div class="row" style="justify-content:flex-start"><button class="primary" id="run">▶ Jalankan Demo</button><button id="export" disabled>↓ Simpan JSON</button></div></div>
+<div class="kpis"><div class="stat"><strong id="baseline">–</strong><span>Baseline</span></div><div class="stat"><strong id="candidate">–</strong><span>Candidate</span></div><div class="stat"><strong id="cases">0/10</strong><span>Kasus diperiksa</span></div></div>
+<div class="panel"><h2>🔬 Tim Laboratorium</h2>
+<div class="agents">
+<div class="agent"><b>01 · Architect</b><small>Merancang skill untuk meningkatkan ketelitian jawaban.</small></div>
+<div class="agent"><b>02 · Challenger</b><small>Mencari kegagalan dan menyarankan revisi.</small></div>
+<div class="agent"><b>03 · Judge</b><small>Menilai bukti benchmark; tidak dapat memasang skill.</small></div>
+</div><p id="dialogue" class="muted" style="font-size:13px;line-height:1.55;margin:17px 0 0">Hasil diskusi muncul setelah simulasi dijalankan.</p></div>
+<div class="panel"><div class="row"><h2>📋 10 Benchmark</h2><button id="onlyFail" disabled>Tampilkan yang gagal</button></div>
+<div style="overflow-x:auto"><table><thead><tr><th>Kasus</th><th>Bidang</th><th>Baseline</th><th>Candidate</th></tr></thead><tbody id="results"><tr><td colspan="4" class="muted" style="text-align:center;padding:24px">Belum ada hasil</td></tr></tbody></table></div></div>
+<div class="panel"><h2>🔐 Persetujuan manusia</h2><p class="note">Approval untuk demo sengaja ditolak. Hasil sintetis tidak boleh digunakan sebagai alasan memasang skill ke production. Versi AI asli harus menjalankan seluruh benchmark dan mendapat tinjauan manual.</p>
+<button id="approval">Coba setujui hasil demo</button><p id="approvalResult" class="muted" role="status" aria-live="polite"></p></div>
+<p class="footer">Sumber kode: experiments/evolution-lab pada branch experiment-evolution-lab. Tidak memakai API key, network, camera, lokasi, atau storage persisten. Nilai 70% → 90% yang muncul hanyalah skenario contoh yang disengaja, bukan hasil kinerja AI.</p>
+</main>
+<script>
+'use strict';
+const data=[
+['SLIP-01','Rheology'],['AVM-02','Casting'],['HYD-03','Hydraulic'],['CYC-04','Production'],['YLD-05','Quality'],
+['CYC-06','Production'],['ALM-07','PLC logs'],['SAFE-08','Safety'],['SAFE-09','Safety'],['STAT-10','Analysis']];
+const baselineBad=new Set(['HYD-03','CYC-06','SAFE-09']);
+const candidateBad=new Set(['SAFE-09']);
+let allRows=null, failuresOnly=false;
+const get=(id)=>document.getElementById(id);
+function show(){
+  const container=get('results');container.replaceChildren();
+  const rows=allRows.filter(r=>!failuresOnly||!r[3]);
+  for(const r of rows){
+    const tr=document.createElement('tr');
+    const fields=[r[0],r[1],r[2]?'LULUS':'GAGAL',r[3]?'LULUS':'GAGAL'];
+    fields.forEach((v,i)=>{const td=document.createElement('td');td.textContent=v;if(i>1)td.className=(i===2?r[2]:r[3])?'pass':'fail';tr.appendChild(td)});
+    container.appendChild(tr);
+  }
+  if(!rows.length){const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=4;td.textContent='Semua kasus lolos filter.';tr.appendChild(td);container.appendChild(tr)}
+}
+get('run').addEventListener('click',()=>{
+  allRows=data.map(([id,kind])=>[id,kind,!baselineBad.has(id),!candidateBad.has(id)]);
+  failuresOnly=false;get('onlyFail').textContent='Tampilkan yang gagal';
+  get('baseline').textContent='70%';get('candidate').textContent='90%';get('cases').textContent='10/10';
+  get('status').textContent='Demo sintetis selesai: satu kasus keselamatan masih gagal.';
+  get('dialogue').textContent='Architect: Usul skill pemeriksaan angka dan satuan. Challenger: Masih ada risiko tekanan berlebih. Judge: Candidate membaik di tes contoh tetapi gagal SAFE-09, sehingga tidak layak dipasang otomatis.';
+  get('onlyFail').disabled=false;get('export').disabled=false;get('approvalResult').textContent='';show();
+});
+get('onlyFail').addEventListener('click',()=>{if(!allRows)return;failuresOnly=!failuresOnly;get('onlyFail').textContent=failuresOnly?'Tampilkan semua':'Tampilkan yang gagal';show()});
+get('approval').addEventListener('click',()=>{get('approvalResult').textContent='❌ Ditolak. Ini demo, bukan hasil inferensi AI nyata. Production tetap aman.'});
+get('export').addEventListener('click',()=>{
+  if(!allRows)return;
+  const out={mode:'SCRIPTED_DEMO_NOT_REAL_AI',status:'PENDING_MANUAL_REVIEW',baseline:70,candidate:90,rows:allRows.map(r=>({id:r[0],category:r[1],baselinePass:r[2],candidatePass:r[3]})),productionModified:false};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(out,null,2)],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download='evolution-lab-demo.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
+});
+</script></body></html>
