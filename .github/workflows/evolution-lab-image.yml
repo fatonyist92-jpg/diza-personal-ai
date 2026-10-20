@@ -6,8 +6,10 @@ on:
     paths:
       - '.github/workflows/evolution-lab-image.yml'
       - 'diza-live/railway/Dockerfile'
-      - 'experiments/evolution-lab/**'
   workflow_dispatch:
+concurrency:
+  group: evolution-lab-image-acceptance
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -23,6 +25,7 @@ jobs:
           docker run --rm --entrypoint sh evolution-lab:acceptance -c '
             test -s /opt/bloks/dist/evolution-lab/index.html &&
             test -s /opt/bloks/server/evolution-lab-api.mjs &&
+            test -s /opt/bloks/dist/evolution-lab/client.js &&
             grep -q "api/evolution-lab" /opt/bloks/server/index.ts &&
             grep -q "Gemini API" /opt/bloks/dist/evolution-lab/index.html
           '
