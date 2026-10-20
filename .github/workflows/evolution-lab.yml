@@ -27,5 +27,12 @@ jobs:
           node --check experiments/evolution-lab/lab.mjs
           node --check experiments/evolution-lab/evolution-lab-api.mjs
           node --check experiments/evolution-lab/patch-evolution-lab.mjs
+      - name: Verify route insertion against exact pinned upstream Bloks commit
+        run: |
+          curl --fail --silent --show-error --location --retry 2 --max-time 45 \
+            https://raw.githubusercontent.com/hamedgitty/bloks/ba36e7604e5c283bbebed4e4f99d3273f92ec0ec/server/index.ts \
+            -o /tmp/evolution-index.ts
+          EVOLUTION_LAB_PATCH_TARGET=/tmp/evolution-index.ts node experiments/evolution-lab/patch-evolution-lab.mjs
+          grep -F 'path.startsWith("/api/evolution-lab/")' /tmp/evolution-index.ts
       - name: Run deterministic demo (no API, no credentials, no deployment)
         run: node experiments/evolution-lab/lab.mjs demo
