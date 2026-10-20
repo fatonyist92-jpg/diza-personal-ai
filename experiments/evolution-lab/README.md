@@ -26,7 +26,7 @@ The demo is scripted, not a real AI inference. Expected synthetic illustration: 
 GEMINI_API_KEY is read from the process environment. Do not put it in code, commits, or GitHub issues.
 
 ~~~sh
-GEMINI_API_KEY=your_key node experiments/evolution-lab/lab.mjs real --confirm-api --model gemini-2.5-flash-lite
+GEMINI_API_KEY=your_key node experiments/evolution-lab/lab.mjs real --confirm-api --model gemini-3.1-flash-lite
 ~~~
 
 WARNING: this makes approximately 23 external API calls (2 design roles + 20 case responses + 1 judge). It may consume quota or incur provider charges depending on the account. Google AI Pro subscription does not itself guarantee free Gemini API usage. To use fewer requests while testing, add --limit 2 (but such a run cannot be approved).
@@ -47,3 +47,21 @@ Demo runs are ineligible for approval. Approval only marks a report as APPROVED_
 The MVP demonstrates an offline reproducible scoring pipeline and an opt-in real 3-role model pipeline. It is NOT YET a Bloks UI panel, persistent Room, or autonomous skill self-modification. Before integration, add an authenticated lab endpoint, UI, per-agent quota settings, isolated data directory, and approval UI inside a separate staging environment. Keep the production volume and keys isolated.
 
 The original pinned live deployment is commit 63496ba828e2b719625faeabe849f970818ac9ee on diza-live-railway-free. Do not change that branch, the production Railway service, volume, engine configuration, UI, or server during this experiment.
+
+## Integrated Railway build (experimental branch only)
+
+The optional branch-only Docker additions place the authenticated dashboard at `/evolution-lab/index.html` and an API under `/api/evolution-lab/`.
+The API uses Bloks pairing/authentication, explicitly refuses agent tokens and shared-room members, and uses the server's existing `GEMINI_API_KEY` without exposing the key to the browser.
+Runs are limited to one active job and one real model run per UTC day. Full real evaluation uses 23 Gemini API calls; the user must confirm in the UI.
+All reports go to `/home/node/.bloks/evolution-lab/reports`, an independent subdirectory. A completed report survives deployment with the existing Railway volume. This does not modify chats, agents, or their memories.
+Demo cannot receive approval, and real candidate approval requires >=90% with zero regressions and all safety cases passed. Approval never installs a skill.
+
+**Important:** Merely committing this branch does not deploy it to Railway. Production remains on its previous immutable deployment until an explicitly authorized release.
+
+### Test
+
+```sh
+node --test experiments/evolution-lab/lab.test.mjs experiments/evolution-lab/evolution-lab-api.test.mjs
+```
+
+GitHub Actions also checks the security-route patch on the exact pinned upstream Bloks source.
