@@ -1,0 +1,28 @@
+name: Evolution Lab experimental Docker acceptance
+on:
+  push:
+    branches:
+      - experiment-evolution-lab
+    paths:
+      - '.github/workflows/evolution-lab-image.yml'
+      - 'diza-live/railway/Dockerfile'
+      - 'experiments/evolution-lab/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  image-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build experimental Railway image (no deployment, no API keys)
+        run: docker build --progress=plain --file diza-live/railway/Dockerfile --tag evolution-lab:acceptance .
+      - name: Verify lab assets inside built image
+        run: |
+          docker run --rm --entrypoint sh evolution-lab:acceptance -c '
+            test -s /opt/bloks/dist/evolution-lab/index.html &&
+            test -s /opt/bloks/server/evolution-lab-api.mjs &&
+            grep -q "api/evolution-lab" /opt/bloks/server/index.ts &&
+            grep -q "Gemini API" /opt/bloks/dist/evolution-lab/index.html
+          '
