@@ -1,7 +1,7 @@
 // Version-pinned Project X route injection. Additive only.
 // Runs after Bloks authentication and member segregation checks.
 import { readFileSync, writeFileSync } from 'node:fs';
-const file='/opt/bloks/server/index.ts';
+const file=process.env.EVOLUTION_LAB_PATCH_TARGET || '/opt/bloks/server/index.ts';
 const current=readFileSync(file,'utf8');
 const anchor='  try {\n    // ── events stream ──';
 if (current.split(anchor).length!==2) throw Error('Evolution Lab security anchor missing or duplicate; abort build');
