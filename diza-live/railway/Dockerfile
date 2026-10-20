@@ -39,6 +39,7 @@ RUN pnpm install --frozen-lockfile
 # Experiment branch only: put the standalone offline lab dashboard under /evolution-lab/index.html.
 # Does not alter Bloks application code or enable any lab API in production.
 COPY experiments/evolution-lab/dashboard-live.html /opt/bloks/public/evolution-lab/index.html
+COPY experiments/evolution-lab/client.js /opt/bloks/public/evolution-lab/client.js
 # Codex CLI is required by the upstream Bloks Codex app-server driver.
 # Pin CLI to published stable versions, not alphas or an unbounded latest.
 RUN npm install -g @openai/codex@0.162.1 && codex --version
